@@ -447,6 +447,124 @@
             </div>
           </div>
 
+          <!-- TAB content: ANNOUNCEMENTS & STREAMING (Self-contained) -->
+          <div id="tab-content-announcements" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Share Live & Game Announcements</h3>
+                <p class="text-xs text-gray-400">Bagikan info mabar game atau live streaming dengan tombol link interaktif ke Discord</p>
+              </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Inputs Panel (Left) -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="announce-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="announce-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  <p class="text-[10px] text-gray-500">Pilih channel pengumuman di Discord.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="announce-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Pengumuman (Title)</label>
+                  <input type="text" id="announce-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="🔴 LIVE STREAMING SEKARANG!">
+                </div>
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                    <label for="announce-description" class="text-xs font-semibold text-gray-400 tracking-wider">Pesan Pengumuman</label>
+                    <span class="text-[9px] text-gray-500 font-mono">Mendukung Markdown Discord</span>
+                  </div>
+                  <textarea id="announce-description" rows="5" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Halo guys! Saya sedang streaming game favorit kita di Twitch. Klik tombol di bawah untuk join!"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-btn-label" class="text-xs font-semibold text-gray-400 tracking-wider">Label Tombol Link</label>
+                    <input type="text" id="announce-btn-label" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="📺 Tonton Live Stream">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-btn-url" class="text-xs font-semibold text-gray-400 tracking-wider">URL Tombol Link (Tautan Game/Stream)</label>
+                    <input type="url" id="announce-btn-url" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://twitch.tv/username">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Embed (Hex)</label>
+                    <div class="flex gap-2">
+                      <input type="color" id="announce-color-picker" class="w-12 h-11 rounded-xl bg-transparent border border-white/10 cursor-pointer" value="#F04747">
+                      <input type="text" id="announce-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#F04747" placeholder="#F04747">
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-thumbnail" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Thumbnail (Kanan Atas)</label>
+                    <input type="url" id="announce-thumbnail" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/stream-logo.png">
+                  </div>
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                  <label for="announce-banner" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Banner (Bagian Bawah)</label>
+                  <input type="url" id="announce-banner" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/banner.jpg">
+                </div>
+                
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="sendAnnouncement()"
+                    id="send-announce-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 hover:brightness-110 shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-bullhorn"></i> Kirim Pengumuman
+                  </button>
+                </div>
+              </div>
+
+              <!-- Preview Panel (Right) -->
+              <div class="w-full lg:w-96 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Announcement Preview</h3>
+                <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                  <div class="flex gap-3">
+                    <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                      <i class="fa-solid fa-robot text-lg text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1.5">
+                        <span class="font-semibold text-white">Maya Bot</span>
+                        <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                        <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                      </div>
+                      
+                      <!-- EMBED MOCK -->
+                      <div id="announce-preview-card" class="bg-discord-embed max-w-[450px] border-l-4 border-[#F04747] rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                        <div class="flex gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h4 id="announce-preview-title" class="font-bold text-white text-sm mb-2">🔴 LIVE STREAMING SEKARANG!</h4>
+                            <p id="announce-preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed">Tulis pesan pengumuman di panel kiri...</p>
+                          </div>
+                          <div id="announce-preview-thumb-container" class="w-14 h-14 shrink-0 hidden">
+                            <img id="announce-preview-thumb" src="" alt="Thumbnail" class="w-full h-full rounded object-cover">
+                          </div>
+                        </div>
+                        <div id="announce-preview-banner-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                          <img id="announce-preview-banner" src="" alt="Banner" class="w-full h-full object-cover">
+                        </div>
+                        <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                          <span>Maya Bot</span>
+                          <span>•</span>
+                          <span>Hari ini pukul 10:00</span>
+                        </div>
+                      </div>
+                      
+                      <!-- MOCK BUTTON LINK -->
+                      <div id="announce-preview-btn-container" class="mt-2 hidden">
+                        <span id="announce-preview-btn" class="inline-block px-4 py-1.5 bg-[#4f545c] hover:brightness-110 cursor-pointer text-white font-medium text-[11px] rounded transition-all">📺 Tonton Live Stream</span>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- TAB content: WARNINGS LOG (Self-contained) -->
           <div id="tab-content-warnings" class="tab-pane hidden space-y-4">
             <div class="flex justify-between items-center">
