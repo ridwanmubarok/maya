@@ -163,7 +163,7 @@ export function startDashboard(client: MayaClient) {
   // Send custom embed from dashboard to a channel (Requires Auth)
   app.post("/api/configs/:guildId/send-embed", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
-    const { channelId, title, description, color, bannerUrl, thumbnailUrl, buttonLabel, buttonUrl } = req.body;
+    const { channelId, title, description, color, bannerUrl, thumbnailUrl, buttonLabel, buttonUrl, mention } = req.body;
 
     if (!channelId || !description) {
       return res.status(400).json({ error: "Channel dan Deskripsi wajib diisi." });
@@ -219,7 +219,15 @@ export function startDashboard(client: MayaClient) {
         components.push(row);
       }
 
-      await textChannel.send({ embeds: [embed], components });
+      // Handle mentions
+      let content = undefined;
+      if (mention === "everyone") {
+        content = "@everyone";
+      } else if (mention === "here") {
+        content = "@here";
+      }
+
+      await textChannel.send({ content, embeds: [embed], components });
 
       res.json({ success: true });
       logger.info(`Dashboard: Mengirim embed kustom ke channel ${channelId} di guild ${guildId}.`);
