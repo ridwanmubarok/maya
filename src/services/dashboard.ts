@@ -5,6 +5,7 @@ import { prisma } from "./database";
 import { getMusicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { createMabarEmbed, createMabarButtons } from "./mabarManager";
 
 const app = express();
 app.use(express.json());
@@ -381,6 +382,126 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error(`Error deleting role ${roleId} for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal menghapus role. Pastikan bot memiliki wewenang (posisi role bot di atas role tersebut)." });
+    }
+  });
+
+  // Get all active mabar schedules for a guild (Requires Auth)
+  app.get("/api/mabar/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const sessions = await prisma.gameSession.findMany({
+        where: { guildId },
+        orderBy: { createdAt: "desc" }
+      });
+      res.json({ sessions });
+    } catch (error) {
+      logger.error(`Error fetching mabar sessions for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil daftar mabar." });
+    }
+  });
+
+  // Create a new mabar schedule from dashboard (Requires Auth)
+  app.post("/api/mabar/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { channelId, game, description, playTime, maxPlayers } = req.body;
+
+    if (!channelId || !game || !playTime || !description) {
+      return res.status(400).json({ error: "Channel, Game, Waktu, dan Deskripsi wajib diisi." });
+    }
+
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
+
+      const channel = guild.channels.cache.get(channelId);
+      if (!channel || !channel.isTextBased()) {
+        return res.status(404).json({ error: "Channel teks tidak ditemukan." });
+      }
+
+      const textChannel = channel as TextChannel;
+
+      // Create a temporary session in database
+      const tempSession = await prisma.gameSession.create({
+        data: {
+          guildId,
+          channelId,
+          messageId: `temp_${Date.now()}`,
+          game,
+          description,
+          playTime,
+          maxPlayers: maxPlayers ? Number(maxPlayers) : null,
+          creatorId: "Dashboard Admin",
+          participants: [] // Empty list to start or with dummy
+        }
+      });
+
+      // Construct Embed and Buttons
+      const embed = createMabarEmbed({
+        id: tempSession.id,
+        game,
+        description,
+        playTime,
+        maxPlayers: maxPlayers ? Number(maxPlayers) : null,
+        creatorId: "Dashboard Admin",
+        participants: []
+      });
+
+      const buttons = createMabarButtons(tempSession.id);
+
+      // Send message to Discord
+      const msg = await textChannel.send({
+        embeds: [embed],
+        components: [buttons]
+      });
+
+      // Update message ID in DB
+      const session = await prisma.gameSession.update({
+        where: { id: tempSession.id },
+        data: { messageId: msg.id }
+      });
+
+      res.json({ success: true, session });
+      logger.info(`Dashboard: Berhasil menjadwalkan mabar ${game} di channel ${channelId} untuk guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error creating mabar from dashboard for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal membuat jadwal mabar." });
+    }
+  });
+
+  // Delete a mabar schedule from dashboard (Requires Auth)
+  app.delete("/api/mabar/:guildId/:sessionId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, sessionId } = req.params;
+    try {
+      const session = await prisma.gameSession.findUnique({
+        where: { id: sessionId }
+      });
+
+      if (!session) return res.status(404).json({ error: "Jadwal mabar tidak ditemukan." });
+
+      // Try deleting the message from Discord channel first
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) {
+        const channel = guild.channels.cache.get(session.channelId);
+        if (channel && channel.isTextBased()) {
+          try {
+            const msg = await channel.messages.fetch(session.messageId);
+            if (msg) await msg.delete();
+          } catch (err) {
+            logger.error(`Failed to delete mabar message ${session.messageId} from Discord:`, err);
+          }
+        }
+      }
+
+      // Delete database record
+      await prisma.gameSession.delete({
+        where: { id: sessionId }
+      });
+
+      res.json({ success: true });
+      logger.info(`Dashboard: Berhasil menghapus mabar ID ${sessionId} untuk guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error deleting mabar session ${sessionId} for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menghapus jadwal mabar." });
     }
   });
 

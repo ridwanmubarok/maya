@@ -213,6 +213,9 @@
             <button onclick="switchTab('announcements')" id="tab-btn-announcements" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
               <i class="fa-solid fa-bullhorn"></i> Share Live / Game
             </button>
+            <button onclick="switchTab('mabar')" id="tab-btn-mabar" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-gamepad"></i> Mabar Scheduler
+            </button>
             <button onclick="switchTab('roles')" id="tab-btn-roles" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
               <i class="fa-solid fa-tags"></i> Roles Manager
             </button>
@@ -565,6 +568,80 @@
             </div>
           </div>
 
+          <!-- TAB content: MABAR SCHEDULER (Self-contained) -->
+          <div id="tab-content-mabar" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Mabar Game Scheduler</h3>
+                <p class="text-xs text-gray-400">Jadwalkan sesi mabar dengan tombol RSVP (Join/Leave) interaktif di Discord</p>
+              </div>
+              <button onclick="loadMabar()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Jadwal
+              </button>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Create Schedule Form (Left) -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="mabar-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  <p class="text-[10px] text-gray-500">Pilih channel Discord untuk memposting undangan mabar.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-game" class="text-xs font-semibold text-gray-400 tracking-wider">Nama Game</label>
+                  <input type="text" id="mabar-game" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Mobile Legends, Valorant, GTA V">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="mabar-time" class="text-xs font-semibold text-gray-400 tracking-wider">Waktu Pelaksanaan (Text)</label>
+                    <input type="text" id="mabar-time" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Malam Ini jam 20.00 WIB">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="mabar-slots" class="text-xs font-semibold text-gray-400 tracking-wider">Maksimal Pemain (Slots, opsional)</label>
+                    <input type="number" id="mabar-slots" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: 5, 10 (Kosongkan jika tak terbatas)">
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-description" class="text-xs font-semibold text-gray-400 tracking-wider">Deskripsi / Catatan Sesi</label>
+                  <textarea id="mabar-description" rows="4" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Contoh: Mabar push rank sampai Mythic, butuh Role Roamer & Goldlaner!"></textarea>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="createMabar()"
+                    id="create-mabar-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 hover:brightness-110 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-calendar-plus"></i> Jadwalkan Mabar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Scheduled List Panel (Right) -->
+              <div class="w-full lg:w-[480px] space-y-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Jadwal Mabar Aktif</h3>
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                          <th class="p-3">Game</th>
+                          <th class="p-3">Waktu</th>
+                          <th class="p-3">Pemain</th>
+                          <th class="p-3 text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody id="mabar-table-body">
+                        <!-- Mabar schedules load dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- TAB content: WARNINGS LOG (Self-contained) -->
           <div id="tab-content-warnings" class="tab-pane hidden space-y-4">
             <div class="flex justify-between items-center">
@@ -777,6 +854,13 @@
     const announceBtnLabelInput = document.getElementById('announce-btn-label');
     const announceBtnUrlInput = document.getElementById('announce-btn-url');
 
+    // Form Inputs Mabar
+    const mabarChannelSelect = document.getElementById('mabar-channel');
+    const mabarGameInput = document.getElementById('mabar-game');
+    const mabarTimeInput = document.getElementById('mabar-time');
+    const mabarSlotsInput = document.getElementById('mabar-slots');
+    const mabarDescriptionInput = document.getElementById('mabar-description');
+
     // Form Inputs New Role
     const newRoleNameInput = document.getElementById('new-role-name');
     const newRoleColorInput = document.getElementById('new-role-color');
@@ -970,6 +1054,9 @@
         // Render announcements channels dropdown
         announceChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
         
+        // Render mabar channels dropdown
+        mabarChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+        
         // Set input values welcome
         welcomeTitleInput.value = config.welcomeTitle;
         welcomeMessageInput.value = config.welcomeMessage;
@@ -1008,9 +1095,9 @@
       });
       document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
 
-      // Hide save-bar for warnings, music, rules, roles, and announcements tabs, show for forms configs
+      // Hide save-bar for warnings, music, rules, roles, announcements, and mabar tabs, show for forms configs
       const saveBar = document.getElementById('save-bar');
-      if (tabId === 'warnings' || tabId === 'music' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements') {
+      if (tabId === 'warnings' || tabId === 'music' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar') {
         saveBar.classList.add('hidden');
       } else {
         saveBar.classList.remove('hidden');
@@ -1028,6 +1115,8 @@
         loadRoles();
       } else if (tabId === 'announcements') {
         updateAnnouncePreview();
+      } else if (tabId === 'mabar') {
+        loadMabar();
       } else {
         stopMusicPolling();
       }
@@ -1555,6 +1644,121 @@
       } finally {
         sendBtn.disabled = false;
         sendBtn.innerHTML = originalHtml;
+      }
+    }
+
+    // --- MABAR SCHEDULER LOGIC ---
+    async function loadMabar() {
+      const tbody = document.getElementById('mabar-table-body');
+      tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500 italic"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Memuat jadwal...</td></tr>`;
+
+      try {
+        const response = await fetch(`/api/mabar/${selectedGuildId}`, {
+          headers: { 'Authorization': token }
+        });
+        if (!response.ok) throw new Error();
+        const { sessions } = await response.json();
+
+        if (sessions.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500 italic">Tidak ada mabar aktif saat ini.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = sessions.map(session => {
+          const currentCount = session.participants ? session.participants.length : 0;
+          const maxStr = session.maxPlayers ? `/${session.maxPlayers}` : '';
+          return `
+            <tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+              <td class="p-3 font-semibold text-white">${session.game}</td>
+              <td class="p-3 text-gray-300 font-medium">${session.playTime}</td>
+              <td class="p-3 text-violet-400 font-bold">${currentCount}${maxStr} Pemain</td>
+              <td class="p-3 text-center">
+                <button 
+                  onclick="deleteMabar('${session.id}')"
+                  class="px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 hover:text-white transition-all font-medium text-[10px]"
+                >
+                  <i class="fa-solid fa-trash-can mr-1"></i> Batal
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-400 italic">Gagal mengambil daftar mabar.</td></tr>`;
+      }
+    }
+
+    async function createMabar() {
+      const createBtn = document.getElementById('create-mabar-btn');
+      const originalHtml = createBtn.innerHTML;
+
+      if (!mabarChannelSelect.value) {
+        showToast('Error', 'Silakan pilih channel target terlebih dahulu.', 'error');
+        return;
+      }
+      if (!mabarGameInput.value.trim() || !mabarTimeInput.value.trim() || !mabarDescriptionInput.value.trim()) {
+        showToast('Error', 'Nama Game, Waktu, dan Deskripsi wajib diisi.', 'error');
+        return;
+      }
+
+      createBtn.disabled = true;
+      createBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-sm"></i> Menjadwalkan...`;
+
+      const payload = {
+        channelId: mabarChannelSelect.value,
+        game: mabarGameInput.value,
+        playTime: mabarTimeInput.value,
+        maxPlayers: mabarSlotsInput.value ? Number(mabarSlotsInput.value) : null,
+        description: mabarDescriptionInput.value
+      };
+
+      try {
+        const response = await fetch(`/api/mabar/${selectedGuildId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          showToast('Sukses', 'Mabar berhasil dijadwalkan!', 'success');
+          mabarGameInput.value = '';
+          mabarTimeInput.value = '';
+          mabarSlotsInput.value = '';
+          mabarDescriptionInput.value = '';
+          loadMabar();
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal menjadwalkan mabar.');
+        }
+      } catch (error) {
+        showToast('Gagal Menjadwalkan', error.message || 'Gagal terhubung ke API server.', 'error');
+      } finally {
+        createBtn.disabled = false;
+        createBtn.innerHTML = originalHtml;
+      }
+    }
+
+    async function deleteMabar(sessionId) {
+      if (!confirm('Apakah Anda yakin ingin membatalkan/menghapus jadwal mabar ini? Undangan di Discord juga akan dihapus.')) return;
+
+      try {
+        const response = await fetch(`/api/mabar/${selectedGuildId}/${sessionId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': token }
+        });
+
+        if (response.ok) {
+          showToast('Sukses', 'Jadwal mabar berhasil dibatalkan.', 'success');
+          loadMabar();
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal membatalkan mabar.');
+        }
+      } catch (error) {
+        showToast('Gagal Membatalkan', error.message || 'Gagal terhubung ke API server.', 'error');
       }
     }
 

@@ -34,3 +34,17 @@ model WarnLog {
 
   @@index([userId, guildId])
 }
+
+model GameSession {
+  id           String   @id @default(uuid())
+  guildId      String
+  channelId    String
+  messageId    String   @unique
+  game         String
+  description  String
+  playTime     String
+  maxPlayers   Int?
+  creatorId    String
+  participants String[]
+  createdAt    DateTime @default(now())
+}
