@@ -16,21 +16,23 @@ COPY . .
 RUN npm run db:generate
 RUN npm run build
 
+# Prune devDependencies to keep the node_modules clean of dev tools
+RUN npm prune --omit=dev
+
 # Production Stage
 FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
 # Install runtime dependencies for audio streaming (ffmpeg)
-RUN apk add --no-cache ffmpeg libtool autoconf automake
+RUN apk add --no-cache ffmpeg
 
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --omit=dev
-
+# Copy dependencies and dist output directly from the builder stage
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3000
 
