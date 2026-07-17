@@ -3,13 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Install build dependencies for native node modules (libsodium, opus, etc.)
-RUN apk add --no-cache python3 make g++ git
-
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Use BuildKit cache mount to speed up downloads, and force NODE_ENV=development to ensure devDependencies (tsc, prisma) are installed
+# Force NODE_ENV=development to ensure devDependencies (tsc, prisma) are installed
 RUN --mount=type=cache,target=/root/.npm \
     NODE_ENV=development npm install
 
@@ -18,7 +15,7 @@ COPY . .
 RUN npm run db:generate
 RUN npm run build
 
-# Prune devDependencies to keep the node_modules clean of dev tools, leveraging npm cache
+# Prune devDependencies to keep node_modules minimal
 RUN --mount=type=cache,target=/root/.npm \
     npm prune --omit=dev
 
