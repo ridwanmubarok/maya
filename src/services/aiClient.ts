@@ -19,13 +19,21 @@ export function initAI() {
   }
 }
 
-export async function askGemini(prompt: string): Promise<string> {
-  if (!aiModel) {
+export async function askGemini(prompt: string, personality?: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     return "Maaf, fitur AI tidak dapat diakses karena Gemini API Key belum dikonfigurasi.";
   }
 
   try {
-    const result = await aiModel.generateContent({
+    const ai = new GoogleGenerativeAI(apiKey);
+    // Instantiate model with optional systemInstruction for custom personality
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: personality
+    });
+
+    const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         maxOutputTokens: 2000,

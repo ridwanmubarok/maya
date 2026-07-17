@@ -73,6 +73,7 @@ export function startDashboard(client: MayaClient) {
           welcomeMessage: "Selamat datang **{username}** di **{guildName}**!\n\nKamu adalah member ke-**{memberCount}** di server ini.\nJangan lupa untuk membaca aturan server dan bersenang-senang!",
           welcomeImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
           welcomeThumbnail: true,
+          aiPersonality: "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -101,7 +102,8 @@ export function startDashboard(client: MayaClient) {
       welcomeTitle, 
       welcomeMessage, 
       welcomeImage, 
-      welcomeThumbnail 
+      welcomeThumbnail,
+      aiPersonality
     } = req.body;
 
     try {
@@ -112,7 +114,8 @@ export function startDashboard(client: MayaClient) {
           welcomeTitle: welcomeTitle !== undefined ? welcomeTitle : "👋 Selamat Datang!",
           welcomeMessage: welcomeMessage !== undefined ? welcomeMessage : "",
           welcomeImage: welcomeImage !== undefined ? welcomeImage : "",
-          welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true
+          welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true,
+          aiPersonality: aiPersonality !== undefined ? aiPersonality : "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu."
         },
         create: {
           guildId,
@@ -120,7 +123,8 @@ export function startDashboard(client: MayaClient) {
           welcomeTitle: welcomeTitle || "👋 Selamat Datang!",
           welcomeMessage: welcomeMessage || "",
           welcomeImage: welcomeImage || "",
-          welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true
+          welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true,
+          aiPersonality: aiPersonality || "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu."
         }
       });
 

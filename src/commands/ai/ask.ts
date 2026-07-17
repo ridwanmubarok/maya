@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command } from "../../types";
 import { askGemini } from "../../services/aiClient";
+import { prisma } from "../../services/database";
 import { createEmbed } from "../../utils/embeds";
 
 const command: Command = {
@@ -15,12 +16,23 @@ const command: Command = {
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     const question = interaction.options.getString("pertanyaan", true);
+    const guildId = interaction.guildId;
 
     // Defer reply because AI takes some time to generate response
     await interaction.deferReply();
 
     try {
-      const response = await askGemini(question);
+      let personality: string | undefined;
+      if (guildId) {
+        const config = await prisma.guildConfig.findUnique({
+          where: { guildId }
+        });
+        if (config?.aiPersonality) {
+          personality = config.aiPersonality;
+        }
+      }
+
+      const response = await askGemini(question, personality);
       const embed = createEmbed.ai(question, response);
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
