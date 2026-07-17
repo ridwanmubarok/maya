@@ -52,10 +52,11 @@ export class GuildMusicManager {
 
     this.connection.on(VoiceConnectionStatus.Disconnected, async () => {
       try {
-        // Try to reconnect if temporarily disconnected
+        // Try to reconnect if temporarily disconnected, otherwise destroy after 2 seconds
         await Promise.race([
           new Promise((resolve) => this.connection?.once(VoiceConnectionStatus.Signalling, resolve)),
           new Promise((resolve) => this.connection?.once(VoiceConnectionStatus.Connecting, resolve)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
         ]);
       } catch (error) {
         // Real disconnect
