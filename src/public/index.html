@@ -84,11 +84,17 @@
 
     /* Animations */
     .fade-in {
-      animation: fadeIn 0.4s ease-out forwards;
+      animation: fadeIn 0.3s ease-out forwards;
     }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tab-btn.active {
+      background: rgba(88, 101, 242, 0.15);
+      color: white;
+      border-color: #5865F2;
     }
   </style>
 </head>
@@ -137,7 +143,7 @@
         </div>
         <div>
           <h1 class="font-outfit text-xl font-bold tracking-wide">Maya Backoffice</h1>
-          <p class="text-[10px] text-discord-blurple font-semibold tracking-wider uppercase">Live Dashboard</p>
+          <p class="text-[10px] text-discord-blurple font-semibold tracking-wider uppercase">Live Control & Dashboard</p>
         </div>
       </div>
       
@@ -174,173 +180,233 @@
 
       <!-- CONTENT AREA -->
       <main id="main-content" class="flex-1 p-6 lg:p-8 overflow-y-auto hidden">
-        <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 fade-in">
+        <div class="max-w-6xl mx-auto flex flex-col gap-6 fade-in">
           
-          <!-- CONFIG FORM (LEFT) -->
-          <section class="flex-1 flex flex-col gap-6">
-            <div class="flex flex-col">
+          <!-- SERVER BANNER HEADER -->
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-4">
+            <div>
               <h2 id="current-guild-name" class="font-outfit text-3xl font-bold tracking-tight text-white">Nama Server</h2>
-              <p class="text-gray-400 text-sm mt-1">Sesuaikan pesan sambutan otomatis untuk server ini</p>
+              <p class="text-gray-400 text-sm mt-1">Kelola sapaan, moderasi automod, log warning, dan pemutar musik</p>
             </div>
+          </div>
+
+          <!-- TAB SELECTOR -->
+          <div class="flex flex-wrap gap-2 border-b border-white/5 pb-2">
+            <button onclick="switchTab('welcome')" id="tab-btn-welcome" class="tab-btn active px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-hand-sparkles"></i> Welcome Embed
+            </button>
+            <button onclick="switchTab('automod')" id="tab-btn-automod" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-user-shield"></i> Automod
+            </button>
+            <button onclick="switchTab('warnings')" id="tab-btn-warnings" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation"></i> Strike Logs
+            </button>
+            <button onclick="switchTab('music')" id="tab-btn-music" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-music"></i> Music Control
+            </button>
+            <button onclick="switchTab('ai')" id="tab-btn-ai" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-brain"></i> Gemini AI
+            </button>
+          </div>
+
+          <!-- GLOBAL FORM FOR SAVING CONFIGS (Covers Welcome, Automod, and AI Personality) -->
+          <form id="config-form" class="space-y-6">
             
-            <form id="config-form" class="space-y-5">
-              <!-- Welcome Channel -->
-              <div class="flex flex-col gap-2">
-                <label for="welcome-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Sapaan (Welcome Channel)</label>
-                <select 
-                  id="welcome-channel" 
-                  class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer"
-                >
-                  <option value="">-- Nonaktifkan Welcomer --</option>
-                  <!-- Dynamic Channels option -->
-                </select>
-              </div>
-
-              <!-- Welcome Title -->
-              <div class="flex flex-col gap-2">
-                <label for="welcome-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Sapaan</label>
-                <input 
-                  type="text" 
-                  id="welcome-title" 
-                  class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none"
-                  placeholder="👋 Selamat Datang!"
-                >
-              </div>
-
-              <!-- Welcome Message -->
-              <div class="flex flex-col gap-2">
-                <div class="flex justify-between items-center">
-                  <label for="welcome-message" class="text-xs font-semibold text-gray-400 tracking-wider">Pesan Sambutan</label>
-                  <span class="text-[10px] text-gray-500 font-mono">Format: {username}, {guildName}, {memberCount}</span>
+            <!-- TAB content: WELCOME -->
+            <div id="tab-content-welcome" class="tab-pane flex flex-col lg:flex-row gap-8">
+              <!-- WELCOME SETTINGS -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="welcome-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Sapaan (Welcome Channel)</label>
+                  <select id="welcome-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
                 </div>
-                <textarea 
-                  id="welcome-message" 
-                  rows="5"
-                  class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y"
-                  placeholder="Tulis sambutan Anda di sini..."
-                ></textarea>
-              </div>
-
-              <!-- Banner URL -->
-              <div class="flex flex-col gap-2">
-                <label for="welcome-image" class="text-xs font-semibold text-gray-400 tracking-wider">URL Banner Gambar (Embed Banner)</label>
-                <input 
-                  type="url" 
-                  id="welcome-image" 
-                  class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none"
-                  placeholder="https://example.com/image.jpg"
-                >
-              </div>
-
-              <!-- Toggle Thumbnail -->
-              <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
-                <div>
-                  <h4 class="text-sm font-semibold text-white">Tampilkan Avatar User</h4>
-                  <p class="text-xs text-gray-400">Tampilkan foto profil (thumbnail) member yang bergabung di sudut kanan</p>
+                <div class="flex flex-col gap-2">
+                  <label for="welcome-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Sapaan</label>
+                  <input type="text" id="welcome-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="👋 Selamat Datang!">
                 </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="welcome-thumbnail" class="sr-only peer" checked>
-                  <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
-                </label>
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                    <label for="welcome-message" class="text-xs font-semibold text-gray-400 tracking-wider">Pesan Sambutan</label>
+                    <span class="text-[9px] text-gray-500 font-mono">Format: {username}, {guildName}, {memberCount}</span>
+                  </div>
+                  <textarea id="welcome-message" rows="5" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Tulis sambutan Anda di sini..."></textarea>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="welcome-image" class="text-xs font-semibold text-gray-400 tracking-wider">URL Banner Gambar (Embed Banner)</label>
+                  <input type="url" id="welcome-image" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+                  <div>
+                    <h4 class="text-sm font-semibold text-white">Tampilkan Avatar User</h4>
+                    <p class="text-xs text-gray-400">Tampilkan foto profil (thumbnail) member yang bergabung di sudut kanan</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="welcome-thumbnail" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+                  </label>
+                </div>
               </div>
 
-              <!-- AI Configuration Divider -->
-              <div class="border-t border-white/10 pt-4 my-2">
-                <h3 class="font-outfit text-base font-semibold text-discord-blurple flex items-center gap-2 mb-3">
-                  <i class="fa-solid fa-brain"></i> Konfigurasi Gemini AI
-                </h3>
-              </div>
+              <!-- DISCORD PREVIEW (RIGHT SIDE) -->
+              <div class="w-full lg:w-96 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Discord Preview</h3>
+                <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                  <div class="flex gap-3">
+                    <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                      <i class="fa-solid fa-robot text-lg text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1.5">
+                        <span class="font-semibold text-white">Maya Bot</span>
+                        <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                        <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                      </div>
+                      <p class="mb-2 text-discord-text text-xs">Halo <span class="bg-discord-blurple/20 text-[#5865F2] hover:underline cursor-pointer font-medium px-1 rounded">@RidwanMubarok</span>, selamat datang!</p>
+                      
+                      <!-- EMBED MOCK -->
+                      <div class="bg-discord-embed max-w-[450px] border-l-4 border-emerald-500 rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                        <div class="flex gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h4 id="preview-title" class="font-semibold text-white text-sm mb-2">👋 Selamat Datang!</h4>
+                            <p id="preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed"></p>
+                          </div>
+                          <div id="preview-thumbnail-container" class="w-14 h-14 shrink-0">
+                            <img id="preview-thumbnail" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" class="w-full h-full rounded-full object-cover">
+                          </div>
+                        </div>
+                        <div id="preview-image-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                          <img id="preview-image" src="" alt="Banner" class="w-full h-full object-cover">
+                        </div>
+                        <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                          <span>Maya Bot</span>
+                          <span>•</span>
+                          <span>Hari ini pukul 10:00</span>
+                        </div>
+                      </div>
 
-              <!-- AI Personality -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB content: AUTOMOD -->
+            <div id="tab-content-automod" class="tab-pane hidden space-y-5 max-w-2xl">
+              <div class="flex flex-col gap-2">
+                <label for="automod-words" class="text-xs font-semibold text-gray-400 tracking-wider">Daftar Kata Kasar (Banned Words)</label>
+                <textarea id="automod-words" rows="3" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="anjing, babi, bangsat..."></textarea>
+                <p class="text-[10px] text-gray-500">Pisahkan setiap kata dengan tanda koma (,). Pesan yang berisi kata ini akan otomatis dihapus.</p>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label for="automod-max-strikes" class="text-xs font-semibold text-gray-400 tracking-wider">Batas Maksimal Strike</label>
+                  <input type="number" id="automod-max-strikes" min="1" max="10" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="3">
+                  <p class="text-[10px] text-gray-500">Batas pelanggaran kata kasar sebelum user di-mute otomatis.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="automod-mute-duration" class="text-xs font-semibold text-gray-400 tracking-wider">Durasi Mute/Timeout (Menit)</label>
+                  <input type="number" id="automod-mute-duration" min="1" max="1440" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="10">
+                  <p class="text-[10px] text-gray-500">Lama waktu timeout bagi pengguna setelah melebihi batas strike.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB content: AI PERSONALITY -->
+            <div id="tab-content-ai" class="tab-pane hidden space-y-5 max-w-2xl">
               <div class="flex flex-col gap-2">
                 <label for="ai-personality" class="text-xs font-semibold text-gray-400 tracking-wider">Kepribadian AI (System Prompt)</label>
-                <textarea 
-                  id="ai-personality" 
-                  rows="4"
-                  class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm"
-                  placeholder="Anda adalah Maya, asisten AI pintar..."
-                ></textarea>
-                <p class="text-[10px] text-gray-500">Tentukan instruksi sistem, karakter, gaya bicara, atau aturan bot saat merespon perintah `/ask`.</p>
+                <textarea id="ai-personality" rows="6" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Anda adalah Maya, asisten AI pintar..."></textarea>
+                <p class="text-[10px] text-gray-500">Karakter dasar, instruksi, dan aturan respon bot untuk perintah `/ask` di server ini.</p>
               </div>
+            </div>
 
-              <!-- Save Button -->
+            <!-- SAVE BAR: Visible for Welcome, Automod, and AI tabs -->
+            <div id="save-bar" class="pt-4 border-t border-white/5 flex justify-end">
               <button 
                 type="submit" 
                 id="save-btn" 
-                class="w-full bg-gradient-to-r from-discord-blurple to-indigo-600 hover:brightness-110 shadow-lg shadow-discord-blurple/20 hover:shadow-discord-blurple/30 transition-all text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
+                class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-discord-blurple to-indigo-600 hover:brightness-110 shadow-lg shadow-discord-blurple/20 hover:shadow-discord-blurple/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
               >
                 <i class="fa-solid fa-save"></i> Simpan Konfigurasi
               </button>
-            </form>
-          </section>
-          
-          <!-- LIVE PREVIEW (RIGHT) -->
-          <section class="w-full lg:w-96 flex flex-col gap-4">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Discord Preview</h3>
+            </div>
             
-            <!-- Discord Message Mock -->
-            <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
-              <div class="flex gap-3">
-                <!-- Bot Avatar -->
-                <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
-                  <i class="fa-solid fa-robot text-lg text-white"></i>
+          </form>
+
+          <!-- TAB content: WARNINGS LOG (Self-contained) -->
+          <div id="tab-content-warnings" class="tab-pane hidden space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Log Pelanggaran Strike</h3>
+                <p class="text-xs text-gray-400">Daftar pengguna yang terkena strike oleh moderasi manual atau automod</p>
+              </div>
+              <button onclick="loadWarnings()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Log
+              </button>
+            </div>
+            <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                      <th class="p-4">ID User</th>
+                      <th class="p-4">Alasan Pelanggaran</th>
+                      <th class="p-4">Moderator</th>
+                      <th class="p-4">Tanggal Kejadian</th>
+                      <th class="p-4 text-center">Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="warnings-table-body">
+                    <!-- Warnings logs load dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: MUSIC CONTROLLER (Self-contained, polls status) -->
+          <div id="tab-content-music" class="tab-pane hidden flex flex-col lg:flex-row gap-8">
+            <!-- Controls (Left) -->
+            <div class="flex-1 space-y-6">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Panel Kontrol Audio</h3>
+                <p class="text-xs text-gray-400">Kontrol langsung jalannya lagu di server Discord</p>
+              </div>
+              
+              <!-- Music Status Widget -->
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+                <div>
+                  <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Status Pemutaran</h4>
+                  <div id="music-status-display" class="font-outfit text-lg font-bold text-white mt-1">Membaca status...</div>
                 </div>
-                <!-- Message Body -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-1.5 mb-1.5">
-                    <span class="font-semibold text-white">Maya Bot</span>
-                    <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
-                    <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
-                  </div>
-                  
-                  <p class="mb-2 text-discord-text text-sm">Halo <span class="bg-discord-blurple/20 text-[#5865F2] hover:underline cursor-pointer font-medium px-1 rounded">@RidwanMubarok</span>, selamat datang!</p>
-                  
-                  <!-- Discord Embed Mock -->
-                  <div class="bg-discord-embed max-w-[450px] border-l-4 border-emerald-500 rounded-r flex flex-col p-4 shadow relative overflow-hidden">
-                    <div class="flex gap-4">
-                      <!-- Embed Main Content -->
-                      <div class="flex-1 min-w-0">
-                        <h4 id="preview-title" class="font-semibold text-white text-base mb-2">👋 Selamat Datang!</h4>
-                        <p id="preview-description" class="text-discord-text text-xs whitespace-pre-line leading-relaxed">
-                          Selamat datang **RidwanMubarok** di **Server Uji Coba**!
-                          
-                          Kamu adalah member ke-**42** di server ini.
-                          Jangan lupa untuk membaca aturan server dan bersenang-senang!
-                        </p>
-                      </div>
-                      
-                      <!-- Thumbnail (Right) -->
-                      <div id="preview-thumbnail-container" class="w-16 h-16 shrink-0">
-                        <img 
-                          id="preview-thumbnail" 
-                          src="https://cdn.discordapp.com/embed/avatars/0.png" 
-                          alt="User Avatar"
-                          class="w-full h-full rounded-full object-cover"
-                        >
-                      </div>
-                    </div>
-                    
-                    <!-- Banner Image -->
-                    <div id="preview-image-container" class="mt-3 rounded overflow-hidden max-h-48 border border-white/5 hidden">
-                      <img 
-                        id="preview-image" 
-                        src="" 
-                        alt="Welcome Banner"
-                        class="w-full h-full object-cover"
-                      >
-                    </div>
-                    
-                    <!-- Embed Footer/Timestamp -->
-                    <div class="mt-3 flex items-center gap-1 text-[10px] text-discord-muted">
-                      <span>Maya Bot</span>
-                      <span>•</span>
-                      <span>Hari ini pukul 10:00</span>
-                    </div>
-                  </div>
+                <!-- Controls buttons -->
+                <div class="flex gap-2">
+                  <button onclick="controlMusic('resume')" title="Resume" class="w-10 h-10 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/20 transition-all"><i class="fa-solid fa-play"></i></button>
+                  <button onclick="controlMusic('pause')" title="Pause" class="w-10 h-10 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/20 transition-all"><i class="fa-solid fa-pause"></i></button>
+                  <button onclick="controlMusic('skip')" title="Skip" class="w-10 h-10 rounded-xl bg-[#5865F2]/10 hover:bg-[#5865F2]/20 text-[#5865F2] flex items-center justify-center border border-[#5865F2]/20 transition-all"><i class="fa-solid fa-forward-step"></i></button>
+                  <button onclick="controlMusic('stop')" title="Stop" class="w-10 h-10 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/20 transition-all"><i class="fa-solid fa-stop"></i></button>
+                </div>
+              </div>
+
+              <!-- Current Playing Track Info -->
+              <div class="glass-panel p-6 rounded-2xl border border-white/5 space-y-4">
+                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Sedang Diputar (Now Playing)</h4>
+                <div id="current-track-info" class="flex flex-col gap-1">
+                  <!-- Dynamic Track details load here -->
+                  <div class="text-sm text-gray-500 italic">Tidak ada lagu yang sedang diputar.</div>
                 </div>
               </div>
             </div>
-          </section>
+
+            <!-- Queue list (Right) -->
+            <div class="w-full lg:w-96 space-y-4">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Antrean Lagu (Playlist Queue)</h3>
+              <div id="music-queue-list" class="glass-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-2 max-h-96 overflow-y-auto">
+                <!-- Dynamic Queue items -->
+                <div class="text-center py-6 text-gray-500 text-xs italic">Antrean kosong.</div>
+              </div>
+            </div>
+          </div>
 
         </div>
       </main>
@@ -362,6 +428,8 @@
     let token = localStorage.getItem('maya_passcode') || '';
     let selectedGuildId = '';
     let guilds = [];
+    let activeTab = 'welcome';
+    let musicPollInterval = null;
     
     const loginOverlay = document.getElementById('login-overlay');
     const appContainer = document.getElementById('app-container');
@@ -369,12 +437,19 @@
     const mainContent = document.getElementById('main-content');
     const emptyState = document.getElementById('empty-state');
     
-    // Form Inputs
+    // Form Inputs Welcome
     const welcomeChannelSelect = document.getElementById('welcome-channel');
     const welcomeTitleInput = document.getElementById('welcome-title');
     const welcomeMessageInput = document.getElementById('welcome-message');
     const welcomeImageInput = document.getElementById('welcome-image');
     const welcomeThumbnailCheckbox = document.getElementById('welcome-thumbnail');
+
+    // Form Inputs Automod
+    const automodWordsInput = document.getElementById('automod-words');
+    const automodMaxStrikesInput = document.getElementById('automod-max-strikes');
+    const automodMuteDurationInput = document.getElementById('automod-mute-duration');
+
+    // Form Inputs AI
     const aiPersonalityInput = document.getElementById('ai-personality');
     
     // Embed Previews
@@ -402,7 +477,7 @@
       location.reload();
     });
 
-    // Form Submit
+    // Form Submit (covers Welcome, Automod, AI configs)
     document.getElementById('config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       await saveConfig();
@@ -531,6 +606,9 @@
       const guild = guilds.find(g => g.id === guildId);
       document.getElementById('current-guild-name').innerText = guild.name;
       
+      // Reset music poll if running
+      stopMusicPolling();
+      
       try {
         const response = await fetch(`/api/configs/${guildId}`, {
           headers: { 'Authorization': token }
@@ -546,12 +624,22 @@
           ${channels.map(c => `<option value="${c.id}" ${config.welcomeChannelId === c.id ? 'selected' : ''}>#${c.name}</option>`).join('')}
         `;
         
-        // Set input values
+        // Set input values welcome
         welcomeTitleInput.value = config.welcomeTitle;
         welcomeMessageInput.value = config.welcomeMessage;
         welcomeImageInput.value = config.welcomeImage || '';
         welcomeThumbnailCheckbox.checked = config.welcomeThumbnail;
+
+        // Set input values automod
+        automodWordsInput.value = config.bannedWords || '';
+        automodMaxStrikesInput.value = config.maxStrikes || 3;
+        automodMuteDurationInput.value = config.muteDuration || 10;
+
+        // Set input values AI
         aiPersonalityInput.value = config.aiPersonality || '';
+        
+        // Refresh tabs
+        switchTab(activeTab);
         
         updateEmbedPreview();
       } catch (error) {
@@ -559,66 +647,196 @@
       }
     }
 
-    function parseMarkdown(text) {
-      // Very basic parser for live preview
-      let parsed = text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+    function switchTab(tabId) {
+      activeTab = tabId;
       
-      // Bold **text**
-      parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      // Italics *text* or _text_
-      parsed = parsed.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      parsed = parsed.replace(/_(.*?)_/g, '<em>$1</em>');
-      // Linebreaks
-      parsed = parsed.replace(/\n/g, '<br>');
+      // Toggle button states
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.getElementById(`tab-btn-${tabId}`).classList.add('active');
       
-      return parsed;
+      // Toggle panes
+      document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.add('hidden');
+      });
+      document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+
+      // Hide save-bar for warnings and music tabs, show for forms configs
+      const saveBar = document.getElementById('save-bar');
+      if (tabId === 'warnings' || tabId === 'music') {
+        saveBar.classList.add('hidden');
+      } else {
+        saveBar.classList.remove('hidden');
+      }
+
+      // Action load based on tab
+      if (tabId === 'warnings') {
+        loadWarnings();
+      } else if (tabId === 'music') {
+        loadMusicStatus();
+        startMusicPolling();
+      } else {
+        stopMusicPolling();
+      }
     }
 
-    function updateEmbedPreview() {
-      // Title
-      const title = welcomeTitleInput.value || '👋 Selamat Datang!';
-      previewTitle.innerText = title;
-      
-      // Description with parsed placeholders
-      let rawDesc = welcomeMessageInput.value || '';
-      if (!rawDesc) {
-        rawDesc = "Selamat datang **{username}** di **{guildName}**!\n\nKamu adalah member ke-**{memberCount}** di server ini.";
-      }
-      
-      const parsedDesc = rawDesc
-        .replace(/{username}/g, "RidwanMubarok")
-        .replace(/{guildName}/g, document.getElementById('current-guild-name').innerText)
-        .replace(/{memberCount}/g, "42");
+    // --- WARNINGS LOG LOGIC ---
+    async function loadWarnings() {
+      const tbody = document.getElementById('warnings-table-body');
+      tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500 italic"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Loading warning logs...</td></tr>`;
+
+      try {
+        const response = await fetch(`/api/moderation/${selectedGuildId}/warnings`, {
+          headers: { 'Authorization': token }
+        });
+        if (!response.ok) throw new Error();
+        const { warnings } = await response.json();
         
-      previewDescription.innerHTML = parseMarkdown(parsedDesc);
-      
-      // Thumbnail toggle
-      if (welcomeThumbnailCheckbox.checked) {
-        previewThumbnailContainer.classList.remove('hidden');
-      } else {
-        previewThumbnailContainer.classList.add('hidden');
-      }
-      
-      // Banner Image URL
-      const imageUrl = welcomeImageInput.value.trim();
-      if (imageUrl) {
-        previewImage.src = imageUrl;
-        previewImageContainer.classList.remove('hidden');
-      } else {
-        previewImageContainer.classList.add('hidden');
+        if (warnings.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500 italic">Bersih! Tidak ada pelanggaran strike terekam di server ini.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = warnings.map(log => {
+          const date = new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+          return `
+            <tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+              <td class="p-4 font-mono text-gray-400 text-[10px] select-all">${log.userId}</td>
+              <td class="p-4 font-medium text-white max-w-xs truncate">${log.reason}</td>
+              <td class="p-4 text-discord-blurple">Moderator (${log.moderatorId === 'AUTOMOD' ? 'Automod 🤖' : 'Staff 🛡️'})</td>
+              <td class="p-4 text-gray-400">${date}</td>
+              <td class="p-4 text-center">
+                <button 
+                  onclick="deleteWarning(${log.id})"
+                  class="px-2.5 py-1 rounded bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 hover:text-white transition-all font-medium text-[10px]"
+                >
+                  <i class="fa-solid fa-trash-can mr-1"></i> Hapus
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-400 italic">Gagal mengambil data warning logs.</td></tr>`;
       }
     }
 
+    async function deleteWarning(id) {
+      if (!confirm(`Hapus log strike #${id}? Strike count pengguna ini akan berkurang.`)) return;
+
+      try {
+        const response = await fetch(`/api/moderation/${selectedGuildId}/warnings/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': token }
+        });
+        if (response.ok) {
+          showToast('Sukses', `Log strike #${id} berhasil dicabut.`, 'success');
+          loadWarnings();
+        } else {
+          showToast('Error', 'Gagal mencabut strike.', 'error');
+        }
+      } catch (error) {
+        showToast('Koneksi Gagal', 'Gagal menghubungi server.', 'error');
+      }
+    }
+
+    // --- MUSIC CONTROLLER LOGIC ---
+    function startMusicPolling() {
+      stopMusicPolling();
+      musicPollInterval = setInterval(loadMusicStatus, 3000); // Poll status every 3s
+    }
+
+    function stopMusicPolling() {
+      if (musicPollInterval) {
+        clearInterval(musicPollInterval);
+        musicPollInterval = null;
+      }
+    }
+
+    async function loadMusicStatus() {
+      if (activeTab !== 'music') return;
+
+      try {
+        const response = await fetch(`/api/music/${selectedGuildId}`, {
+          headers: { 'Authorization': token }
+        });
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+
+        // Render Status Display
+        const statusDisplay = document.getElementById('music-status-display');
+        const stateColor = data.isPlaying ? 'text-emerald-400' : 'text-amber-400';
+        const formattedState = data.isPlaying 
+          ? `<i class="fa-solid fa-circle-play mr-1 animate-pulse"></i> Playing` 
+          : `<i class="fa-solid fa-circle-pause mr-1"></i> Paused (${data.playerState || 'idle'})`;
+        statusDisplay.innerHTML = `<span class="${stateColor}">${formattedState}</span>`;
+
+        // Render Current Track
+        const trackInfo = document.getElementById('current-track-info');
+        if (data.currentTrack) {
+          trackInfo.innerHTML = `
+            <div class="text-sm font-semibold text-white truncate">[${data.currentTrack.title}]</div>
+            <div class="text-xs text-discord-blurple mt-1 flex items-center gap-2">
+              <span>URL: <a href="${data.currentTrack.url}" target="_blank" class="hover:underline text-discord-text">${data.currentTrack.url}</a></span>
+              <span>•</span>
+              <span>Durasi: ${data.currentTrack.duration}</span>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-0.5">Diminta oleh: ${data.currentTrack.requestedBy}</div>
+          `;
+        } else {
+          trackInfo.innerHTML = `<div class="text-sm text-gray-500 italic">Tidak ada lagu yang sedang diputar.</div>`;
+        }
+
+        // Render Queue
+        const queueList = document.getElementById('music-queue-list');
+        if (data.queue && data.queue.length > 0) {
+          queueList.innerHTML = data.queue.map((track, i) => `
+            <div class="flex items-center justify-between p-2 rounded-xl bg-white/2 border border-white/5 text-[11px] gap-2">
+              <div class="truncate flex-1">
+                <span class="text-gray-500 font-semibold mr-1">${i + 1}.</span>
+                <span class="text-white font-medium hover:underline"><a href="${track.url}" target="_blank">${track.title}</a></span>
+              </div>
+              <span class="text-discord-blurple shrink-0">${track.duration}</span>
+            </div>
+          `).join('');
+        } else {
+          queueList.innerHTML = `<div class="text-center py-6 text-gray-500 text-xs italic">Antrean lagu kosong.</div>`;
+        }
+      } catch (error) {
+        logger.error("Gagal melakukan polling status musik.");
+      }
+    }
+
+    async function controlMusic(action) {
+      try {
+        const response = await fetch(`/api/music/${selectedGuildId}/control`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify({ action })
+        });
+        if (response.ok) {
+          showToast('Music Action', `Sukses melakukan perintah "${action}"`, 'success');
+          loadMusicStatus();
+        } else {
+          showToast('Music Action', `Gagal menjalankan perintah "${action}"`, 'error');
+        }
+      } catch (error) {
+        showToast('Koneksi Gagal', 'Gagal memanggil API musik.', 'error');
+      }
+    }
+
+    // --- FORM CONFIG SAVING LOGIC (COVERS GENERAL FORM SETTINGS) ---
     async function saveConfig() {
       const saveBtn = document.getElementById('save-btn');
       const originalHtml = saveBtn.innerHTML;
       
       // Set loading state
       saveBtn.disabled = true;
-      saveBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...`;
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-sm"></i> Menyimpan...`;
       
       const payload = {
         welcomeChannelId: welcomeChannelSelect.value,
@@ -626,6 +844,11 @@
         welcomeMessage: welcomeMessageInput.value,
         welcomeImage: welcomeImageInput.value,
         welcomeThumbnail: welcomeThumbnailCheckbox.checked,
+        
+        bannedWords: automodWordsInput.value,
+        maxStrikes: automodMaxStrikesInput.value,
+        muteDuration: automodMuteDurationInput.value,
+
         aiPersonality: aiPersonalityInput.value
       };
       
@@ -640,7 +863,7 @@
         });
         
         if (response.ok) {
-          showToast('Tersimpan', 'Konfigurasi welcome bot berhasil diperbarui.', 'success');
+          showToast('Tersimpan', 'Seluruh konfigurasi server berhasil disimpan.', 'success');
         } else {
           showToast('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan config.', 'error');
         }
@@ -649,6 +872,52 @@
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalHtml;
+      }
+    }
+
+    // --- PREVIEWS MARKDOWN HELPERS ---
+    function parseMarkdown(text) {
+      let parsed = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      
+      parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      parsed = parsed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      parsed = parsed.replace(/_(.*?)_/g, '<em>$1</em>');
+      parsed = parsed.replace(/\n/g, '<br>');
+      
+      return parsed;
+    }
+
+    function updateEmbedPreview() {
+      const title = welcomeTitleInput.value || '👋 Selamat Datang!';
+      previewTitle.innerText = title;
+      
+      let rawDesc = welcomeMessageInput.value || '';
+      if (!rawDesc) {
+        rawDesc = "Selamat datang **{username}** di **{guildName}**!\n\nKamu adalah member ke-**{memberCount}** di server ini.";
+      }
+      
+      const parsedDesc = rawDesc
+        .replace(/{username}/g, "RidwanMubarok")
+        .replace(/{guildName}/g, document.getElementById('current-guild-name').innerText)
+        .replace(/{memberCount}/g, "42");
+        
+      previewDescription.innerHTML = parseMarkdown(parsedDesc);
+      
+      if (welcomeThumbnailCheckbox.checked) {
+        previewThumbnailContainer.classList.remove('hidden');
+      } else {
+        previewThumbnailContainer.classList.add('hidden');
+      }
+      
+      const imageUrl = welcomeImageInput.value.trim();
+      if (imageUrl) {
+        previewImage.src = imageUrl;
+        previewImageContainer.classList.remove('hidden');
+      } else {
+        previewImageContainer.classList.add('hidden');
       }
     }
   </script>

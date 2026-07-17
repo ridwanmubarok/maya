@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import { MayaClient } from "../types";
 import { prisma } from "./database";
+import { getMusicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 
 const app = express();
@@ -74,6 +75,9 @@ export function startDashboard(client: MayaClient) {
           welcomeImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
           welcomeThumbnail: true,
           aiPersonality: "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
+          bannedWords: "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
+          maxStrikes: 3,
+          muteDuration: 10,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -103,7 +107,10 @@ export function startDashboard(client: MayaClient) {
       welcomeMessage, 
       welcomeImage, 
       welcomeThumbnail,
-      aiPersonality
+      aiPersonality,
+      bannedWords,
+      maxStrikes,
+      muteDuration
     } = req.body;
 
     try {
@@ -115,7 +122,10 @@ export function startDashboard(client: MayaClient) {
           welcomeMessage: welcomeMessage !== undefined ? welcomeMessage : "",
           welcomeImage: welcomeImage !== undefined ? welcomeImage : "",
           welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true,
-          aiPersonality: aiPersonality !== undefined ? aiPersonality : "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu."
+          aiPersonality: aiPersonality !== undefined ? aiPersonality : "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
+          bannedWords: bannedWords !== undefined ? bannedWords : "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
+          maxStrikes: maxStrikes !== undefined ? Number(maxStrikes) : 3,
+          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10
         },
         create: {
           guildId,
@@ -124,7 +134,10 @@ export function startDashboard(client: MayaClient) {
           welcomeMessage: welcomeMessage || "",
           welcomeImage: welcomeImage || "",
           welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true,
-          aiPersonality: aiPersonality || "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu."
+          aiPersonality: aiPersonality || "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
+          bannedWords: bannedWords || "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
+          maxStrikes: maxStrikes !== undefined ? Number(maxStrikes) : 3,
+          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10
         }
       });
 
@@ -133,6 +146,86 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error(`Error saving config for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal menyimpan konfigurasi server." });
+    }
+  });
+
+  // Get all warning logs for a guild (Requires Auth)
+  app.get("/api/moderation/:guildId/warnings", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const warnings = await prisma.warnLog.findMany({
+        where: { guildId },
+        orderBy: { createdAt: "desc" }
+      });
+      res.json({ warnings });
+    } catch (error) {
+      logger.error(`Error fetching warnings for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil log strike." });
+    }
+  });
+
+  // Revoke/Delete warning log (Requires Auth)
+  app.delete("/api/moderation/:guildId/warnings/:id", authMiddleware, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+      await prisma.warnLog.delete({
+        where: { id: Number(id) }
+      });
+      res.json({ success: true });
+      logger.info(`Dashboard: Strike log #${id} berhasil dihapus.`);
+    } catch (error) {
+      logger.error(`Error deleting warning log #${id}:`, error);
+      res.status(500).json({ error: "Gagal menghapus log strike." });
+    }
+  });
+
+  // Get music status and queue (Requires Auth)
+  app.get("/api/music/:guildId", authMiddleware, (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const manager = getMusicManager(guildId);
+      const queue = manager.queue;
+      const currentTrack = manager.currentTrack;
+      const isPlaying = currentTrack !== null && manager.player.state.status === "playing";
+
+      res.json({
+        isPlaying,
+        currentTrack,
+        queue,
+        playerState: manager.player.state.status
+      });
+    } catch (error) {
+      logger.error(`Error fetching music status for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil status musik." });
+    }
+  });
+
+  // Control music playback (Requires Auth)
+  app.post("/api/music/:guildId/control", authMiddleware, (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { action } = req.body;
+
+    try {
+      const manager = getMusicManager(guildId);
+
+      if (action === "skip") {
+        const success = manager.skip();
+        return res.json({ success });
+      } else if (action === "stop") {
+        manager.stop();
+        return res.json({ success: true });
+      } else if (action === "pause") {
+        const success = manager.player.pause();
+        return res.json({ success });
+      } else if (action === "resume") {
+        const success = manager.player.unpause();
+        return res.json({ success });
+      }
+
+      res.status(400).json({ error: "Aksi tidak dikenal." });
+    } catch (error) {
+      logger.error(`Error controlling music for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengontrol musik." });
     }
   });
 

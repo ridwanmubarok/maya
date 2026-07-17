@@ -17,6 +17,9 @@ model GuildConfig {
   welcomeImage           String   @default("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80")
   welcomeThumbnail       Boolean  @default(true)
   aiPersonality          String   @default("Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.")
+  bannedWords            String   @default("anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan")
+  maxStrikes             Int      @default(3)
+  muteDuration           Int      @default(10)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
