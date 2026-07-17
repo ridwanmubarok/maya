@@ -8,12 +8,16 @@ generator client {
 }
 
 model GuildConfig {
-  guildId               String   @id
-  welcomeChannelId      String?
-  moderationLogChannelId String?
-  prefix                String   @default("!")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  guildId                String   @id
+  welcomeChannelId       String?
+  moderationLogChannelId  String?
+  prefix                 String   @default("!")
+  welcomeTitle           String   @default("👋 Selamat Datang!")
+  welcomeMessage         String   @default("Selamat datang **{username}** di **{guildName}**!\n\nKamu adalah member ke-**{memberCount}** di server ini.\nJangan lupa untuk membaca aturan server dan bersenang-senang!")
+  welcomeImage           String   @default("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80")
+  welcomeThumbnail       Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 model WarnLog {

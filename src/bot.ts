@@ -5,6 +5,7 @@ import path from "path";
 import { MayaClient, Command, BotEvent } from "./types";
 import { connectDatabase } from "./services/database";
 import { initAI } from "./services/aiClient";
+import { startDashboard } from "./services/dashboard";
 import { logger } from "./utils/logger";
 
 // Load environment variables
@@ -103,6 +104,7 @@ const startBot = async () => {
     }
 
     await client.login(token);
+    startDashboard(client);
   } catch (error) {
     logger.error("Gagal melakukan bootstrap aplikasi:", error);
     process.exit(1);

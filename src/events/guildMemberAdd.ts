@@ -10,7 +10,6 @@ const event: BotEvent = {
     const { guild } = member;
 
     try {
-      // Find if there is a welcome channel configured for this guild
       const config = await prisma.guildConfig.findUnique({
         where: { guildId: guild.id }
       });
@@ -26,15 +25,24 @@ const event: BotEvent = {
         return;
       }
 
-      // Create a premium welcome message embed
-      const welcomeEmbed = createEmbed.info(
-        `👋 Selamat Datang!`,
-        `Selamat datang **${member.user.username}** di **${guild.name}**!\n\n` +
-        `Kamu adalah member ke-**${guild.memberCount}** di server ini.\n` +
-        `Jangan lupa untuk membaca aturan server dan bersenang-senang!`
-      )
-      .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-      .setImage("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80"); // Nice aesthetic banner
+      const welcomeTitle = config.welcomeTitle || "👋 Selamat Datang!";
+      const rawMessage = config.welcomeMessage || "Selamat datang **{username}** di **{guildName}**!\n\nKamu adalah member ke-**{memberCount}** di server ini.";
+      
+      const welcomeMessage = rawMessage
+        .replace(/{username}/g, member.user.username)
+        .replace(/{guildName}/g, guild.name)
+        .replace(/{memberCount}/g, guild.memberCount.toString());
+
+      // Create dynamic welcome embed
+      const welcomeEmbed = createEmbed.info(welcomeTitle, welcomeMessage);
+      
+      if (config.welcomeThumbnail) {
+        welcomeEmbed.setThumbnail(member.user.displayAvatarURL({ size: 256 }));
+      }
+      
+      if (config.welcomeImage) {
+        welcomeEmbed.setImage(config.welcomeImage);
+      }
 
       await channel.send({ 
         content: `Halo ${member}, selamat datang!`,
