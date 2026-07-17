@@ -35,8 +35,11 @@ const command: Command = {
     try {
       let trackInfo: { title: string; url: string; duration: string } | null = null;
 
-      // Check if the query is a Spotify link
-      if (play.sp_validate(query) !== "search") {
+      // Check type of query using play-dl validators
+      const spType = play.sp_validate(query);
+      const ytType = play.yt_validate(query);
+
+      if (spType && spType !== "search") {
         const spotifyData = await play.spotify(query);
         if (spotifyData.type === "track") {
           const track = spotifyData as any; // play-dl SpotifyTrack
@@ -113,13 +116,59 @@ const command: Command = {
             }
           }
         }
-      } else if (play.yt_validate(query) === "video") {
-        const info = await play.video_basic_info(query);
-        trackInfo = {
-          title: info.video_details.title || "Lagu Tanpa Judul",
-          url: info.video_details.url || `https://www.youtube.com/watch?v=${info.video_details.id}`,
-          duration: info.video_details.durationRaw
-        };
+      } else if (ytType && ytType !== "search") {
+        if (ytType === "video") {
+          const info = await play.video_basic_info(query);
+          trackInfo = {
+            title: info.video_details.title || "Lagu Tanpa Judul",
+            url: info.video_details.url || `https://www.youtube.com/watch?v=${info.video_details.id}`,
+            duration: info.video_details.durationRaw
+          };
+        } else if (ytType === "playlist") {
+          const playlist = await play.playlist_info(query);
+          const videos = await playlist.all_videos();
+          if (videos.length > 0) {
+            const firstVideo = videos[0];
+            trackInfo = {
+              title: firstVideo.title || "Lagu Tanpa Judul",
+              url: firstVideo.url || `https://www.youtube.com/watch?v=${firstVideo.id}`,
+              duration: firstVideo.durationRaw
+            };
+
+            const manager = getMusicManager(interaction.guildId!);
+            if (!manager.connection) {
+              manager.join(voiceChannel);
+            }
+
+            const firstEnqueuedTrack: Track = {
+              ...trackInfo,
+              requestedBy: interaction.user.tag
+            };
+            manager.addTrack(firstEnqueuedTrack);
+
+            (async () => {
+              for (let i = 1; i < videos.length; i++) {
+                const v = videos[i];
+                manager.queue.push({
+                  title: v.title || "Lagu Tanpa Judul",
+                  url: v.url || `https://www.youtube.com/watch?v=${v.id}`,
+                  duration: v.durationRaw,
+                  requestedBy: interaction.user.tag
+                });
+              }
+            })();
+
+            const embed = createEmbed.music(
+              "YouTube Playlist Ditambahkan",
+              `Memutar **${playlist.title}**\n` +
+              `Video pertama: **${firstEnqueuedTrack.title}**\n\n` +
+              `*Memuat ${videos.length - 1} video lainnya ke dalam antrean di latar belakang...*`
+            );
+
+            await interaction.editReply({ embeds: [embed] });
+            return;
+          }
+        }
       } else {
         // Search YouTube for query
         const searchResults = await play.search(query, { limit: 1, source: { youtube: "video" } });
