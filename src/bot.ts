@@ -49,6 +49,22 @@ if (process.env.YOUTUBE_COOKIE) {
   }
 }
 
+if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
+  try {
+    play.setToken({
+      spotify: {
+        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+        market: "ID"
+      } as any
+    });
+    logger.info("Spotify API Credentials berhasil dimuat untuk play-dl.");
+  } catch (err) {
+    logger.error("Gagal memuat Spotify API Credentials:", err);
+  }
+}
+
+
 // Initialize client with correct gateway intents
 const client = new MayaClient({
   intents: [

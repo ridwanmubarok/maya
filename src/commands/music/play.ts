@@ -166,8 +166,12 @@ const command: Command = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error: any) {
       console.error("Play command error:", error);
+      let errMsg = error?.message || error;
+      if (typeof errMsg === "string" && errMsg.includes("Spotify Data is missing")) {
+        errMsg = "Spotify Credentials Kosong. Hubungi admin server untuk mengisi SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET di variabel lingkungan Coolify agar fitur link Spotify aktif!";
+      }
       await interaction.editReply({
-        embeds: [createEmbed.error("Gagal Memutar", `Terjadi kesalahan saat memproses musik: \`${error?.message || error}\``)]
+        embeds: [createEmbed.error("Gagal Memutar", `Terjadi kesalahan: \`${errMsg}\``)]
       });
     }
   },
