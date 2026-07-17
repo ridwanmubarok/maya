@@ -2,6 +2,7 @@ import { GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
+import https from "https";
 import { MayaClient, Command, BotEvent } from "./types";
 import { connectDatabase } from "./services/database";
 import { initAI } from "./services/aiClient";
@@ -48,23 +49,7 @@ if (process.env.YOUTUBE_COOKIE) {
     logger.error("Gagal memuat YouTube Cookie:", err);
   }
 }
-
-if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
-  try {
-    play.setToken({
-      spotify: {
-        client_id: process.env.SPOTIFY_CLIENT_ID,
-        client_secret: process.env.SPOTIFY_CLIENT_SECRET,
-        market: "ID"
-      } as any
-    });
-    logger.info("Spotify API Credentials berhasil dimuat untuk play-dl.");
-  } catch (err) {
-    logger.error("Gagal memuat Spotify API Credentials:", err);
-  }
-}
-
-// Load SoundCloud Client ID dynamically on startup
+// Load SoundCloud Client ID dynamically on startup for background streaming
 (async () => {
   try {
     const scClientId = await play.getFreeClientID();
@@ -74,13 +59,12 @@ if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
           client_id: scClientId
         }
       });
-      logger.info("SoundCloud Client ID berhasil didapatkan dan dimuat untuk play-dl.");
+      logger.info("SoundCloud Client ID berhasil dimuat untuk streaming di latar belakang.");
     }
   } catch (err) {
     logger.error("Gagal memuat SoundCloud Client ID:", err);
   }
 })();
-
 
 
 // Initialize client with correct gateway intents

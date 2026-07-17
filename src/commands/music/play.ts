@@ -20,11 +20,11 @@ function formatSoundCloudTrack(track: any) {
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Memutar lagu dari YouTube")
+    .setDescription("Memutar lagu dari Spotify")
     .addStringOption(opt =>
       opt
         .setName("query")
-        .setDescription("Judul lagu atau link YouTube")
+        .setDescription("Judul lagu atau link Spotify")
         .setRequired(true)
         .setAutocomplete(true)
     ),
@@ -50,7 +50,6 @@ const command: Command = {
 
       // Check type of query using play-dl validators
       const spType = play.sp_validate(query);
-      const ytType = play.yt_validate(query);
 
       if (spType && spType !== "search") {
         const spotifyData = await play.spotify(query);
@@ -129,64 +128,21 @@ const command: Command = {
             }
           }
         }
-      } else if (ytType && ytType !== "search") {
-        if (ytType === "video") {
-          const info = await play.video_basic_info(query);
-          trackInfo = {
-            title: info.video_details.title || "Lagu Tanpa Judul",
-            url: info.video_details.url || `https://www.youtube.com/watch?v=${info.video_details.id}`,
-            duration: info.video_details.durationRaw
-          };
-        } else if (ytType === "playlist") {
-          const playlist = await play.playlist_info(query);
-          const videos = await playlist.all_videos();
-          if (videos.length > 0) {
-            const firstVideo = videos[0];
-            trackInfo = {
-              title: firstVideo.title || "Lagu Tanpa Judul",
-              url: firstVideo.url || `https://www.youtube.com/watch?v=${firstVideo.id}`,
-              duration: firstVideo.durationRaw
-            };
-
-            const manager = getMusicManager(interaction.guildId!);
-            if (!manager.connection) {
-              manager.join(voiceChannel);
-            }
-
-            const firstEnqueuedTrack: Track = {
-              ...trackInfo,
-              requestedBy: interaction.user.tag
-            };
-            manager.addTrack(firstEnqueuedTrack);
-
-            (async () => {
-              for (let i = 1; i < videos.length; i++) {
-                const v = videos[i];
-                manager.queue.push({
-                  title: v.title || "Lagu Tanpa Judul",
-                  url: v.url || `https://www.youtube.com/watch?v=${v.id}`,
-                  duration: v.durationRaw,
-                  requestedBy: interaction.user.tag
-                });
-              }
-            })();
-
-            const embed = createEmbed.music(
-              "YouTube Playlist Ditambahkan",
-              `Memutar **${playlist.title}**\n` +
-              `Video pertama: **${firstEnqueuedTrack.title}**\n\n` +
-              `*Memuat ${videos.length - 1} video lainnya ke dalam antrean di latar belakang...*`
-            );
-
-            await interaction.editReply({ embeds: [embed] });
-            return;
-          }
-        }
       } else {
-        // Search SoundCloud for query instead of YouTube to prevent VPS blocks
-        const searchResults = await play.search(query, { limit: 1, source: { soundcloud: "tracks" } });
+        // Search Spotify for query instead of YouTube/SoundCloud
+        const searchResults = await play.search(query, { limit: 1, source: { spotify: "track" } });
         if (searchResults.length > 0) {
-          trackInfo = formatSoundCloudTrack(searchResults[0]);
+          const track = searchResults[0];
+          const searchTitle = `${track.artists.map((a: any) => a.name).join(", ")} - ${track.name}`;
+          const scResults = await play.search(searchTitle, { limit: 1, source: { soundcloud: "tracks" } });
+          if (scResults.length > 0) {
+            const scTrackInfo = formatSoundCloudTrack(scResults[0]);
+            trackInfo = {
+              title: `${track.name} - ${track.artists.map((a: any) => a.name).join(", ")}`,
+              url: scTrackInfo.url,
+              duration: scTrackInfo.duration
+            };
+          }
         }
       }
 
@@ -213,12 +169,21 @@ const command: Command = {
       // Add track to queue
       manager.addTrack(track);
 
-      const embed = createEmbed.music(
-        "Lagu Ditambahkan",
-        `**Judul:** [${track.title}](${track.url})\n` +
-        `**Durasi:** \`${track.duration}\` | **Diminta oleh:** ${interaction.user}\n\n` +
-        `*Posisi di antrean: ${manager.queue.length + (manager.currentTrack ? 1 : 0)}*`
-      );
+      // Check if it was immediately played or added to the queue
+      const isCurrentlyPlaying = manager.currentTrack === track && manager.queue.length === 0;
+
+      const embed = isCurrentlyPlaying
+        ? createEmbed.music(
+            "Mulai Memutar 🎶",
+            `**Judul:** [${track.title}](${track.url})\n` +
+            `**Durasi:** \`${track.duration}\` | **Diminta oleh:** ${interaction.user}`
+          )
+        : createEmbed.music(
+            "Lagu Ditambahkan ke Antrean 📥",
+            `**Judul:** [${track.title}](${track.url})\n` +
+            `**Durasi:** \`${track.duration}\` | **Diminta oleh:** ${interaction.user}\n\n` +
+            `*Posisi di antrean: #${manager.queue.length}*`
+          );
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error: any) {
@@ -241,15 +206,19 @@ const command: Command = {
     }
 
     try {
-      // Search SoundCloud for suggestions instead of YouTube to prevent VPS blocks
-      const searchResults = await play.search(focusedValue, { limit: 5, source: { soundcloud: "tracks" } });
+      // Search Spotify for suggestions instead of YouTube/SoundCloud
+      const searchResults = await play.search(focusedValue, { limit: 5, source: { spotify: "track" } });
       const choices = searchResults.map(track => {
-        const resolved = formatSoundCloudTrack(track);
-        const displayName = resolved.title.length > 70 ? resolved.title.substring(0, 67) + "..." : resolved.title;
+        const title = `${track.name} - ${track.artists.map((a: any) => a.name).join(", ")}`;
+        const durationInSec = track.durationInSec;
+        const minutes = Math.floor(durationInSec / 60);
+        const seconds = durationInSec % 60;
+        const durationRaw = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        const displayName = title.length > 70 ? title.substring(0, 67) + "..." : title;
         
         return {
-          name: `${displayName} [${resolved.duration}]`,
-          value: resolved.url
+          name: `${displayName} [${durationRaw}]`,
+          value: track.url
         };
       });
 

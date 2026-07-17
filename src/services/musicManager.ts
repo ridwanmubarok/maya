@@ -35,6 +35,10 @@ export class GuildMusicManager {
       this.playNext();
     });
 
+    this.player.on("stateChange", (oldState, newState) => {
+      logger.debug(`AudioPlayer status di server ${this.guildId}: ${oldState.status} -> ${newState.status}`);
+    });
+
     this.player.on("error", (error) => {
       logger.error(`AudioPlayer error in guild ${this.guildId}:`, error);
       this.playNext();
@@ -49,6 +53,10 @@ export class GuildMusicManager {
     });
 
     this.connection.subscribe(this.player);
+
+    this.connection.on("stateChange", (oldState, newState) => {
+      logger.debug(`VoiceConnection status di server ${this.guildId}: ${oldState.status} -> ${newState.status}`);
+    });
 
     this.connection.on(VoiceConnectionStatus.Disconnected, async () => {
       try {
