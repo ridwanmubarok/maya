@@ -18,6 +18,12 @@ const event: BotEvent = {
       return;
     }
 
+    // Periksa apakah CLIENT_ID adalah angka murni (Snowflake)
+    if (!/^\d+$/.test(clientId)) {
+      logger.error(`CLIENT_ID "${clientId}" tidak valid (harus berupa deretan angka/snowflake). Harap isi CLIENT_ID asli Anda di file .env.`);
+      return;
+    }
+
     const rest = new REST({ version: "10" }).setToken(token);
 
     try {
