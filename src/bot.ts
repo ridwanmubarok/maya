@@ -8,12 +8,27 @@ import { initAI } from "./services/aiClient";
 import { startDashboard } from "./services/dashboard";
 import { logger } from "./utils/logger";
 
+import play from "play-dl";
+
 // Load environment variables
 dotenv.config();
 
 // Initialize external services
 connectDatabase();
 initAI();
+
+if (process.env.YOUTUBE_COOKIE) {
+  try {
+    play.setToken({
+      youtube: {
+        cookie: process.env.YOUTUBE_COOKIE
+      }
+    });
+    logger.info("YouTube Cookie berhasil dimuat untuk play-dl.");
+  } catch (err) {
+    logger.error("Gagal memuat YouTube Cookie:", err);
+  }
+}
 
 // Initialize client with correct gateway intents
 const client = new MayaClient({
