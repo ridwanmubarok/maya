@@ -54,10 +54,10 @@ export const createEmbed = {
 
     return new EmbedBuilder()
       .setColor(COLORS.AI)
-      .setTitle(`🤖 NVIDIA AI`)
+      .setTitle(`🔮 Maya Neural Core`)
       .addFields(
-        { name: "Tanya", value: prompt.length > 1024 ? prompt.substring(0, 1021) + "..." : prompt },
-        { name: "Jawab", value: truncatedResponse }
+        { name: "❓ Pertanyaan", value: prompt.length > 1024 ? prompt.substring(0, 1021) + "..." : prompt },
+        { name: "✨ Jawaban", value: truncatedResponse }
       )
       .setTimestamp()
       .setFooter({ text: "Didukung oleh NVIDIA NIM (Llama 3.1)" });
