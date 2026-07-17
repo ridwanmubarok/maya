@@ -17,14 +17,33 @@ dotenv.config();
 connectDatabase();
 initAI();
 
+function parseNetscapeCookies(text: string): string {
+  if (!text.includes("# Netscape") && !text.includes("\t")) {
+    return text.trim();
+  }
+  const lines = text.split(/\r?\n/);
+  const cookies: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith("#") || !line.trim()) continue;
+    const parts = line.split("\t");
+    if (parts.length >= 7) {
+      const name = parts[5].trim();
+      const value = parts[6].trim();
+      cookies.push(`${name}=${value}`);
+    }
+  }
+  return cookies.join("; ");
+}
+
 if (process.env.YOUTUBE_COOKIE) {
   try {
+    const parsedCookie = parseNetscapeCookies(process.env.YOUTUBE_COOKIE);
     play.setToken({
       youtube: {
-        cookie: process.env.YOUTUBE_COOKIE
+        cookie: parsedCookie
       }
     });
-    logger.info("YouTube Cookie berhasil dimuat untuk play-dl.");
+    logger.info("YouTube Cookie berhasil dimuat dan diparse untuk play-dl.");
   } catch (err) {
     logger.error("Gagal memuat YouTube Cookie:", err);
   }
