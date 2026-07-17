@@ -1,13 +1,13 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command } from "../../types";
-import { askGemini } from "../../services/aiClient";
+import { askNvidia } from "../../services/aiClient";
 import { prisma } from "../../services/database";
 import { createEmbed } from "../../utils/embeds";
 
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("ask")
-    .setDescription("Tanya apa saja kepada Gemini AI")
+    .setDescription("Tanya apa saja kepada NVIDIA AI")
     .addStringOption(opt =>
       opt
         .setName("pertanyaan")
@@ -32,7 +32,7 @@ const command: Command = {
         }
       }
 
-      const response = await askGemini(question, personality);
+      const response = await askNvidia(question, personality);
       const embed = createEmbed.ai(question, response);
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

@@ -54,12 +54,12 @@ export const createEmbed = {
 
     return new EmbedBuilder()
       .setColor(COLORS.AI)
-      .setTitle(`🤖 Gemini AI`)
+      .setTitle(`🤖 NVIDIA AI`)
       .addFields(
         { name: "Tanya", value: prompt.length > 1024 ? prompt.substring(0, 1021) + "..." : prompt },
         { name: "Jawab", value: truncatedResponse }
       )
       .setTimestamp()
-      .setFooter({ text: "Didukung oleh Gemini 1.5 Pro/Flash" });
+      .setFooter({ text: "Didukung oleh NVIDIA NIM (Llama 3.1)" });
   }
 };
