@@ -172,8 +172,9 @@ const command: Command = {
   },
   async autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.getFocused();
-    if (!focusedValue || !focusedValue.trim()) {
-      await interaction.respond([]);
+    // Return empty if search query is too short (< 3 characters) to prevent API lag/timeouts
+    if (!focusedValue || focusedValue.trim().length < 3) {
+      await interaction.respond([]).catch(() => {});
       return;
     }
 
@@ -191,10 +192,13 @@ const command: Command = {
         };
       });
 
-      await interaction.respond(choices);
-    } catch (error) {
-      console.error("Autocomplete search error:", error);
-      await interaction.respond([]);
+      await interaction.respond(choices).catch(() => {});
+    } catch (error: any) {
+      // Gracefully ignore Unknown Interaction (10062) errors caused by Discord 3s timeout
+      if (error?.code !== 10062) {
+        console.error("Autocomplete search error:", error);
+      }
+      await interaction.respond([]).catch(() => {});
     }
   }
 };

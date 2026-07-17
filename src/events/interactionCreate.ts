@@ -32,8 +32,10 @@ const event: BotEvent = {
       if (command && typeof command.autocomplete === "function") {
         try {
           await command.autocomplete(interaction);
-        } catch (error) {
-          logger.error(`Error saat autocomplete command /${interaction.commandName}:`, error);
+        } catch (error: any) {
+          if (error?.code !== 10062) {
+            logger.error(`Error saat autocomplete command /${interaction.commandName}:`, error);
+          }
         }
       }
       return;
