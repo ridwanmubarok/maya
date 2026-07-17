@@ -54,7 +54,7 @@ export const createEmbed = {
 
     return new EmbedBuilder()
       .setColor(COLORS.AI)
-      .setTitle(`🔮 Maya Neural Core`)
+      .setTitle(`🔮 Maya`)
       .addFields(
         { name: "❓ Pertanyaan", value: prompt.length > 1024 ? prompt.substring(0, 1021) + "..." : prompt },
         { name: "✨ Jawaban", value: truncatedResponse }

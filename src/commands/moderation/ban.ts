@@ -6,7 +6,6 @@ const command: Command = {
   data: new SlashCommandBuilder()
     .setName("ban")
     .setDescription("Memblokir (ban) member dari server")
-    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
     .addUserOption(opt =>
       opt
         .setName("member")
@@ -20,6 +19,18 @@ const command: Command = {
         .setRequired(false)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
+    const executorMember = interaction.member as GuildMember;
+    const isServerOwner = interaction.user.id === interaction.guild?.ownerId;
+    const hasOwnerRole = executorMember?.roles.cache.some(role => role.name.toLowerCase() === "owner");
+
+    if (!isServerOwner && !hasOwnerRole) {
+      await interaction.reply({
+        embeds: [createEmbed.error("Akses Ditolak", "Maaf, perintah ini hanya dapat dijalankan oleh pemilik server (Owner) atau anggota dengan role **Owner**.")],
+        ephemeral: true
+      });
+      return;
+    }
+
     const targetMember = interaction.options.getMember("member") as GuildMember | null;
     const reason = interaction.options.getString("alasan") || "Tidak ada alasan yang diberikan";
 
