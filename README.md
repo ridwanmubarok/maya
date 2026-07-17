@@ -43,21 +43,20 @@ Maya adalah bot Discord modular yang dibangun menggunakan **TypeScript**, **disc
 ## 🚀 Cara Menjalankan Bot
 
 ### Opsi A: Deployment Cepat menggunakan Docker (Sangat Direkomendasikan)
-Docker akan otomatis mengunduh PostgreSQL, menginstal dependensi (termasuk `ffmpeg` untuk musik), menyusun skema database, mem-compile TypeScript, dan menjalankan bot.
+Docker akan otomatis menginstal dependensi (termasuk `ffmpeg` untuk musik), mem-compile TypeScript, dan menjalankan bot. Anda perlu menghubungkan bot ke database PostgreSQL eksternal Anda.
 
 1. Salin `.env.example` menjadi `.env`:
    ```bash
    cp .env.example .env
    ```
-2. Isi nilai `DISCORD_TOKEN`, `CLIENT_ID`, dan `GEMINI_API_KEY` di file `.env`. 
-   *(Catatan: Anda tidak perlu mengubah `DATABASE_URL` untuk Docker karena sudah disesuaikan dengan konfigurasi jaringan internal container).*
+2. Isi nilai `DISCORD_TOKEN`, `CLIENT_ID`, `GEMINI_API_KEY`, dan `DATABASE_URL` (URL database PostgreSQL eksternal Anda) di file `.env`.
 
 3. Jalankan Docker Compose:
    ```bash
    docker-compose up -d --build
    ```
 
-4. Selesai! Bot akan aktif dan terhubung ke database PostgreSQL secara otomatis.
+4. Selesai! Bot akan aktif dan terhubung ke database PostgreSQL Anda secara otomatis.
 
 ---
 
