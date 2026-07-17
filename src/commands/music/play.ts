@@ -39,7 +39,7 @@ const command: Command = {
         const info = await play.video_basic_info(query);
         trackInfo = {
           title: info.video_details.title || "Lagu Tanpa Judul",
-          url: info.video_details.url,
+          url: info.video_details.url || `https://www.youtube.com/watch?v=${info.video_details.id}`,
           duration: info.video_details.durationRaw
         };
       } else {
@@ -49,7 +49,7 @@ const command: Command = {
           const video = searchResults[0];
           trackInfo = {
             title: video.title || "Lagu Tanpa Judul",
-            url: video.url,
+            url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
             duration: video.durationRaw
           };
         }
