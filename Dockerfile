@@ -9,15 +9,18 @@ RUN apk add --no-cache python3 make g++ git
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+# Use BuildKit cache mount to speed up downloads, and force NODE_ENV=development to ensure devDependencies (tsc, prisma) are installed
+RUN --mount=type=cache,target=/root/.npm \
+    NODE_ENV=development npm install
 
 COPY . .
 
 RUN npm run db:generate
 RUN npm run build
 
-# Prune devDependencies to keep the node_modules clean of dev tools
-RUN npm prune --omit=dev
+# Prune devDependencies to keep the node_modules clean of dev tools, leveraging npm cache
+RUN --mount=type=cache,target=/root/.npm \
+    npm prune --omit=dev
 
 # Production Stage
 FROM node:20-alpine
