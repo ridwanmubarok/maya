@@ -164,9 +164,10 @@ const command: Command = {
       );
 
       await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Play command error:", error);
       await interaction.editReply({
-        embeds: [createEmbed.error("Gagal Memutar", "Terjadi kesalahan saat memproses musik.")]
+        embeds: [createEmbed.error("Gagal Memutar", `Terjadi kesalahan saat memproses musik: \`${error?.message || error}\``)]
       });
     }
   },
