@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from "discord.js";
 import { Command } from "../../types";
 import { createEmbed } from "../../utils/embeds";
+import { logModeration } from "../../utils/moderationLogger";
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -61,6 +62,17 @@ const command: Command = {
     } catch (e) {}
 
     await targetMember.kick(reason);
+
+    // Kirim moderation log channel
+    if (interaction.guild) {
+      await logModeration(
+        interaction.guild,
+        "KICK",
+        { id: targetMember.user.id, tag: targetMember.user.tag },
+        { id: interaction.user.id, tag: interaction.user.tag },
+        reason
+      );
+    }
 
     const embed = createEmbed.success(
       "Member Berhasil Dikeluarkan",

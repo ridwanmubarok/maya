@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction }
 import { Command } from "../../types";
 import { prisma } from "../../services/database";
 import { createEmbed } from "../../utils/embeds";
+import { logModeration } from "../../utils/moderationLogger";
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -59,6 +60,18 @@ const command: Command = {
       `**Total Warning:** \`${totalWarns}\` strike(s)\n\n` +
       `*Pesan ini tercatat di database.*`
     );
+
+    // Kirim moderation log channel
+    if (interaction.guild) {
+      await logModeration(
+        interaction.guild,
+        "WARN",
+        { id: targetUser.id, tag: targetUser.tag },
+        { id: interaction.user.id, tag: interaction.user.tag },
+        reason,
+        `Total Strike Sekarang: ${totalWarns}`
+      );
+    }
 
     // Send warnings in DM to user, safely catching if DMs are closed
     try {

@@ -2,6 +2,7 @@ import { Events, Message, TextChannel } from "discord.js";
 import { BotEvent } from "../types";
 import { prisma } from "../services/database";
 import { createEmbed } from "../utils/embeds";
+import { logModeration } from "../utils/moderationLogger";
 import { logger } from "../utils/logger";
 
 const event: BotEvent = {
@@ -71,6 +72,16 @@ const event: BotEvent = {
 
         logger.info(`Automod: Memberikan strike ke ${message.author.tag} di guild ${guildId} (Total: ${strikeCount})`);
 
+        // Kirim moderation log
+        await logModeration(
+          message.guild,
+          "AUTOMOD_WARN",
+          { id: message.author.id, tag: message.author.tag },
+          { id: message.client.user?.id || "AUTOMOD", tag: "Automod 🤖" },
+          strike.reason,
+          `Total Strike: ${strikeCount}/${maxStrikes}\nKonten pesan: "${message.content.substring(0, 100)}"`
+        );
+
         // Tindakan otomatis jika melebihi maxStrikes
         if (strikeCount >= maxStrikes) {
           const member = message.member;
@@ -83,6 +94,16 @@ const event: BotEvent = {
               `${member} telah di-mute (timeout) selama ${muteDuration} menit karena melanggar aturan kata kasar sebanyak ${maxStrikes} kali atau lebih.`
             );
             await channel.send({ embeds: [timeoutEmbed] });
+
+            // Kirim moderation log mute
+            await logModeration(
+              message.guild,
+              "AUTOMOD_MUTE",
+              { id: member.user.id, tag: member.user.tag },
+              { id: message.client.user?.id || "AUTOMOD", tag: "Automod 🤖" },
+              `Melebihi ${maxStrikes} kali strike kata kasar`,
+              `Di-mute (timeout) selama ${muteDuration} menit`
+            );
           }
         }
       }

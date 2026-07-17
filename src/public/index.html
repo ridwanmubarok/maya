@@ -297,6 +297,11 @@
                 <textarea id="automod-words" rows="3" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="anjing, babi, bangsat..."></textarea>
                 <p class="text-[10px] text-gray-500">Pisahkan setiap kata dengan tanda koma (,). Pesan yang berisi kata ini akan otomatis dihapus.</p>
               </div>
+              <div class="flex flex-col gap-2">
+                <label for="automod-log-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Log Moderasi (Staff Log Channel)</label>
+                <select id="automod-log-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                <p class="text-[10px] text-gray-500">Channel tempat bot akan mengirim laporan log moderasi otomatis (mute/timeout) dan manual (kick, ban, warn).</p>
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-2">
                   <label for="automod-max-strikes" class="text-xs font-semibold text-gray-400 tracking-wider">Batas Maksimal Strike</label>
@@ -446,6 +451,7 @@
 
     // Form Inputs Automod
     const automodWordsInput = document.getElementById('automod-words');
+    const automodLogChannelSelect = document.getElementById('automod-log-channel');
     const automodMaxStrikesInput = document.getElementById('automod-max-strikes');
     const automodMuteDurationInput = document.getElementById('automod-mute-duration');
 
@@ -625,6 +631,12 @@
         welcomeChannelSelect.innerHTML = `
           <option value="">-- Nonaktifkan Welcomer --</option>
           ${channels.map(c => `<option value="${c.id}" ${config.welcomeChannelId === c.id ? 'selected' : ''}>#${c.name}</option>`).join('')}
+        `;
+        
+        // Render moderation logs channel dropdown
+        automodLogChannelSelect.innerHTML = `
+          <option value="">-- Nonaktifkan Log Moderasi --</option>
+          ${channels.map(c => `<option value="${c.id}" ${config.moderationLogChannelId === c.id ? 'selected' : ''}>#${c.name}</option>`).join('')}
         `;
         
         // Set input values welcome
@@ -843,6 +855,7 @@
       
       const payload = {
         welcomeChannelId: welcomeChannelSelect.value,
+        moderationLogChannelId: automodLogChannelSelect.value,
         welcomeTitle: welcomeTitleInput.value,
         welcomeMessage: welcomeMessageInput.value,
         welcomeImage: welcomeImageInput.value,

@@ -105,7 +105,8 @@ export function startDashboard(client: MayaClient) {
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     const { 
-      welcomeChannelId, 
+      welcomeChannelId,
+      moderationLogChannelId, 
       welcomeTitle, 
       welcomeMessage, 
       welcomeImage, 
@@ -121,6 +122,7 @@ export function startDashboard(client: MayaClient) {
         where: { guildId },
         update: {
           welcomeChannelId: welcomeChannelId || null,
+          moderationLogChannelId: moderationLogChannelId || null,
           welcomeTitle: welcomeTitle !== undefined ? welcomeTitle : "👋 Selamat Datang!",
           welcomeMessage: welcomeMessage !== undefined ? welcomeMessage : "",
           welcomeImage: welcomeImage !== undefined ? welcomeImage : "",
@@ -133,6 +135,7 @@ export function startDashboard(client: MayaClient) {
         create: {
           guildId,
           welcomeChannelId: welcomeChannelId || null,
+          moderationLogChannelId: moderationLogChannelId || null,
           welcomeTitle: welcomeTitle || "👋 Selamat Datang!",
           welcomeMessage: welcomeMessage || "",
           welcomeImage: welcomeImage || "",
