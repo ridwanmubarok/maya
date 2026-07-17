@@ -12,8 +12,7 @@ export function initAI() {
 
   try {
     const ai = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash as default because of its speed and capability
-    aiModel = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+    aiModel = ai.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
     logger.info("Gemini AI Client berhasil diinisialisasi.");
   } catch (error) {
     logger.error("Gagal menginisialisasi Gemini AI:", error);
