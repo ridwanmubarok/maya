@@ -35,8 +35,85 @@ const command: Command = {
     try {
       let trackInfo: { title: string; url: string; duration: string } | null = null;
 
-      // Check if the query is a direct YouTube link
-      if (play.yt_validate(query) === "video") {
+      // Check if the query is a Spotify link
+      if (play.sp_validate(query) !== "search") {
+        const spotifyData = await play.spotify(query);
+        if (spotifyData.type === "track") {
+          const track = spotifyData as any; // play-dl SpotifyTrack
+          const searchTitle = `${track.artists.map((a: any) => a.name).join(", ")} - ${track.name}`;
+          const searchResults = await play.search(searchTitle, { limit: 1, source: { youtube: "video" } });
+          if (searchResults.length > 0) {
+            const video = searchResults[0];
+            trackInfo = {
+              title: `${track.name} - ${track.artists.map((a: any) => a.name).join(", ")}`,
+              url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
+              duration: video.durationRaw
+            };
+          }
+        } else if (spotifyData.type === "playlist" || spotifyData.type === "album") {
+          const list = spotifyData as any;
+          const tracks = await list.all_tracks();
+          if (tracks.length > 0) {
+            // Resolve first track immediately so bot starts playing instantly
+            const firstTrack = tracks[0];
+            const searchTitle = `${firstTrack.artists.map((a: any) => a.name).join(", ")} - ${firstTrack.name}`;
+            const searchResults = await play.search(searchTitle, { limit: 1, source: { youtube: "video" } });
+            
+            if (searchResults.length > 0) {
+              const video = searchResults[0];
+              trackInfo = {
+                title: `${firstTrack.name} - ${firstTrack.artists.map((a: any) => a.name).join(", ")}`,
+                url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
+                duration: video.durationRaw
+              };
+
+              // Join and enqueue first track
+              const manager = getMusicManager(interaction.guildId!);
+              if (!manager.connection) {
+                manager.join(voiceChannel);
+              }
+
+              const firstEnqueuedTrack: Track = {
+                ...trackInfo,
+                requestedBy: interaction.user.tag
+              };
+              manager.addTrack(firstEnqueuedTrack);
+
+              // Asynchronously resolve and enqueue the rest of the playlist
+              (async () => {
+                for (let i = 1; i < tracks.length; i++) {
+                  try {
+                    const playlistTrack = tracks[i];
+                    const pSearchTitle = `${playlistTrack.artists.map((a: any) => a.name).join(", ")} - ${playlistTrack.name}`;
+                    const pSearchResults = await play.search(pSearchTitle, { limit: 1, source: { youtube: "video" } });
+                    if (pSearchResults.length > 0) {
+                      const pVideo = pSearchResults[0];
+                      manager.queue.push({
+                        title: `${playlistTrack.name} - ${playlistTrack.artists.map((a: any) => a.name).join(", ")}`,
+                        url: pVideo.url || `https://www.youtube.com/watch?v=${pVideo.id}`,
+                        duration: pVideo.durationRaw,
+                        requestedBy: interaction.user.tag
+                      });
+                    }
+                  } catch (e) {
+                    console.error("Failed to load background playlist track:", e);
+                  }
+                }
+              })();
+
+              const embed = createEmbed.music(
+                "Spotify Playlist/Album Ditambahkan",
+                `Memutar **${list.name}**\n` +
+                `Track pertama: **${firstEnqueuedTrack.title}**\n\n` +
+                `*Memuat ${tracks.length - 1} lagu lainnya ke dalam antrean di latar belakang...*`
+              );
+
+              await interaction.editReply({ embeds: [embed] });
+              return;
+            }
+          }
+        }
+      } else if (play.yt_validate(query) === "video") {
         const info = await play.video_basic_info(query);
         trackInfo = {
           title: info.video_details.title || "Lagu Tanpa Judul",
