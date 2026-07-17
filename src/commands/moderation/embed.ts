@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, TextChannel, EmbedBuilder, ChannelType } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, TextChannel, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { Command } from "../../types";
 import { createEmbed } from "../../utils/embeds";
 import { logModeration } from "../../utils/moderationLogger";
@@ -42,6 +42,18 @@ const command: Command = {
         .setName("thumbnail")
         .setDescription("URL gambar thumbnail kecil di kanan atas")
         .setRequired(false)
+    )
+    .addStringOption(opt =>
+      opt
+        .setName("tombol_label")
+        .setDescription("Label untuk tombol link (contoh: Main Sekarang)")
+        .setRequired(false)
+    )
+    .addStringOption(opt =>
+      opt
+        .setName("tombol_url")
+        .setDescription("URL tautan tombol (contoh: https://twitch.tv/...)")
+        .setRequired(false)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     const executorMember = interaction.member as GuildMember;
@@ -62,6 +74,8 @@ const command: Command = {
     const colorStr = interaction.options.getString("warna");
     const bannerUrl = interaction.options.getString("banner");
     const thumbnailUrl = interaction.options.getString("thumbnail");
+    const buttonLabel = interaction.options.getString("tombol_label");
+    const buttonUrl = interaction.options.getString("tombol_url");
 
     if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
       await interaction.reply({
@@ -97,7 +111,18 @@ const command: Command = {
         embed.setThumbnail(thumbnailUrl.trim());
       }
 
-      await textChannel.send({ embeds: [embed] });
+      const components: any[] = [];
+      if (buttonLabel && buttonUrl && buttonUrl.trim().startsWith("http")) {
+        const button = new ButtonBuilder()
+          .setLabel(buttonLabel)
+          .setURL(buttonUrl.trim())
+          .setStyle(ButtonStyle.Link);
+        
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+        components.push(row);
+      }
+
+      await textChannel.send({ embeds: [embed], components });
 
       await interaction.reply({
         embeds: [createEmbed.success("Sukses", `Pesan embed berhasil dikirim ke channel ${channel}.`)],

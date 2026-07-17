@@ -4,7 +4,7 @@ import { MayaClient } from "../types";
 import { prisma } from "./database";
 import { getMusicManager } from "./musicManager";
 import { logger } from "../utils/logger";
-import { EmbedBuilder, TextChannel } from "discord.js";
+import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 
 const app = express();
 app.use(express.json());
@@ -162,7 +162,7 @@ export function startDashboard(client: MayaClient) {
   // Send custom embed from dashboard to a channel (Requires Auth)
   app.post("/api/configs/:guildId/send-embed", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
-    const { channelId, title, description, color, bannerUrl, thumbnailUrl } = req.body;
+    const { channelId, title, description, color, bannerUrl, thumbnailUrl, buttonLabel, buttonUrl } = req.body;
 
     if (!channelId || !description) {
       return res.status(400).json({ error: "Channel dan Deskripsi wajib diisi." });
@@ -207,7 +207,18 @@ export function startDashboard(client: MayaClient) {
         embed.setThumbnail(thumbnailUrl.trim());
       }
 
-      await textChannel.send({ embeds: [embed] });
+      const components: any[] = [];
+      if (buttonLabel && buttonUrl && buttonUrl.trim().startsWith("http")) {
+        const button = new ButtonBuilder()
+          .setLabel(buttonLabel)
+          .setURL(buttonUrl.trim())
+          .setStyle(ButtonStyle.Link);
+        
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+        components.push(row);
+      }
+
+      await textChannel.send({ embeds: [embed], components });
 
       res.json({ success: true });
       logger.info(`Dashboard: Mengirim embed kustom ke channel ${channelId} di guild ${guildId}.`);
@@ -297,6 +308,79 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error(`Error controlling music for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal mengontrol musik." });
+    }
+  });
+
+  // Get all roles for a guild (Requires Auth)
+  app.get("/api/roles/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
+
+      const roles = guild.roles.cache
+        .map(r => ({
+          id: r.id,
+          name: r.name,
+          color: r.hexColor,
+          hoist: r.hoist,
+          position: r.position,
+          memberCount: r.members.size,
+          managed: r.managed
+        }))
+        .sort((a, b) => b.position - a.position);
+
+      res.json({ roles });
+    } catch (error) {
+      logger.error(`Error fetching roles for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil daftar role." });
+    }
+  });
+
+  // Create a new role in guild (Requires Auth)
+  app.post("/api/roles/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { name, color, hoist } = req.body;
+
+    if (!name) return res.status(400).json({ error: "Nama role wajib diisi." });
+
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
+
+      const newRole = await guild.roles.create({
+        name,
+        color: color || "#99aab5",
+        hoist: hoist || false,
+        reason: "Dibuat via Maya Web Dashboard"
+      });
+
+      res.json({ success: true, role: { id: newRole.id, name: newRole.name } });
+      logger.info(`Dashboard: Berhasil membuat role baru '${name}' di guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error creating role for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal membuat role. Pastikan bot memiliki izin Manage Roles." });
+    }
+  });
+
+  // Delete a role in guild (Requires Auth)
+  app.delete("/api/roles/:guildId/:roleId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, roleId } = req.params;
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
+
+      const role = guild.roles.cache.get(roleId);
+      if (!role) return res.status(404).json({ error: "Role tidak ditemukan." });
+
+      if (role.managed) return res.status(400).json({ error: "Role ini dikelola secara eksternal dan tidak bisa dihapus." });
+
+      await role.delete("Dihapus via Maya Web Dashboard");
+      res.json({ success: true });
+      logger.info(`Dashboard: Berhasil menghapus role ID ${roleId} di guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error deleting role ${roleId} for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menghapus role. Pastikan bot memiliki wewenang (posisi role bot di atas role tersebut)." });
     }
   });
 

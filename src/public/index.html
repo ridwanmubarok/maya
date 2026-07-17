@@ -210,6 +210,9 @@
             <button onclick="switchTab('rules')" id="tab-btn-rules" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
               <i class="fa-solid fa-scroll"></i> Rules Creator
             </button>
+            <button onclick="switchTab('roles')" id="tab-btn-roles" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-tags"></i> Roles Manager
+            </button>
           </div>
 
           <!-- GLOBAL FORM FOR SAVING CONFIGS (Covers Welcome, Automod, and AI Personality) -->
@@ -386,6 +389,19 @@
                   <label for="rules-banner" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Banner (Bagian Bawah)</label>
                   <input type="url" id="rules-banner" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/banner.jpg">
                 </div>
+                <div class="border-t border-white/5 pt-4 my-2">
+                  <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Tautan Tombol Aksi (Link Button)</h4>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="rules-btn-label" class="text-xs font-semibold text-gray-400 tracking-wider">Label Tombol</label>
+                    <input type="text" id="rules-btn-label" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Tonton Live / Join Game">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="rules-btn-url" class="text-xs font-semibold text-gray-400 tracking-wider">URL Tombol Link</label>
+                    <input type="url" id="rules-btn-url" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://twitch.tv/... atau https://steam...">
+                  </div>
+                </div>
                 
                 <div class="pt-4 flex justify-end">
                   <button 
@@ -516,6 +532,78 @@
             </div>
           </div>
 
+          <!-- TAB content: ROLES MANAGER (Self-contained) -->
+          <div id="tab-content-roles" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Manage Server Roles</h3>
+                <p class="text-xs text-gray-400">Buat, lihat, dan hapus role server langsung dari dashboard</p>
+              </div>
+              <button onclick="loadRoles()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Roles
+              </button>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Roles List (Left) -->
+              <div class="flex-1 space-y-4">
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                          <th class="p-4">Nama Role</th>
+                          <th class="p-4">Warna</th>
+                          <th class="p-4">Jumlah Anggota</th>
+                          <th class="p-4">Tipe</th>
+                          <th class="p-4 text-center">Tindakan</th>
+                        </tr>
+                      </thead>
+                      <tbody id="roles-table-body">
+                        <!-- Roles load dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Create Role Panel (Right) -->
+              <div class="w-full lg:w-96 space-y-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Buat Role Baru</h3>
+                <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="new-role-name" class="text-xs font-semibold text-gray-400 tracking-wider">Nama Role</label>
+                    <input type="text" id="new-role-name" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Member Baru">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="new-role-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Role</label>
+                    <div class="flex gap-2">
+                      <input type="color" id="new-role-color-picker" class="w-12 h-11 rounded-xl bg-transparent border border-white/10 cursor-pointer" value="#99AAB5">
+                      <input type="text" id="new-role-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#99AAB5" placeholder="#99AAB5">
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/2">
+                    <div>
+                      <h4 class="text-xs font-semibold text-white">Tampilkan Terpisah</h4>
+                      <p class="text-[10px] text-gray-400">Tampilkan role terpisah dari online member lainnya (hoist)</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="new-role-hoist" class="sr-only peer">
+                      <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+                    </label>
+                  </div>
+                  <button 
+                    onclick="createRole()"
+                    id="create-role-btn" 
+                    class="w-full py-3 bg-discord-blurple hover:brightness-110 shadow-lg shadow-discord-blurple/20 transition-all text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2"
+                  >
+                    <i class="fa-solid fa-plus"></i> Buat Role
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
 
@@ -569,6 +657,14 @@
     const rulesColorPicker = document.getElementById('rules-color-picker');
     const rulesThumbnailInput = document.getElementById('rules-thumbnail');
     const rulesBannerInput = document.getElementById('rules-banner');
+    const rulesBtnLabelInput = document.getElementById('rules-btn-label');
+    const rulesBtnUrlInput = document.getElementById('rules-btn-url');
+
+    // Form Inputs New Role
+    const newRoleNameInput = document.getElementById('new-role-name');
+    const newRoleColorInput = document.getElementById('new-role-color');
+    const newRoleColorPicker = document.getElementById('new-role-color-picker');
+    const newRoleHoistCheckbox = document.getElementById('new-role-hoist');
     
     // Embed Previews
     const previewTitle = document.getElementById('preview-title');
@@ -792,9 +888,9 @@
       });
       document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
 
-      // Hide save-bar for warnings, music, and rules tabs, show for forms configs
+      // Hide save-bar for warnings, music, rules, and roles tabs, show for forms configs
       const saveBar = document.getElementById('save-bar');
-      if (tabId === 'warnings' || tabId === 'music' || tabId === 'rules') {
+      if (tabId === 'warnings' || tabId === 'music' || tabId === 'rules' || tabId === 'roles') {
         saveBar.classList.add('hidden');
       } else {
         saveBar.classList.remove('hidden');
@@ -808,6 +904,8 @@
         startMusicPolling();
       } else if (tabId === 'rules') {
         updateRulesPreview();
+      } else if (tabId === 'roles') {
+        loadRoles();
       } else {
         stopMusicPolling();
       }
@@ -1014,6 +1112,8 @@
     rulesDescriptionInput.addEventListener('input', updateRulesPreview);
     rulesThumbnailInput.addEventListener('input', updateRulesPreview);
     rulesBannerInput.addEventListener('input', updateRulesPreview);
+    rulesBtnLabelInput.addEventListener('input', updateRulesPreview);
+    rulesBtnUrlInput.addEventListener('input', updateRulesPreview);
     rulesColorInput.addEventListener('input', () => {
       rulesColorPicker.value = rulesColorInput.value;
       updateRulesPreview();
@@ -1050,6 +1150,133 @@
       } else {
         bannerContainer.classList.add('hidden');
       }
+
+      const btnLabel = rulesBtnLabelInput.value.trim();
+      const btnUrl = rulesBtnUrlInput.value.trim();
+      const btnContainer = document.getElementById('rules-preview-btn-container');
+      const btnElement = document.getElementById('rules-preview-btn');
+      if (btnLabel && btnUrl && btnUrl.startsWith('http')) {
+        btnElement.innerText = btnLabel;
+        btnContainer.classList.remove('hidden');
+      } else {
+        btnContainer.classList.add('hidden');
+      }
+    }
+
+    // --- ROLES MANAGER LOGIC ---
+    newRoleColorInput.addEventListener('input', () => {
+      newRoleColorPicker.value = newRoleColorInput.value;
+    });
+    newRoleColorPicker.addEventListener('input', () => {
+      newRoleColorInput.value = newRoleColorPicker.value;
+    });
+
+    async function loadRoles() {
+      const tbody = document.getElementById('roles-table-body');
+      tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500 italic"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Loading roles list...</td></tr>`;
+
+      try {
+        const response = await fetch(`/api/roles/${selectedGuildId}`, {
+          headers: { 'Authorization': token }
+        });
+        if (!response.ok) throw new Error();
+        const { roles } = await response.json();
+        
+        tbody.innerHTML = roles.map(role => {
+          const typeStr = role.managed ? 'Integrasi 🤖' : 'Umum 👥';
+          const isEveryone = role.name === '@everyone';
+          return `
+            <tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+              <td class="p-4 font-semibold text-white">${role.name}</td>
+              <td class="p-4 flex items-center gap-2">
+                <span class="w-4 h-4 rounded border border-white/10" style="background-color: ${role.color}"></span>
+                <span class="font-mono text-gray-400 text-[10px]">${role.color}</span>
+              </td>
+              <td class="p-4 text-gray-300 font-medium">${role.memberCount} Anggota</td>
+              <td class="p-4 text-gray-400">${typeStr}</td>
+              <td class="p-4 text-center">
+                ${isEveryone || role.managed
+                  ? `<span class="text-[10px] text-gray-500 italic">Terkunci</span>`
+                  : `<button 
+                      onclick="deleteRole('${role.id}')"
+                      class="px-2 py-1 rounded bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 hover:text-white transition-all font-medium text-[10px]"
+                    >
+                      <i class="fa-solid fa-trash-can mr-1"></i> Hapus
+                    </button>`
+                }
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-400 italic">Gagal mengambil data role server.</td></tr>`;
+      }
+    }
+
+    async function createRole() {
+      const createBtn = document.getElementById('create-role-btn');
+      const originalHtml = createBtn.innerHTML;
+      
+      if (!newRoleNameInput.value.trim()) {
+        showToast('Error', 'Nama role tidak boleh kosong.', 'error');
+        return;
+      }
+
+      createBtn.disabled = true;
+      createBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-sm"></i> Membuat...`;
+
+      const payload = {
+        name: newRoleNameInput.value,
+        color: newRoleColorInput.value,
+        hoist: newRoleHoistCheckbox.checked
+      };
+
+      try {
+        const response = await fetch(`/api/roles/${selectedGuildId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          showToast('Sukses', 'Role baru berhasil dibuat!', 'success');
+          newRoleNameInput.value = '';
+          newRoleHoistCheckbox.checked = false;
+          loadRoles();
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal membuat role.');
+        }
+      } catch (error) {
+        showToast('Gagal Membuat Role', error.message || 'Gagal terhubung ke API server.', 'error');
+      } finally {
+        createBtn.disabled = false;
+        createBtn.innerHTML = originalHtml;
+      }
+    }
+
+    async function deleteRole(roleId) {
+      if (!confirm('Apakah Anda yakin ingin menghapus role ini dari server Discord?')) return;
+
+      try {
+        const response = await fetch(`/api/roles/${selectedGuildId}/${roleId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': token }
+        });
+
+        if (response.ok) {
+          showToast('Sukses', 'Role berhasil dihapus dari server.', 'success');
+          loadRoles();
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal menghapus role.');
+        }
+      } catch (error) {
+        showToast('Gagal Menghapus Role', error.message || 'Gagal terhubung ke API server.', 'error');
+      }
     }
 
     async function sendRulesEmbed() {
@@ -1074,7 +1301,9 @@
         description: rulesDescriptionInput.value,
         color: rulesColorInput.value,
         thumbnailUrl: rulesThumbnailInput.value,
-        bannerUrl: rulesBannerInput.value
+        bannerUrl: rulesBannerInput.value,
+        buttonLabel: rulesBtnLabelInput.value,
+        buttonUrl: rulesBtnUrlInput.value
       };
 
       try {
@@ -1094,6 +1323,8 @@
           rulesDescriptionInput.value = '';
           rulesThumbnailInput.value = '';
           rulesBannerInput.value = '';
+          rulesBtnLabelInput.value = '';
+          rulesBtnUrlInput.value = '';
           updateRulesPreview();
         } else {
           const errData = await response.json().catch(() => ({}));
