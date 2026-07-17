@@ -4,6 +4,19 @@ import { getMusicManager, Track } from "../../services/musicManager";
 import { createEmbed } from "../../utils/embeds";
 import play from "play-dl";
 
+function formatSoundCloudTrack(track: any) {
+  const title = track.name || track.title || "Lagu Tanpa Judul";
+  const durationInSec = track.durationInSec || Math.floor((track.duration || 0) / 1000);
+  const minutes = Math.floor(durationInSec / 60);
+  const seconds = durationInSec % 60;
+  const durationRaw = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  return {
+    title,
+    url: track.url,
+    duration: durationRaw
+  };
+}
+
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("play")
@@ -44,13 +57,13 @@ const command: Command = {
         if (spotifyData.type === "track") {
           const track = spotifyData as any; // play-dl SpotifyTrack
           const searchTitle = `${track.artists.map((a: any) => a.name).join(", ")} - ${track.name}`;
-          const searchResults = await play.search(searchTitle, { limit: 1, source: { youtube: "video" } });
+          const searchResults = await play.search(searchTitle, { limit: 1, source: { soundcloud: "tracks" } });
           if (searchResults.length > 0) {
-            const video = searchResults[0];
+            const scTrackInfo = formatSoundCloudTrack(searchResults[0]);
             trackInfo = {
               title: `${track.name} - ${track.artists.map((a: any) => a.name).join(", ")}`,
-              url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
-              duration: video.durationRaw
+              url: scTrackInfo.url,
+              duration: scTrackInfo.duration
             };
           }
         } else if (spotifyData.type === "playlist" || spotifyData.type === "album") {
@@ -60,14 +73,14 @@ const command: Command = {
             // Resolve first track immediately so bot starts playing instantly
             const firstTrack = tracks[0];
             const searchTitle = `${firstTrack.artists.map((a: any) => a.name).join(", ")} - ${firstTrack.name}`;
-            const searchResults = await play.search(searchTitle, { limit: 1, source: { youtube: "video" } });
+            const searchResults = await play.search(searchTitle, { limit: 1, source: { soundcloud: "tracks" } });
             
             if (searchResults.length > 0) {
-              const video = searchResults[0];
+              const scTrackInfo = formatSoundCloudTrack(searchResults[0]);
               trackInfo = {
                 title: `${firstTrack.name} - ${firstTrack.artists.map((a: any) => a.name).join(", ")}`,
-                url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
-                duration: video.durationRaw
+                url: scTrackInfo.url,
+                duration: scTrackInfo.duration
               };
 
               // Join and enqueue first track
@@ -88,13 +101,13 @@ const command: Command = {
                   try {
                     const playlistTrack = tracks[i];
                     const pSearchTitle = `${playlistTrack.artists.map((a: any) => a.name).join(", ")} - ${playlistTrack.name}`;
-                    const pSearchResults = await play.search(pSearchTitle, { limit: 1, source: { youtube: "video" } });
+                    const pSearchResults = await play.search(pSearchTitle, { limit: 1, source: { soundcloud: "tracks" } });
                     if (pSearchResults.length > 0) {
-                      const pVideo = pSearchResults[0];
+                      const pScTrackInfo = formatSoundCloudTrack(pSearchResults[0]);
                       manager.queue.push({
                         title: `${playlistTrack.name} - ${playlistTrack.artists.map((a: any) => a.name).join(", ")}`,
-                        url: pVideo.url || `https://www.youtube.com/watch?v=${pVideo.id}`,
-                        duration: pVideo.durationRaw,
+                        url: pScTrackInfo.url,
+                        duration: pScTrackInfo.duration,
                         requestedBy: interaction.user.tag
                       });
                     }
@@ -170,15 +183,10 @@ const command: Command = {
           }
         }
       } else {
-        // Search YouTube for query
-        const searchResults = await play.search(query, { limit: 1, source: { youtube: "video" } });
+        // Search SoundCloud for query instead of YouTube to prevent VPS blocks
+        const searchResults = await play.search(query, { limit: 1, source: { soundcloud: "tracks" } });
         if (searchResults.length > 0) {
-          const video = searchResults[0];
-          trackInfo = {
-            title: video.title || "Lagu Tanpa Judul",
-            url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
-            duration: video.durationRaw
-          };
+          trackInfo = formatSoundCloudTrack(searchResults[0]);
         }
       }
 
@@ -233,16 +241,15 @@ const command: Command = {
     }
 
     try {
-      // Search YouTube for suggestions
-      const searchResults = await play.search(focusedValue, { limit: 5, source: { youtube: "video" } });
-      const choices = searchResults.map(video => {
-        const title = video.title || "Lagu Tanpa Judul";
-        const duration = video.durationRaw ? ` [${video.durationRaw}]` : "";
-        const displayName = title.length > 70 ? title.substring(0, 67) + "..." : title;
+      // Search SoundCloud for suggestions instead of YouTube to prevent VPS blocks
+      const searchResults = await play.search(focusedValue, { limit: 5, source: { soundcloud: "tracks" } });
+      const choices = searchResults.map(track => {
+        const resolved = formatSoundCloudTrack(track);
+        const displayName = resolved.title.length > 70 ? resolved.title.substring(0, 67) + "..." : resolved.title;
         
         return {
-          name: `${displayName}${duration}`,
-          value: video.url || `https://www.youtube.com/watch?v=${video.id}`
+          name: `${displayName} [${resolved.duration}]`,
+          value: resolved.url
         };
       });
 

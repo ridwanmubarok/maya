@@ -64,6 +64,24 @@ if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
   }
 }
 
+// Load SoundCloud Client ID dynamically on startup
+(async () => {
+  try {
+    const scClientId = await play.getFreeClientID();
+    if (scClientId) {
+      await play.setToken({
+        soundcloud: {
+          client_id: scClientId
+        }
+      });
+      logger.info("SoundCloud Client ID berhasil didapatkan dan dimuat untuk play-dl.");
+    }
+  } catch (err) {
+    logger.error("Gagal memuat SoundCloud Client ID:", err);
+  }
+})();
+
+
 
 // Initialize client with correct gateway intents
 const client = new MayaClient({
