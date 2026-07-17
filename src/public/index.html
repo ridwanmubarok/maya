@@ -614,7 +614,10 @@
           headers: { 'Authorization': token }
         });
         
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal memuat setting server ini.');
+        }
         
         const { config, channels } = await response.json();
         
@@ -643,7 +646,7 @@
         
         updateEmbedPreview();
       } catch (error) {
-        showToast('Gagal Memuat Konfigurasi', 'Gagal memuat setting server ini.', 'error');
+        showToast('Gagal Memuat Konfigurasi', error.message || 'Gagal memuat setting server ini.', 'error');
       }
     }
 
@@ -865,10 +868,11 @@
         if (response.ok) {
           showToast('Tersimpan', 'Seluruh konfigurasi server berhasil disimpan.', 'success');
         } else {
-          showToast('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan config.', 'error');
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Terjadi kesalahan saat menyimpan config.');
         }
       } catch (error) {
-        showToast('Kesalahan Koneksi', 'Gagal terhubung ke API server.', 'error');
+        showToast('Gagal Menyimpan', error.message || 'Gagal terhubung ke API server.', 'error');
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalHtml;

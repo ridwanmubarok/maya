@@ -92,8 +92,11 @@ export function startDashboard(client: MayaClient) {
         : [];
 
       res.json({ config, channels });
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching config for guild ${guildId}:`, error);
+      if (error.code === "P2021") {
+        return res.status(500).json({ error: "Tabel database belum dibuat. Silakan jalankan 'npm run db:push' di terminal Anda." });
+      }
       res.status(500).json({ error: "Gagal mengambil konfigurasi server." });
     }
   });
@@ -143,8 +146,11 @@ export function startDashboard(client: MayaClient) {
 
       res.json({ success: true, config: updatedConfig });
       logger.info(`Dashboard: Konfigurasi guild ${guildId} berhasil diperbarui.`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error saving config for guild ${guildId}:`, error);
+      if (error.code === "P2021") {
+        return res.status(500).json({ error: "Tabel database belum dibuat. Silakan jalankan 'npm run db:push' di terminal Anda." });
+      }
       res.status(500).json({ error: "Gagal menyimpan konfigurasi server." });
     }
   });
@@ -158,8 +164,11 @@ export function startDashboard(client: MayaClient) {
         orderBy: { createdAt: "desc" }
       });
       res.json({ warnings });
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching warnings for guild ${guildId}:`, error);
+      if (error.code === "P2021") {
+        return res.status(500).json({ error: "Tabel database belum dibuat. Silakan jalankan 'npm run db:push' di terminal Anda." });
+      }
       res.status(500).json({ error: "Gagal mengambil log strike." });
     }
   });
