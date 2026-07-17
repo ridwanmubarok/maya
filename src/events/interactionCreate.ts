@@ -24,6 +24,18 @@ const event: BotEvent = {
         await interaction.editReply({ content: res.message });
         return;
       }
+    }
+
+    if (interaction.isAutocomplete()) {
+      const client = interaction.client as MayaClient;
+      const command = client.commands.get(interaction.commandName);
+      if (command && typeof command.autocomplete === "function") {
+        try {
+          await command.autocomplete(interaction);
+        } catch (error) {
+          logger.error(`Error saat autocomplete command /${interaction.commandName}:`, error);
+        }
+      }
       return;
     }
 

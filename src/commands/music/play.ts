@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, VoiceChannel } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, VoiceChannel, AutocompleteInteraction } from "discord.js";
 import { Command } from "../../types";
 import { getMusicManager, Track } from "../../services/musicManager";
 import { createEmbed } from "../../utils/embeds";
@@ -13,6 +13,7 @@ const command: Command = {
         .setName("query")
         .setDescription("Judul lagu atau link YouTube")
         .setRequired(true)
+        .setAutocomplete(true)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     const member = interaction.member as GuildMember;
@@ -90,6 +91,33 @@ const command: Command = {
       await interaction.editReply({
         embeds: [createEmbed.error("Gagal Memutar", "Terjadi kesalahan saat memproses musik.")]
       });
+    }
+  },
+  async autocomplete(interaction: AutocompleteInteraction) {
+    const focusedValue = interaction.options.getFocused();
+    if (!focusedValue || !focusedValue.trim()) {
+      await interaction.respond([]);
+      return;
+    }
+
+    try {
+      // Search YouTube for suggestions
+      const searchResults = await play.search(focusedValue, { limit: 5, source: { youtube: "video" } });
+      const choices = searchResults.map(video => {
+        const title = video.title || "Lagu Tanpa Judul";
+        const duration = video.durationRaw ? ` [${video.durationRaw}]` : "";
+        const displayName = title.length > 70 ? title.substring(0, 67) + "..." : title;
+        
+        return {
+          name: `${displayName}${duration}`,
+          value: video.url || `https://www.youtube.com/watch?v=${video.id}`
+        };
+      });
+
+      await interaction.respond(choices);
+    } catch (error) {
+      console.error("Autocomplete search error:", error);
+      await interaction.respond([]);
     }
   }
 };
