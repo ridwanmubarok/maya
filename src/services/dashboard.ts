@@ -4,6 +4,7 @@ import { MayaClient } from "../types";
 import { prisma } from "./database";
 import { getMusicManager } from "./musicManager";
 import { logger } from "../utils/logger";
+import { EmbedBuilder, TextChannel } from "discord.js";
 
 const app = express();
 app.use(express.json());
@@ -155,6 +156,64 @@ export function startDashboard(client: MayaClient) {
         return res.status(500).json({ error: "Tabel database belum dibuat. Silakan jalankan 'npm run db:push' di terminal Anda." });
       }
       res.status(500).json({ error: "Gagal menyimpan konfigurasi server." });
+    }
+  });
+
+  // Send custom embed from dashboard to a channel (Requires Auth)
+  app.post("/api/configs/:guildId/send-embed", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { channelId, title, description, color, bannerUrl, thumbnailUrl } = req.body;
+
+    if (!channelId || !description) {
+      return res.status(400).json({ error: "Channel dan Deskripsi wajib diisi." });
+    }
+
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) {
+        return res.status(404).json({ error: "Server tidak ditemukan oleh bot." });
+      }
+
+      const channel = guild.channels.cache.get(channelId);
+      if (!channel || !channel.isTextBased()) {
+        return res.status(404).json({ error: "Channel teks tidak ditemukan." });
+      }
+
+      const textChannel = channel as TextChannel;
+
+      // Construct embed
+      const embed = new EmbedBuilder()
+        .setDescription(description.replace(/\\n/g, "\n"))
+        .setTimestamp();
+
+      if (title) embed.setTitle(title);
+      
+      // Parse color (e.g. #5865f2 or standard blurple)
+      if (color) {
+        const hex = color.replace("#", "");
+        const colorInt = parseInt(hex, 16);
+        if (!isNaN(colorInt)) {
+          embed.setColor(colorInt);
+        }
+      } else {
+        embed.setColor(0x5865F2); // Default blurple
+      }
+
+      if (bannerUrl && bannerUrl.trim().startsWith("http")) {
+        embed.setImage(bannerUrl.trim());
+      }
+
+      if (thumbnailUrl && thumbnailUrl.trim().startsWith("http")) {
+        embed.setThumbnail(thumbnailUrl.trim());
+      }
+
+      await textChannel.send({ embeds: [embed] });
+
+      res.json({ success: true });
+      logger.info(`Dashboard: Mengirim embed kustom ke channel ${channelId} di guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error sending custom embed for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengirim pesan embed ke server Discord." });
     }
   });
 

@@ -207,6 +207,9 @@
             <button onclick="switchTab('ai')" id="tab-btn-ai" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
               <i class="fa-solid fa-brain"></i> NVIDIA AI
             </button>
+            <button onclick="switchTab('rules')" id="tab-btn-rules" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-scroll"></i> Rules Creator
+            </button>
           </div>
 
           <!-- GLOBAL FORM FOR SAVING CONFIGS (Covers Welcome, Automod, and AI Personality) -->
@@ -338,6 +341,106 @@
             
           </form>
 
+          <!-- TAB content: RULES CREATOR (Self-contained) -->
+          <div id="tab-content-rules" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Rules & Guides Creator</h3>
+                <p class="text-xs text-gray-400">Buat dan kirim pesan embed info, rules, atau panduan secara kustom ke server Discord</p>
+              </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Inputs Panel (Left) -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="rules-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="rules-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  <p class="text-[10px] text-gray-500">Pilih channel tempat rules/embed akan diposting.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="rules-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Card (Title)</label>
+                  <input type="text" id="rules-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="📜 ATURAN & PANDUAN SERVER">
+                </div>
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                    <label for="rules-description" class="text-xs font-semibold text-gray-400 tracking-wider">Konten / Isi Rules</label>
+                    <span class="text-[9px] text-gray-500 font-mono">Mendukung Markdown Discord</span>
+                  </div>
+                  <textarea id="rules-description" rows="8" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="1. Hormati sesama member...\n2. Dilarang spam..."></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="rules-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Embed (Hex)</label>
+                    <div class="flex gap-2">
+                      <input type="color" id="rules-color-picker" class="w-12 h-11 rounded-xl bg-transparent border border-white/10 cursor-pointer" value="#5865F2">
+                      <input type="text" id="rules-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#5865F2" placeholder="#5865F2">
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="rules-thumbnail" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Thumbnail (Kanan Atas)</label>
+                    <input type="url" id="rules-thumbnail" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/logo.png">
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="rules-banner" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Banner (Bagian Bawah)</label>
+                  <input type="url" id="rules-banner" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/banner.jpg">
+                </div>
+                
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="sendRulesEmbed()"
+                    id="send-rules-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-paper-plane"></i> Kirim ke Discord
+                  </button>
+                </div>
+              </div>
+
+              <!-- Preview Panel (Right) -->
+              <div class="w-full lg:w-96 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Rules Preview</h3>
+                <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                  <div class="flex gap-3">
+                    <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                      <i class="fa-solid fa-robot text-lg text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1.5">
+                        <span class="font-semibold text-white">Maya Bot</span>
+                        <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                        <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                      </div>
+                      
+                      <!-- EMBED MOCK -->
+                      <div id="rules-preview-card" class="bg-discord-embed max-w-[450px] border-l-4 border-discord-blurple rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                        <div class="flex gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h4 id="rules-preview-title" class="font-bold text-white text-sm mb-2">📜 ATURAN SERVER</h4>
+                            <p id="rules-preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed">Tulis aturan di panel kiri...</p>
+                          </div>
+                          <div id="rules-preview-thumb-container" class="w-14 h-14 shrink-0 hidden">
+                            <img id="rules-preview-thumb" src="" alt="Thumbnail" class="w-full h-full rounded object-cover">
+                          </div>
+                        </div>
+                        <div id="rules-preview-banner-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                          <img id="rules-preview-banner" src="" alt="Banner" class="w-full h-full object-cover">
+                        </div>
+                        <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                          <span>Maya Bot</span>
+                          <span>•</span>
+                          <span>Hari ini pukul 10:00</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- TAB content: WARNINGS LOG (Self-contained) -->
           <div id="tab-content-warnings" class="tab-pane hidden space-y-4">
             <div class="flex justify-between items-center">
@@ -457,6 +560,15 @@
 
     // Form Inputs AI
     const aiPersonalityInput = document.getElementById('ai-personality');
+    
+    // Form Inputs Rules
+    const rulesChannelSelect = document.getElementById('rules-channel');
+    const rulesTitleInput = document.getElementById('rules-title');
+    const rulesDescriptionInput = document.getElementById('rules-description');
+    const rulesColorInput = document.getElementById('rules-color');
+    const rulesColorPicker = document.getElementById('rules-color-picker');
+    const rulesThumbnailInput = document.getElementById('rules-thumbnail');
+    const rulesBannerInput = document.getElementById('rules-banner');
     
     // Embed Previews
     const previewTitle = document.getElementById('preview-title');
@@ -639,6 +751,9 @@
           ${channels.map(c => `<option value="${c.id}" ${config.moderationLogChannelId === c.id ? 'selected' : ''}>#${c.name}</option>`).join('')}
         `;
         
+        // Render rules channels dropdown
+        rulesChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+        
         // Set input values welcome
         welcomeTitleInput.value = config.welcomeTitle;
         welcomeMessageInput.value = config.welcomeMessage;
@@ -677,9 +792,9 @@
       });
       document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
 
-      // Hide save-bar for warnings and music tabs, show for forms configs
+      // Hide save-bar for warnings, music, and rules tabs, show for forms configs
       const saveBar = document.getElementById('save-bar');
-      if (tabId === 'warnings' || tabId === 'music') {
+      if (tabId === 'warnings' || tabId === 'music' || tabId === 'rules') {
         saveBar.classList.add('hidden');
       } else {
         saveBar.classList.remove('hidden');
@@ -691,6 +806,8 @@
       } else if (tabId === 'music') {
         loadMusicStatus();
         startMusicPolling();
+      } else if (tabId === 'rules') {
+        updateRulesPreview();
       } else {
         stopMusicPolling();
       }
@@ -889,6 +1006,104 @@
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalHtml;
+      }
+    }
+
+    // --- RULES CREATOR EVENT LISTENERS & LOGIC ---
+    rulesTitleInput.addEventListener('input', updateRulesPreview);
+    rulesDescriptionInput.addEventListener('input', updateRulesPreview);
+    rulesThumbnailInput.addEventListener('input', updateRulesPreview);
+    rulesBannerInput.addEventListener('input', updateRulesPreview);
+    rulesColorInput.addEventListener('input', () => {
+      rulesColorPicker.value = rulesColorInput.value;
+      updateRulesPreview();
+    });
+    rulesColorPicker.addEventListener('input', () => {
+      rulesColorInput.value = rulesColorPicker.value;
+      updateRulesPreview();
+    });
+
+    function updateRulesPreview() {
+      const title = rulesTitleInput.value || '📜 ATURAN SERVER';
+      document.getElementById('rules-preview-title').innerText = title;
+      
+      const rawDesc = rulesDescriptionInput.value || 'Tulis aturan di panel kiri...';
+      document.getElementById('rules-preview-description').innerHTML = parseMarkdown(rawDesc);
+      
+      const color = rulesColorInput.value || '#5865F2';
+      document.getElementById('rules-preview-card').style.borderColor = color;
+      
+      const thumbUrl = rulesThumbnailInput.value.trim();
+      const thumbContainer = document.getElementById('rules-preview-thumb-container');
+      if (thumbUrl && thumbUrl.startsWith('http')) {
+        document.getElementById('rules-preview-thumb').src = thumbUrl;
+        thumbContainer.classList.remove('hidden');
+      } else {
+        thumbContainer.classList.add('hidden');
+      }
+      
+      const bannerUrl = rulesBannerInput.value.trim();
+      const bannerContainer = document.getElementById('rules-preview-banner-container');
+      if (bannerUrl && bannerUrl.startsWith('http')) {
+        document.getElementById('rules-preview-banner').src = bannerUrl;
+        bannerContainer.classList.remove('hidden');
+      } else {
+        bannerContainer.classList.add('hidden');
+      }
+    }
+
+    async function sendRulesEmbed() {
+      const sendBtn = document.getElementById('send-rules-btn');
+      const originalHtml = sendBtn.innerHTML;
+      
+      if (!rulesChannelSelect.value) {
+        showToast('Error', 'Silakan pilih channel target terlebih dahulu.', 'error');
+        return;
+      }
+      if (!rulesDescriptionInput.value.trim()) {
+        showToast('Error', 'Isi rules/deskripsi tidak boleh kosong.', 'error');
+        return;
+      }
+
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-sm"></i> Mengirim...`;
+      
+      const payload = {
+        channelId: rulesChannelSelect.value,
+        title: rulesTitleInput.value,
+        description: rulesDescriptionInput.value,
+        color: rulesColorInput.value,
+        thumbnailUrl: rulesThumbnailInput.value,
+        bannerUrl: rulesBannerInput.value
+      };
+
+      try {
+        const response = await fetch(`/api/configs/${selectedGuildId}/send-embed`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          showToast('Terkirim', 'Pesan embed berhasil diposting ke Discord!', 'success');
+          // Reset form
+          rulesTitleInput.value = '';
+          rulesDescriptionInput.value = '';
+          rulesThumbnailInput.value = '';
+          rulesBannerInput.value = '';
+          updateRulesPreview();
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal mengirim embed.');
+        }
+      } catch (error) {
+        showToast('Gagal Mengirim', error.message || 'Gagal terhubung ke API server.', 'error');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalHtml;
       }
     }
 
