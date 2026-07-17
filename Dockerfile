@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
+# Install openssl so that prisma generate can correctly detect the openssl version
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 COPY prisma ./prisma/
 
@@ -24,8 +27,8 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# Install runtime dependencies for audio streaming (ffmpeg)
-RUN apk add --no-cache ffmpeg
+# Install runtime dependencies for audio streaming (ffmpeg) and Prisma database client (openssl)
+RUN apk add --no-cache ffmpeg openssl
 
 COPY package*.json ./
 COPY prisma ./prisma/
