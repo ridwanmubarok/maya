@@ -3,6 +3,10 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import https from "https";
+import dns from "dns";
+
+// Force Node.js to prioritize IPv4 over IPv6 (highly recommended for Contabo VPS network stability)
+dns.setDefaultResultOrder("ipv4first");
 import { MayaClient, Command, BotEvent } from "./types";
 import { connectDatabase } from "./services/database";
 import { initAI } from "./services/aiClient";
