@@ -24,6 +24,37 @@ const event: BotEvent = {
         await interaction.editReply({ content: res.message });
         return;
       }
+      if (customId.startsWith("rr:")) {
+        const roleId = customId.split(":")[1];
+        await interaction.deferReply({ ephemeral: true });
+
+        const member = interaction.member && "roles" in interaction.member ? (interaction.member as any) : null;
+        if (!member || !interaction.guild) {
+          await interaction.editReply({ content: "❌ Perintah hanya dapat dijalankan di dalam server." });
+          return;
+        }
+
+        const role = interaction.guild.roles.cache.get(roleId) || await interaction.guild.roles.fetch(roleId).catch(() => null);
+        if (!role) {
+          await interaction.editReply({ content: "❌ Role tidak ditemukan di server." });
+          return;
+        }
+
+        const hasRole = member.roles.cache.has(role.id);
+        try {
+          if (hasRole) {
+            await member.roles.remove(role);
+            await interaction.editReply({ content: `ℹ️ Role **${role.name}** berhasil dilepaskan!` });
+          } else {
+            await member.roles.add(role);
+            await interaction.editReply({ content: `✅ Role **${role.name}** berhasil ditambahkan!` });
+          }
+        } catch (err: any) {
+          logger.error(`Error toggling reaction role ${role.name}:`, err);
+          await interaction.editReply({ content: `❌ Bot tidak memiliki izin untuk mengelola role **${role.name}**. (Pastikan posisi role bot lebih tinggi di server).` });
+        }
+        return;
+      }
     }
 
     if (interaction.isAutocomplete()) {

@@ -565,6 +565,164 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Get all Reaction Role menus for a guild (Requires Auth)
+  app.get("/api/reaction-roles/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const menus = await prisma.reactionRoleMenu.findMany({
+        where: { guildId },
+        include: { options: true },
+        orderBy: { createdAt: "desc" }
+      });
+      res.json({ menus });
+    } catch (error) {
+      logger.error(`Error fetching reaction role menus for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil daftar menu reaction roles." });
+    }
+  });
+
+  // Create a new Reaction Role menu and post to Discord (Requires Auth)
+  app.post("/api/reaction-roles/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { channelId, title, description, color, options } = req.body;
+
+    if (!channelId || !title || !options || !Array.isArray(options) || options.length === 0) {
+      return res.status(400).json({ error: "Channel, Judul, dan Minimal 1 Role Option wajib diisi." });
+    }
+
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
+
+      let channel = guild.channels.cache.get(channelId);
+      if (!channel) {
+        channel = (await guild.channels.fetch(channelId).catch(() => null)) || undefined;
+      }
+
+      if (!channel || !channel.isTextBased()) {
+        return res.status(404).json({ error: "Channel teks tidak ditemukan atau bot tidak memiliki akses." });
+      }
+
+      const textChannel = channel as TextChannel;
+
+      // Construct Embed
+      const hex = (color || "#5865F2").replace("#", "");
+      const colorInt = parseInt(hex, 16) || 0x5865F2;
+
+      const embed = new EmbedBuilder()
+        .setColor(colorInt)
+        .setTitle(title)
+        .setDescription(description || "Klik tombol di bawah untuk mengambil atau melepas role secara otomatis!")
+        .setTimestamp();
+
+      // Construct Buttons ActionRows (max 5 buttons per row)
+      const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+      let currentArr: ButtonBuilder[] = [];
+
+      for (const opt of options) {
+        let style = ButtonStyle.Primary;
+        if (opt.style === "Secondary") style = ButtonStyle.Secondary;
+        if (opt.style === "Success") style = ButtonStyle.Success;
+        if (opt.style === "Danger") style = ButtonStyle.Danger;
+
+        const btn = new ButtonBuilder()
+          .setCustomId(`rr:${opt.roleId}`)
+          .setLabel(opt.label || opt.roleName || "Role")
+          .setStyle(style);
+
+        if (opt.emoji && opt.emoji.trim()) {
+          try {
+            btn.setEmoji(opt.emoji.trim());
+          } catch (e) {
+            // Ignore emoji format errors
+          }
+        }
+
+        currentArr.push(btn);
+        if (currentArr.length === 5) {
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(currentArr);
+          rows.push(row);
+          currentArr = [];
+        }
+      }
+
+      if (currentArr.length > 0) {
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(currentArr);
+        rows.push(row);
+      }
+
+      // Send to Discord
+      const msg = await textChannel.send({ embeds: [embed], components: rows });
+
+      // Save to Database
+      const menu = await prisma.reactionRoleMenu.create({
+        data: {
+          guildId,
+          channelId,
+          messageId: msg.id,
+          title,
+          description: description || "",
+          color: color || "#5865F2",
+          options: {
+            create: options.map((opt: any) => ({
+              roleId: opt.roleId,
+              roleName: opt.roleName || "Role",
+              label: opt.label || opt.roleName || "Role",
+              emoji: opt.emoji || null,
+              style: opt.style || "Primary"
+            }))
+          }
+        },
+        include: { options: true }
+      });
+
+      res.json({ success: true, menu });
+      logger.info(`Dashboard: Berhasil membuat Reaction Role menu "${title}" di channel ${channelId} untuk guild ${guildId}.`);
+    } catch (error: any) {
+      logger.error(`Error creating reaction role menu for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal membuat Reaction Role menu." });
+    }
+  });
+
+  // Delete a Reaction Role menu (Requires Auth)
+  app.delete("/api/reaction-roles/:guildId/:menuId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, menuId } = req.params;
+    try {
+      const menu = await prisma.reactionRoleMenu.findUnique({
+        where: { id: menuId }
+      });
+
+      if (!menu) return res.status(404).json({ error: "Menu Reaction Role tidak ditemukan." });
+
+      // Delete message from Discord if possible
+      const guild = client.guilds.cache.get(guildId);
+      if (guild && menu.messageId) {
+        let channel = guild.channels.cache.get(menu.channelId);
+        if (!channel) {
+          channel = (await guild.channels.fetch(menu.channelId).catch(() => null)) || undefined;
+        }
+        if (channel && channel.isTextBased()) {
+          try {
+            const msg = await (channel as TextChannel).messages.fetch(menu.messageId);
+            if (msg) await msg.delete();
+          } catch (e) {
+            // Ignore message deletion error if already deleted
+          }
+        }
+      }
+
+      await prisma.reactionRoleMenu.delete({
+        where: { id: menuId }
+      });
+
+      res.json({ success: true });
+      logger.info(`Dashboard: Berhasil menghapus Reaction Role menu ${menuId} untuk guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error deleting reaction role menu ${menuId} for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menghapus Reaction Role menu." });
+    }
+  });
+
   // Catch-all route to serve the SPA
   app.get("*", (req: Request, res: Response) => {
     res.sendFile(path.join(publicPath, "index.html"));

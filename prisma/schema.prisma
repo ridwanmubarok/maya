@@ -60,3 +60,26 @@ model AiChatMessage {
 
   @@index([guildId, userId])
 }
+
+model ReactionRoleMenu {
+  id          String               @id @default(uuid())
+  guildId     String
+  channelId   String
+  messageId   String?
+  title       String               @default("🎭 Pilih Role Anda")
+  description String               @default("Klik tombol di bawah untuk mengambil atau melepas role!")
+  color       String               @default("#5865F2")
+  options     ReactionRoleOption[]
+  createdAt   DateTime             @default(now())
+}
+
+model ReactionRoleOption {
+  id        String           @id @default(uuid())
+  menuId    String
+  menu      ReactionRoleMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  roleId    String
+  roleName  String
+  label     String
+  emoji     String?
+  style     String           @default("Primary")
+}
