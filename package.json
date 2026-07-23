@@ -20,7 +20,8 @@
     "express": "^4.19.2",
     "libsodium-wrappers": "^0.8.4",
     "opusscript": "^0.0.8",
-    "play-dl": "^1.9.7"
+    "play-dl": "^1.9.7",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
