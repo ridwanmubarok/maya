@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import { MayaClient } from "../types";
 import { prisma } from "./database";
-import { getMusicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { createMabarEmbed, createMabarButtons } from "./mabarManager";
@@ -321,63 +320,38 @@ export function startDashboard(client: MayaClient) {
       logger.error(`Error deleting warning log #${id}:`, error);
       res.status(500).json({ error: "Gagal menghapus log strike." });
     }
-  });  // Get music status and queue (Requires Auth)
-  app.get("/api/music/:guildId", authMiddleware, (req: Request, res: Response) => {
+  });
+
+  // Get AI conversation history for a guild (Requires Auth)
+  app.get("/api/ai/:guildId/history", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      const manager = getMusicManager(guildId);
-      const queue = manager.queue;
-      const currentTrack = manager.currentTrack;
-      const isPlaying = currentTrack !== null && manager.player.state.status === "playing";
-
-      res.json({
-        isPlaying,
-        currentTrack,
-        queue,
-        playerState: manager.player.state.status,
-        volume: manager.volume
+      const history = await prisma.aiChatMessage.findMany({
+        where: { guildId },
+        orderBy: { createdAt: "desc" },
+        take: 30
       });
+      res.json({ history: history.reverse() });
     } catch (error) {
-      logger.error(`Error fetching music status for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal mengambil status musik." });
+      logger.error(`Error fetching AI chat history for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil riwayat percakapan AI." });
     }
   });
 
-  // Control music playback (Requires Auth)
-  app.post("/api/music/:guildId/control", authMiddleware, (req: Request, res: Response) => {
+  // Reset/Clear ALL AI conversation memory for a guild (Requires Auth)
+  app.delete("/api/ai/:guildId/history/reset", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
-    const { action, value } = req.body;
-
     try {
-      const manager = getMusicManager(guildId);
-
-      if (action === "skip") {
-        const success = manager.skip();
-        return res.json({ success });
-      } else if (action === "stop") {
-        manager.stop();
-        return res.json({ success: true });
-      } else if (action === "pause") {
-        const success = manager.player.pause();
-        return res.json({ success });
-      } else if (action === "resume") {
-        const success = manager.player.unpause();
-        return res.json({ success });
-      } else if (action === "volume") {
-        if (typeof value === "number") {
-          manager.setVolume(value);
-          return res.json({ success: true, volume: manager.volume });
-        }
-        return res.status(400).json({ error: "Nilai volume tidak valid." });
-      }
-
-      res.status(400).json({ error: "Aksi tidak dikenal." });
+      await prisma.aiChatMessage.deleteMany({
+        where: { guildId }
+      });
+      res.json({ success: true });
+      logger.info(`Dashboard: Riwayat percakapan AI untuk guild ${guildId} berhasil dibersihkan.`);
     } catch (error) {
-      logger.error(`Error controlling music for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal mengontrol musik." });
+      logger.error(`Error clearing AI chat history for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menghapus memori percakapan AI." });
     }
   });
-
 
   // Get all roles for a guild (Requires Auth)
   app.get("/api/roles/:guildId", authMiddleware, async (req: Request, res: Response) => {

@@ -48,3 +48,15 @@ model GameSession {
   participants String[]
   createdAt    DateTime @default(now())
 }
+
+model AiChatMessage {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  userId    String
+  username  String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, userId])
+}

@@ -10,6 +10,20 @@ const event: BotEvent = {
     const { guild } = member;
 
     try {
+      // Automatically assign the "Rotasi" role if it exists
+      try {
+        const roles = await guild.roles.fetch();
+        const rotasiRole = roles.find(r => r.name.toLowerCase() === "rotasi");
+        if (rotasiRole) {
+          await member.roles.add(rotasiRole);
+          logger.info(`Auto-role: Menambahkan role "Rotasi" ke member ${member.user.tag} di guild ${guild.id}`);
+        } else {
+          logger.warn(`Auto-role: Role dengan nama "Rotasi" tidak ditemukan di server ${guild.name}`);
+        }
+      } catch (roleErr) {
+        logger.error(`Auto-role: Gagal menambahkan role "Rotasi" ke member ${member.user.tag}:`, roleErr);
+      }
+
       const config = await prisma.guildConfig.findUnique({
         where: { guildId: guild.id }
       });

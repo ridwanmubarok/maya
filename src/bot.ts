@@ -2,18 +2,11 @@ import { GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import https from "https";
-import dns from "dns";
-
-// Force Node.js to prioritize IPv4 over IPv6 (highly recommended for Contabo VPS network stability)
-dns.setDefaultResultOrder("ipv4first");
 import { MayaClient, Command, BotEvent } from "./types";
 import { connectDatabase } from "./services/database";
 import { initAI } from "./services/aiClient";
 import { startDashboard } from "./services/dashboard";
 import { logger } from "./utils/logger";
-
-import play from "play-dl";
 
 // Load environment variables
 dotenv.config();
@@ -22,55 +15,6 @@ dotenv.config();
 connectDatabase();
 initAI();
 
-function parseNetscapeCookies(text: string): string {
-  if (!text.includes("# Netscape") && !text.includes("\t")) {
-    return text.trim();
-  }
-  const lines = text.split(/\r?\n/);
-  const cookies: string[] = [];
-  for (const line of lines) {
-    if (line.startsWith("#") || !line.trim()) continue;
-    const parts = line.split("\t");
-    if (parts.length >= 7) {
-      const name = parts[5].trim();
-      const value = parts[6].trim();
-      cookies.push(`${name}=${value}`);
-    }
-  }
-  return cookies.join("; ");
-}
-
-if (process.env.YOUTUBE_COOKIE) {
-  try {
-    const parsedCookie = parseNetscapeCookies(process.env.YOUTUBE_COOKIE);
-    play.setToken({
-      youtube: {
-        cookie: parsedCookie
-      }
-    });
-    logger.info("YouTube Cookie berhasil dimuat dan diparse untuk play-dl.");
-  } catch (err) {
-    logger.error("Gagal memuat YouTube Cookie:", err);
-  }
-}
-// Load SoundCloud Client ID dynamically on startup for background streaming
-(async () => {
-  try {
-    const scClientId = await play.getFreeClientID();
-    if (scClientId) {
-      await play.setToken({
-        soundcloud: {
-          client_id: scClientId
-        }
-      });
-      logger.info("SoundCloud Client ID berhasil dimuat untuk streaming di latar belakang.");
-    }
-  } catch (err) {
-    logger.error("Gagal memuat SoundCloud Client ID:", err);
-  }
-})();
-
-
 // Initialize client with correct gateway intents
 const client = new MayaClient({
   intents: [
@@ -78,7 +22,6 @@ const client = new MayaClient({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 

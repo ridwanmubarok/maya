@@ -1,14 +1,12 @@
 import { Events, REST, Routes } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
-import { generateDependencyReport } from "@discordjs/voice";
 
 const event: BotEvent = {
   name: Events.ClientReady,
   once: true,
   async execute(client: MayaClient) {
     logger.info(`Bot berhasil login sebagai ${client.user?.tag}!`);
-    console.log(generateDependencyReport());
 
     // Prepare commands data for registration
     const commandData = client.commands.map(cmd => cmd.data.toJSON());
