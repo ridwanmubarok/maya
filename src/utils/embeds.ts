@@ -6,8 +6,7 @@ export const COLORS = {
   SUCCESS: 0x57F287, // Emerald
   ERROR: 0xED4245,   // Crimson
   WARNING: 0xFEE75C, // Amber
-  AI: 0x9B5DE5,      // Purple for AI
-  MUSIC: 0x00F5D4    // Teal for Music
+  AI: 0x9B5DE5       // Purple for AI
 };
 
 export const createEmbed = {
@@ -36,13 +35,6 @@ export const createEmbed = {
     return new EmbedBuilder()
       .setColor(COLORS.PRIMARY)
       .setTitle(title)
-      .setDescription(description)
-      .setTimestamp();
-  },
-  music: (title: string, description: string) => {
-    return new EmbedBuilder()
-      .setColor(COLORS.MUSIC)
-      .setTitle(`🎵 ${title}`)
       .setDescription(description)
       .setTimestamp();
   },

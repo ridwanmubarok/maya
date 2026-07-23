@@ -84,13 +84,24 @@ export function startDashboard(client: MayaClient) {
         };
       }
 
-      // Fetch guild channels to let the user select welcome channel
+      // Fetch guild channels to let the user select target channel
       const guild = client.guilds.cache.get(guildId);
-      const channels = guild 
-        ? guild.channels.cache
-            .filter(c => c.type === 0) // 0 is text channel (GuildText)
+      let channels: { id: string; name: string }[] = [];
+
+      if (guild) {
+        try {
+          const fetchedChannels = await guild.channels.fetch();
+          channels = Array.from(fetchedChannels.values())
+            .filter((c): c is any => c !== null && typeof c.isTextBased === "function" && c.isTextBased() && !c.isThread())
             .map(c => ({ id: c.id, name: c.name }))
-        : [];
+            .sort((a, b) => a.name.localeCompare(b.name));
+        } catch (e) {
+          channels = guild.channels.cache
+            .filter(c => typeof c.isTextBased === "function" && c.isTextBased() && !c.isThread())
+            .map(c => ({ id: c.id, name: c.name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        }
+      }
 
       res.json({ config, channels });
     } catch (error: any) {
@@ -174,9 +185,13 @@ export function startDashboard(client: MayaClient) {
         return res.status(404).json({ error: "Server tidak ditemukan oleh bot." });
       }
 
-      const channel = guild.channels.cache.get(channelId);
+      let channel = guild.channels.cache.get(channelId);
+      if (!channel) {
+        channel = (await guild.channels.fetch(channelId).catch(() => null)) || undefined;
+      }
+
       if (!channel || !channel.isTextBased()) {
-        return res.status(404).json({ error: "Channel teks tidak ditemukan." });
+        return res.status(404).json({ error: "Channel teks tidak ditemukan atau bot tidak memiliki akses." });
       }
 
       const textChannel = channel as TextChannel;
@@ -454,9 +469,13 @@ export function startDashboard(client: MayaClient) {
       const guild = client.guilds.cache.get(guildId);
       if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
 
-      const channel = guild.channels.cache.get(channelId);
+      let channel = guild.channels.cache.get(channelId);
+      if (!channel) {
+        channel = (await guild.channels.fetch(channelId).catch(() => null)) || undefined;
+      }
+
       if (!channel || !channel.isTextBased()) {
-        return res.status(404).json({ error: "Channel teks tidak ditemukan." });
+        return res.status(404).json({ error: "Channel teks tidak ditemukan atau bot tidak memiliki akses." });
       }
 
       const textChannel = channel as TextChannel;

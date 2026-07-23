@@ -1154,9 +1154,6 @@
       const guild = guilds.find(g => g.id === guildId);
       document.getElementById('current-guild-name').innerText = guild.name;
       
-      // Reset music poll if running
-      stopMusicPolling();
-      
       try {
         const response = await fetch(`/api/configs/${guildId}`, {
           headers: { 'Authorization': token }
@@ -1182,16 +1179,16 @@
         `;
         
         // Render rules channels dropdown
-        rulesChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+        rulesChannelSelect.innerHTML = `<option value="">-- Pilih Channel Rules --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
         
         // Render announcements channels dropdown
-        announceChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+        announceChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
         
         // Render mabar channels dropdown
-        mabarChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+        mabarChannelSelect.innerHTML = `<option value="">-- Pilih Channel Mabar --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
 
         // Render general announcements channels dropdown
-        genAnnounceChannelSelect.innerHTML = channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+        genAnnounceChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
         
         // Set input values welcome
         welcomeTitleInput.value = config.welcomeTitle;
@@ -1231,7 +1228,7 @@
       });
       document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
 
-      // Hide save-bar for warnings, music, rules, roles, announcements, and mabar tabs, show for forms configs
+      // Hide save-bar for warnings, rules, roles, announcements, mabar, and general-announce tabs, show for form configs
       const saveBar = document.getElementById('save-bar');
       if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'general-announce') {
         saveBar.classList.add('hidden');
