@@ -9,6 +9,17 @@ import { createMabarEmbed, createMabarButtons } from "./mabarManager";
 const app = express();
 app.use(express.json());
 
+// Enable CORS headers
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Serve static frontend files
 const publicPath = path.join(__dirname, "../public");
 app.use(express.static(publicPath));
@@ -60,9 +71,14 @@ export function startDashboard(client: MayaClient) {
   app.get("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      let config = await prisma.guildConfig.findUnique({
-        where: { guildId }
-      });
+      let config: any = null;
+      try {
+        config = await prisma.guildConfig.findUnique({
+          where: { guildId }
+        });
+      } catch (dbErr) {
+        logger.error(`Database fetch error for guild ${guildId}:`, dbErr);
+      }
 
       // If configuration doesn't exist yet, return defaults
       if (!config) {
@@ -85,7 +101,11 @@ export function startDashboard(client: MayaClient) {
       }
 
       // Fetch guild channels to let the user select target channel
-      const guild = client.guilds.cache.get(guildId);
+      let guild = client.guilds.cache.get(guildId);
+      if (!guild) {
+        guild = (await client.guilds.fetch(guildId).catch(() => null)) || undefined;
+      }
+
       let channels: { id: string; name: string }[] = [];
 
       if (guild) {
@@ -96,20 +116,35 @@ export function startDashboard(client: MayaClient) {
             .map(c => ({ id: c.id, name: c.name }))
             .sort((a, b) => a.name.localeCompare(b.name));
         } catch (e) {
-          channels = guild.channels.cache
-            .filter(c => typeof c.isTextBased === "function" && c.isTextBased() && !c.isThread())
-            .map(c => ({ id: c.id, name: c.name }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+          try {
+            channels = Array.from(guild.channels.cache.values())
+              .filter(c => typeof c.isTextBased === "function" && c.isTextBased() && !c.isThread())
+              .map(c => ({ id: c.id, name: c.name }))
+              .sort((a, b) => a.name.localeCompare(b.name));
+          } catch (err) {}
         }
       }
 
       res.json({ config, channels });
     } catch (error: any) {
       logger.error(`Error fetching config for guild ${guildId}:`, error);
-      if (error.code === "P2021") {
-        return res.status(500).json({ error: "Tabel database belum dibuat. Silakan jalankan 'npm run db:push' di terminal Anda." });
-      }
-      res.status(500).json({ error: "Gagal mengambil konfigurasi server." });
+      res.json({
+        config: {
+          guildId,
+          welcomeChannelId: null,
+          moderationLogChannelId: null,
+          prefix: "!",
+          welcomeTitle: "👋 Selamat Datang!",
+          welcomeMessage: "Selamat datang **{username}** di **{guildName}**!",
+          welcomeImage: "",
+          welcomeThumbnail: true,
+          aiPersonality: "",
+          bannedWords: "",
+          maxStrikes: 3,
+          muteDuration: 10
+        },
+        channels: []
+      });
     }
   });
 
@@ -255,27 +290,44 @@ export function startDashboard(client: MayaClient) {
   app.get("/api/moderation/:guildId/warnings", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      const warnings = await prisma.warnLog.findMany({
-        where: { guildId },
-        orderBy: { createdAt: "desc" }
-      });
+      let warnings: any[] = [];
+      try {
+        warnings = await prisma.warnLog.findMany({
+          where: { guildId },
+          orderBy: { createdAt: "desc" }
+        });
+      } catch (e) {
+        logger.error(`Prisma warnLog fetch error for guild ${guildId}:`, e);
+      }
 
-      // Enrich warning logs with user tags and avatar URLs from Discord API/cache
+      // Enrich warning logs with user tags and avatar URLs
       const enrichedWarnings = await Promise.all(
         warnings.map(async (log) => {
-          let userTag = `ID: ${log.userId}`;
+          let userTag = `User (${log.userId})`;
           let userAvatar = "https://cdn.discordapp.com/embed/avatars/0.png";
-          try {
-            const user = await client.users.fetch(log.userId).catch(() => null);
-            if (user) {
-              userTag = user.tag;
-              userAvatar = user.displayAvatarURL({ size: 64 }) || userAvatar;
+          
+          if (log.userId) {
+            try {
+              const cachedUser = client.users.cache.get(log.userId);
+              const user = cachedUser || await client.users.fetch(log.userId).catch(() => null);
+              if (user) {
+                userTag = user.tag || user.username || userTag;
+                if (typeof user.displayAvatarURL === "function") {
+                  userAvatar = user.displayAvatarURL({ size: 64 }) || userAvatar;
+                }
+              }
+            } catch (e) {
+              // Ignore individual user fetch error
             }
-          } catch (e) {
-            // Ignore fetch error
           }
+
           return {
-            ...log,
+            id: log.id,
+            userId: log.userId,
+            guildId: log.guildId,
+            reason: log.reason || "Tidak ada alasan",
+            moderatorId: log.moderatorId || "Staff",
+            createdAt: log.createdAt,
             userTag,
             userAvatar
           };
@@ -285,10 +337,34 @@ export function startDashboard(client: MayaClient) {
       res.json({ warnings: enrichedWarnings });
     } catch (error: any) {
       logger.error(`Error fetching warnings for guild ${guildId}:`, error);
-      if (error.code === "P2021") {
-        return res.status(500).json({ error: "Tabel database belum dibuat. Silakan jalankan 'npm run db:push' di terminal Anda." });
-      }
-      res.status(500).json({ error: "Gagal mengambil log strike." });
+      res.json({ warnings: [] });
+    }
+  });
+
+  // Create a manual warning log for a user (Requires Auth)
+  app.post("/api/moderation/:guildId/warnings", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { userId, reason } = req.body;
+
+    if (!userId || !reason) {
+      return res.status(400).json({ error: "User ID dan Alasan Strike wajib diisi." });
+    }
+
+    try {
+      const warnLog = await prisma.warnLog.create({
+        data: {
+          guildId,
+          userId,
+          reason,
+          moderatorId: "Dashboard Staff"
+        }
+      });
+
+      res.json({ success: true, warnLog });
+      logger.info(`Dashboard: Berhasil menambahkan strike untuk user ${userId} di guild ${guildId}.`);
+    } catch (error) {
+      logger.error(`Error creating warning log for user ${userId} in guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal membuat catatan strike." });
     }
   });
 
@@ -372,19 +448,34 @@ export function startDashboard(client: MayaClient) {
   app.get("/api/roles/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      const guild = client.guilds.cache.get(guildId);
+      let guild = client.guilds.cache.get(guildId);
+      if (!guild) {
+        guild = (await client.guilds.fetch(guildId).catch(() => null)) || undefined;
+      }
       if (!guild) return res.status(404).json({ error: "Server tidak ditemukan." });
 
-      const roles = guild.roles.cache
-        .map(r => ({
-          id: r.id,
-          name: r.name,
-          color: r.hexColor,
-          hoist: r.hoist,
-          position: r.position,
-          memberCount: r.members.size,
-          managed: r.managed
-        }))
+      let fetchedRoles = guild.roles.cache;
+      try {
+        fetchedRoles = await guild.roles.fetch();
+      } catch (e) {}
+
+      const roles = Array.from(fetchedRoles.values())
+        .map(r => {
+          let memberCount = 0;
+          try {
+            memberCount = r.members ? r.members.size : 0;
+          } catch (e) {}
+
+          return {
+            id: r.id,
+            name: r.name || "Role Kustom",
+            color: r.hexColor || "#99aab5",
+            hoist: Boolean(r.hoist),
+            position: r.position || 0,
+            memberCount,
+            managed: Boolean(r.managed)
+          };
+        })
         .sort((a, b) => b.position - a.position);
 
       res.json({ roles });
@@ -728,7 +819,7 @@ export function startDashboard(client: MayaClient) {
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
-  app.listen(port, () => {
+  app.listen(Number(port), "0.0.0.0", () => {
     logger.info(`Web Dashboard (Backoffice) berjalan di http://localhost:${port}`);
   });
 }
