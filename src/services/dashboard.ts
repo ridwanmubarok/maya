@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import { MayaClient } from "../types";
 import { prisma } from "./database";
+import { getMusicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { createMabarEmbed, createMabarButtons } from "./mabarManager";
@@ -244,7 +245,30 @@ export function startDashboard(client: MayaClient) {
         where: { guildId },
         orderBy: { createdAt: "desc" }
       });
-      res.json({ warnings });
+
+      // Enrich warning logs with user tags and avatar URLs from Discord API/cache
+      const enrichedWarnings = await Promise.all(
+        warnings.map(async (log) => {
+          let userTag = `ID: ${log.userId}`;
+          let userAvatar = "https://cdn.discordapp.com/embed/avatars/0.png";
+          try {
+            const user = await client.users.fetch(log.userId).catch(() => null);
+            if (user) {
+              userTag = user.tag;
+              userAvatar = user.displayAvatarURL({ size: 64 }) || userAvatar;
+            }
+          } catch (e) {
+            // Ignore fetch error
+          }
+          return {
+            ...log,
+            userTag,
+            userAvatar
+          };
+        })
+      );
+
+      res.json({ warnings: enrichedWarnings });
     } catch (error: any) {
       logger.error(`Error fetching warnings for guild ${guildId}:`, error);
       if (error.code === "P2021") {
@@ -254,7 +278,37 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Revoke/Delete warning log (Requires Auth)
+  // Reset/Delete ALL warning logs in a server (Requires Auth)
+  app.delete("/api/moderation/:guildId/warnings/reset", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      await prisma.warnLog.deleteMany({
+        where: { guildId }
+      });
+      res.json({ success: true });
+      logger.info(`Dashboard: Seluruh log strike untuk guild ${guildId} berhasil di-reset.`);
+    } catch (error) {
+      logger.error(`Error resetting warnings for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal me-reset log strike server." });
+    }
+  });
+
+  // Reset/Delete all warning logs for a specific user in a server (Requires Auth)
+  app.delete("/api/moderation/:guildId/warnings/user/:userId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, userId } = req.params;
+    try {
+      await prisma.warnLog.deleteMany({
+        where: { guildId, userId }
+      });
+      res.json({ success: true });
+      logger.info(`Dashboard: Seluruh log strike untuk user ${userId} di guild ${guildId} berhasil di-reset.`);
+    } catch (error) {
+      logger.error(`Error resetting warnings for user ${userId} in guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal me-reset log strike user." });
+    }
+  });
+
+  // Revoke/Delete a single warning log (Requires Auth)
   app.delete("/api/moderation/:guildId/warnings/:id", authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
@@ -267,8 +321,55 @@ export function startDashboard(client: MayaClient) {
       logger.error(`Error deleting warning log #${id}:`, error);
       res.status(500).json({ error: "Gagal menghapus log strike." });
     }
+  });  // Get music status and queue (Requires Auth)
+  app.get("/api/music/:guildId", authMiddleware, (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const manager = getMusicManager(guildId);
+      const queue = manager.queue;
+      const currentTrack = manager.currentTrack;
+      const isPlaying = currentTrack !== null && manager.player.state.status === "playing";
+
+      res.json({
+        isPlaying,
+        currentTrack,
+        queue,
+        playerState: manager.player.state.status
+      });
+    } catch (error) {
+      logger.error(`Error fetching music status for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil status musik." });
+    }
   });
 
+  // Control music playback (Requires Auth)
+  app.post("/api/music/:guildId/control", authMiddleware, (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { action } = req.body;
+
+    try {
+      const manager = getMusicManager(guildId);
+
+      if (action === "skip") {
+        const success = manager.skip();
+        return res.json({ success });
+      } else if (action === "stop") {
+        manager.stop();
+        return res.json({ success: true });
+      } else if (action === "pause") {
+        const success = manager.player.pause();
+        return res.json({ success });
+      } else if (action === "resume") {
+        const success = manager.player.unpause();
+        return res.json({ success });
+      }
+
+      res.status(400).json({ error: "Aksi tidak dikenal." });
+    } catch (error) {
+      logger.error(`Error controlling music for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengontrol musik." });
+    }
+  });
 
 
   // Get all roles for a guild (Requires Auth)
