@@ -3,6 +3,7 @@ import { Command } from "../../types";
 import { getMusicManager, Track } from "../../services/musicManager";
 import { createEmbed } from "../../utils/embeds";
 import play from "play-dl";
+import { searchSpotifyTracks, getSpotifyTrack, getSpotifyPlaylist, getSpotifyAlbum } from "../../utils/spotify";
 
 function formatSoundCloudTrack(track: any) {
   const title = track.name || track.title || "Lagu Tanpa Judul";
@@ -52,9 +53,8 @@ const command: Command = {
       const spType = play.sp_validate(query);
 
       if (spType && spType !== "search") {
-        const spotifyData = await play.spotify(query);
-        if (spotifyData.type === "track") {
-          const track = spotifyData as any; // play-dl SpotifyTrack
+        if (spType === "track") {
+          const track = await getSpotifyTrack(query);
           const searchTitle = `${track.artists.map((a: any) => a.name).join(", ")} - ${track.name}`;
           const searchResults = await play.search(searchTitle, { limit: 1, source: { soundcloud: "tracks" } });
           if (searchResults.length > 0) {
@@ -65,9 +65,9 @@ const command: Command = {
               duration: scTrackInfo.duration
             };
           }
-        } else if (spotifyData.type === "playlist" || spotifyData.type === "album") {
-          const list = spotifyData as any;
-          const tracks = await list.all_tracks();
+        } else if (spType === "playlist" || spType === "album") {
+          const list = spType === "playlist" ? await getSpotifyPlaylist(query) : await getSpotifyAlbum(query);
+          const tracks = list.tracks;
           if (tracks.length > 0) {
             // Resolve first track immediately so bot starts playing instantly
             const firstTrack = tracks[0];
@@ -130,7 +130,7 @@ const command: Command = {
         }
       } else {
         // Search Spotify for query instead of YouTube/SoundCloud
-        const searchResults = await play.search(query, { limit: 1, source: { spotify: "track" } });
+        const searchResults = await searchSpotifyTracks(query, 1);
         if (searchResults.length > 0) {
           const track = searchResults[0];
           const searchTitle = `${track.artists.map((a: any) => a.name).join(", ")} - ${track.name}`;
@@ -207,7 +207,7 @@ const command: Command = {
 
     try {
       // Search Spotify for suggestions instead of YouTube/SoundCloud
-      const searchResults = await play.search(focusedValue, { limit: 5, source: { spotify: "track" } });
+      const searchResults = await searchSpotifyTracks(focusedValue, 5);
       const choices = searchResults.map(track => {
         const title = `${track.name} - ${track.artists.map((a: any) => a.name).join(", ")}`;
         const durationInSec = track.durationInSec;
