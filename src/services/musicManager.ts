@@ -1,6 +1,7 @@
 import { 
   AudioPlayer, 
   AudioPlayerStatus, 
+  AudioResource,
   createAudioPlayer, 
   createAudioResource, 
   DiscordGatewayAdapterCreator, 
@@ -25,6 +26,8 @@ export class GuildMusicManager {
   public readonly player: AudioPlayer;
   public queue: Track[] = [];
   public currentTrack: Track | null = null;
+  public volume: number = 0.5; // Default volume 50%
+  private activeResource: AudioResource | null = null;
 
   constructor(guildId: string) {
     this.guildId = guildId;
@@ -92,18 +95,26 @@ export class GuildMusicManager {
     }
 
     this.currentTrack = this.queue.shift() || null;
-    if (!this.currentTrack) return;
+    if (!this.currentTrack) {
+      this.activeResource = null;
+      return;
+    }
 
     try {
       // Get audio stream from youtube via play-dl
       const stream = await play.stream(this.currentTrack.url);
       const resource = createAudioResource(stream.stream, {
-        inputType: stream.type
+        inputType: stream.type,
+        inlineVolume: true
       });
+
+      resource.volume?.setVolume(this.volume);
+      this.activeResource = resource;
 
       this.player.play(resource);
     } catch (error) {
       logger.error(`Gagal memutar track "${this.currentTrack?.title}":`, error);
+      this.activeResource = null;
       this.playNext();
     }
   }
@@ -116,9 +127,17 @@ export class GuildMusicManager {
     return false;
   }
 
+  public setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol));
+    if (this.activeResource && this.activeResource.volume) {
+      this.activeResource.volume.setVolume(this.volume);
+    }
+  }
+
   public stop() {
     this.queue = [];
     this.currentTrack = null;
+    this.activeResource = null;
     this.player.stop();
     this.destroy();
   }

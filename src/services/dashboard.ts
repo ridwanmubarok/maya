@@ -334,7 +334,8 @@ export function startDashboard(client: MayaClient) {
         isPlaying,
         currentTrack,
         queue,
-        playerState: manager.player.state.status
+        playerState: manager.player.state.status,
+        volume: manager.volume
       });
     } catch (error) {
       logger.error(`Error fetching music status for guild ${guildId}:`, error);
@@ -345,7 +346,7 @@ export function startDashboard(client: MayaClient) {
   // Control music playback (Requires Auth)
   app.post("/api/music/:guildId/control", authMiddleware, (req: Request, res: Response) => {
     const { guildId } = req.params;
-    const { action } = req.body;
+    const { action, value } = req.body;
 
     try {
       const manager = getMusicManager(guildId);
@@ -362,6 +363,12 @@ export function startDashboard(client: MayaClient) {
       } else if (action === "resume") {
         const success = manager.player.unpause();
         return res.json({ success });
+      } else if (action === "volume") {
+        if (typeof value === "number") {
+          manager.setVolume(value);
+          return res.json({ success: true, volume: manager.volume });
+        }
+        return res.status(400).json({ error: "Nilai volume tidak valid." });
       }
 
       res.status(400).json({ error: "Aksi tidak dikenal." });
