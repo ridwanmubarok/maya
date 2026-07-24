@@ -36,67 +36,8 @@
     }
   </script>
   
-  <style>
-    /* Custom Glassmorphism Styles */
-    .glass-panel {
-      background: rgba(17, 24, 39, 0.7);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    
-    .glass-input {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .glass-input:focus {
-      background: rgba(255, 255, 255, 0.07);
-      border-color: #5865F2;
-      box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
-    }
-    
-    body {
-      background: radial-gradient(circle at top right, rgba(88, 101, 242, 0.15), transparent 60%),
-                  radial-gradient(circle at bottom left, rgba(155, 93, 229, 0.15), transparent 60%),
-                  #0b0c10;
-      color: #f3f4f6;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #111218;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Animations */
-    .fade-in {
-      animation: fadeIn 0.3s ease-out forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .tab-btn.active {
-      background: rgba(88, 101, 242, 0.15);
-      color: white;
-      border-color: #5865F2;
-    }
-  </style>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="font-sans antialiased">
 
@@ -1021,538 +962,22 @@
     </div>
   </div>
 
-  <!-- SCRIPT LOGIC -->
-  <script>
-    // Suppress browser extension message port errors
-    window.addEventListener('unhandledrejection', function (event) {
-      if (event.reason && (
-        String(event.reason).includes('message port closed') || 
-        String(event.reason).includes('Extension context invalidated')
-      )) {
-        event.preventDefault();
-      }
-    });
+  <!-- MODULAR FRONTEND SCRIPTS -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/components/welcome.js"></script>
+  <script src="/js/components/automod.js"></script>
+  <script src="/js/components/warnings.js"></script>
+  <script src="/js/components/ai.js"></script>
+  <script src="/js/components/rules.js"></script>
+  <script src="/js/components/announcements.js"></script>
+  <script src="/js/components/general-announce.js"></script>
+  <script src="/js/components/mabar.js"></script>
+  <script src="/js/components/reaction-roles.js"></script>
+  <script src="/js/components/roles.js"></script>
+  <script src="/js/app.js"></script>
 
-    let token = localStorage.getItem('maya_passcode') || '';
-    let selectedGuildId = '';
-    let guilds = [];
-    let activeTab = 'welcome';
-
-    
-    const loginOverlay = document.getElementById('login-overlay');
-    const appContainer = document.getElementById('app-container');
-    const guildsList = document.getElementById('guilds-list');
-    const mainContent = document.getElementById('main-content');
-    const emptyState = document.getElementById('empty-state');
-    
-    // Form Inputs Welcome
-    const welcomeChannelSelect = document.getElementById('welcome-channel');
-    const welcomeTitleInput = document.getElementById('welcome-title');
-    const welcomeMessageInput = document.getElementById('welcome-message');
-    const welcomeImageInput = document.getElementById('welcome-image');
-    const welcomeThumbnailCheckbox = document.getElementById('welcome-thumbnail');
-
-    // Form Inputs Automod
-    const automodWordsInput = document.getElementById('automod-words');
-    const automodLogChannelSelect = document.getElementById('automod-log-channel');
-    const automodMaxStrikesInput = document.getElementById('automod-max-strikes');
-    const automodMuteDurationInput = document.getElementById('automod-mute-duration');
-
-    // Form Inputs AI
-    const aiPersonalityInput = document.getElementById('ai-personality');
-    
-    // Form Inputs Rules
-    const rulesChannelSelect = document.getElementById('rules-channel');
-    const rulesTitleInput = document.getElementById('rules-title');
-    const rulesDescriptionInput = document.getElementById('rules-description');
-    const rulesColorInput = document.getElementById('rules-color');
-    const rulesColorPicker = document.getElementById('rules-color-picker');
-    const rulesThumbnailInput = document.getElementById('rules-thumbnail');
-    const rulesBannerInput = document.getElementById('rules-banner');
-
-    // Form Inputs Announcements
-    const announceChannelSelect = document.getElementById('announce-channel');
-    const announceTitleInput = document.getElementById('announce-title');
-    const announceDescriptionInput = document.getElementById('announce-description');
-    const announceColorInput = document.getElementById('announce-color');
-    const announceColorPicker = document.getElementById('announce-color-picker');
-    const announceThumbnailInput = document.getElementById('announce-thumbnail');
-    const announceBannerInput = document.getElementById('announce-banner');
-    const announceBtnLabelInput = document.getElementById('announce-btn-label');
-    const announceBtnUrlInput = document.getElementById('announce-btn-url');
-
-    // Form Inputs General Announcements
-    const genAnnounceChannelSelect = document.getElementById('general-announce-channel');
-    const genAnnounceTitleInput = document.getElementById('general-announce-title');
-    const genAnnounceMentionSelect = document.getElementById('general-announce-mention');
-    const genAnnounceDescriptionInput = document.getElementById('general-announce-description');
-    const genAnnounceColorInput = document.getElementById('general-announce-color');
-    const genAnnounceColorPicker = document.getElementById('general-announce-color-picker');
-    const genAnnounceThumbnailInput = document.getElementById('general-announce-thumbnail');
-    const genAnnounceBannerInput = document.getElementById('general-announce-banner');
-    const genAnnounceBtnLabelInput = document.getElementById('general-announce-btn-label');
-    const genAnnounceBtnUrlInput = document.getElementById('general-announce-btn-url');
-
-    // Form Inputs Mabar
-    const mabarChannelSelect = document.getElementById('mabar-channel');
-    const mabarGameInput = document.getElementById('mabar-game');
-    const mabarTimeInput = document.getElementById('mabar-time');
-    const mabarSlotsInput = document.getElementById('mabar-slots');
-    const mabarDescriptionInput = document.getElementById('mabar-description');
-
-    // Form Inputs Reaction Roles
-    const rrChannelSelect = document.getElementById('rr-channel');
-    const rrTitleInput = document.getElementById('rr-title');
-    const rrDescriptionInput = document.getElementById('rr-description');
-    let guildRoles = [];
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    // Form Inputs New Role
-    const newRoleNameInput = document.getElementById('new-role-name');
-    const newRoleColorInput = document.getElementById('new-role-color');
-    const newRoleColorPicker = document.getElementById('new-role-color-picker');
-    const newRoleHoistCheckbox = document.getElementById('new-role-hoist');
-    
-    // Embed Previews
-    const previewTitle = document.getElementById('preview-title');
-    const previewDescription = document.getElementById('preview-description');
-    const previewThumbnailContainer = document.getElementById('preview-thumbnail-container');
-    const previewImageContainer = document.getElementById('preview-image-container');
-    const previewImage = document.getElementById('preview-image');
-    
-    // Auth Check on load
-    if (token) {
-      verifyPasscode(token);
-    }
-
-    // Login Form Submit
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const passcode = document.getElementById('passcode-input').value;
-      await verifyPasscode(passcode);
-    });
-
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      localStorage.removeItem('maya_passcode');
-      location.reload();
-    });
-
-    // Form Submit (covers Welcome, Automod, AI configs)
-    document.getElementById('config-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await saveConfig();
-    });
-
-    // Real-time Embed Previews
-    welcomeTitleInput.addEventListener('input', updateEmbedPreview);
-    welcomeMessageInput.addEventListener('input', updateEmbedPreview);
-    welcomeImageInput.addEventListener('input', updateEmbedPreview);
-    welcomeThumbnailCheckbox.addEventListener('change', updateEmbedPreview);
-
-    // Toast alert helper
-    function showToast(title, message, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      
-      const bgColor = type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30';
-      const icon = type === 'success' ? 'fa-check-circle text-emerald-400' : 'fa-exclamation-circle text-red-400';
-      
-      toast.className = `glass-panel flex gap-3 p-4 rounded-xl border max-w-sm fade-in ${bgColor}`;
-      toast.innerHTML = `
-        <i class="fa-solid ${icon} text-lg shrink-0 mt-0.5"></i>
-        <div>
-          <h4 class="font-semibold text-sm text-white">${title}</h4>
-          <p class="text-xs text-gray-400 mt-0.5">${message}</p>
-        </div>
-      `;
-      
-      container.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.4s ease';
-        setTimeout(() => toast.remove(), 400);
-      }, 4000);
-    }
-
-    async function verifyPasscode(passcode) {
-      try {
-        const response = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ passcode })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          token = data.token;
-          localStorage.setItem('maya_passcode', token);
-          
-          // Hide login, show app
-          loginOverlay.classList.add('opacity-0');
-          setTimeout(() => {
-            loginOverlay.classList.add('hidden');
-            appContainer.classList.remove('hidden');
-          }, 300);
-          
-          await loadGuilds();
-        } else {
-          showToast('Akses Ditolak', 'Passcode yang dimasukkan salah.', 'error');
-        }
-      } catch (error) {
-        showToast('Kesalahan Koneksi', 'Tidak dapat menghubungi server API.', 'error');
-      }
-    }
-
-    async function loadGuilds() {
-      try {
-        const response = await fetch('/api/guilds', {
-          headers: { 'Authorization': token }
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem('maya_passcode');
-          loginOverlay.classList.remove('hidden', 'opacity-0');
-          appContainer.classList.add('hidden');
-          showToast('Sesi Berakhir', 'Silakan masukkan passcode kembali.', 'error');
-          return;
-        }
-
-        if (!response.ok) throw new Error();
-        
-        const data = await response.json();
-        guilds = data.guilds;
-        renderGuilds();
-
-        if (guilds.length > 0 && !selectedGuildId) {
-          selectGuild(guilds[0].id);
-        }
-      } catch (error) {
-        showToast('Gagal Memuat Server', 'Gagal memuat daftar server dari bot.', 'error');
-      }
-    }
-
-    function renderGuilds() {
-      if (guilds.length === 0) {
-        guildsList.innerHTML = `<div class="text-center py-6 text-gray-500 text-xs">Bot belum bergabung di server manapun.</div>`;
-        return;
-      }
-
-      guildsList.innerHTML = guilds.map(guild => `
-        <button 
-          onclick="selectGuild('${guild.id}')"
-          id="guild-btn-${guild.id}"
-          class="w-full flex items-center gap-3 p-2.5 rounded-xl text-left border border-transparent hover:bg-white/5 transition-all"
-        >
-          ${guild.icon 
-            ? `<img src="${guild.icon}" class="w-10 h-10 rounded-xl object-cover">` 
-            : `<div class="w-10 h-10 rounded-xl bg-discord-blurple/20 text-discord-blurple flex items-center justify-center font-bold font-outfit uppercase">${guild.name.slice(0, 2)}</div>`
-          }
-          <div class="flex-1 min-w-0">
-            <h4 class="font-medium text-sm text-white truncate">${guild.name}</h4>
-            <p class="text-[10px] text-gray-400 mt-0.5">${guild.memberCount} Members</p>
-          </div>
-        </button>
-      `).join('');
-    }
-
-    async function selectGuild(guildId) {
-      selectedGuildId = guildId;
-      
-      // Update UI active states
-      guilds.forEach(g => {
-        const btn = document.getElementById(`guild-btn-${g.id}`);
-        if (btn) {
-          if (g.id === guildId) {
-            btn.classList.add('bg-white/10', 'border-white/10');
-            btn.classList.remove('hover:bg-white/5');
-          } else {
-            btn.classList.remove('bg-white/10', 'border-white/10');
-            btn.classList.add('hover:bg-white/5');
-          }
-        }
-      });
-      
-      // Show loader
-      if (emptyState) emptyState.classList.add('hidden');
-      if (mainContent) mainContent.classList.remove('hidden');
-      
-      const guild = guilds.find(g => g.id === guildId);
-      const guildNameElem = document.getElementById('current-guild-name');
-      if (guildNameElem && guild) {
-        guildNameElem.innerText = guild.name;
-      }
-      
-      try {
-        const response = await fetch(`/api/configs/${guildId}`, {
-          headers: { 'Authorization': token }
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem('maya_passcode');
-          loginOverlay.classList.remove('hidden', 'opacity-0');
-          appContainer.classList.add('hidden');
-          showToast('Sesi Berakhir', 'Silakan masukkan passcode kembali.', 'error');
-          return;
-        }
-        
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || 'Gagal memuat setting server ini.');
-        }
-        
-        const { config, channels } = await response.json();
-        
-        // Render welcome channels dropdown
-        if (welcomeChannelSelect) {
-          welcomeChannelSelect.innerHTML = `
-            <option value="">-- Nonaktifkan Welcomer --</option>
-            ${channels.map(c => `<option value="${c.id}" ${config.welcomeChannelId === c.id ? 'selected' : ''}>#${c.name}</option>`).join('')}
-          `;
-        }
-        
-        // Render moderation logs channel dropdown
-        if (automodLogChannelSelect) {
-          automodLogChannelSelect.innerHTML = `
-            <option value="">-- Nonaktifkan Log Moderasi --</option>
-            ${channels.map(c => `<option value="${c.id}" ${config.moderationLogChannelId === c.id ? 'selected' : ''}>#${c.name}</option>`).join('')}
-          `;
-        }
-        
-        // Render rules channels dropdown
-        if (rulesChannelSelect) rulesChannelSelect.innerHTML = `<option value="">-- Pilih Channel Rules --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
-        
-        // Render announcements channels dropdown
-        if (announceChannelSelect) announceChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
-        
-        // Render mabar channels dropdown
-        if (mabarChannelSelect) mabarChannelSelect.innerHTML = `<option value="">-- Pilih Channel Mabar --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
-
-        // Render general announcements channels dropdown
-        if (genAnnounceChannelSelect) genAnnounceChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
-        
-        // Render reaction roles channels dropdown
-        if (rrChannelSelect) rrChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
-
-        // Fetch server roles for reaction role button creation
-        fetch(`/api/roles/${guildId}`, { headers: { 'Authorization': token } })
-          .then(res => res.json())
-          .then(data => {
-            guildRoles = data.roles || [];
-            // Reset option rows container & add initial row if empty
-            const container = document.getElementById('rr-options-container');
-            if (container && container.children.length === 0) {
-              addRrOptionRow();
-            }
-          }).catch(() => {});
-        
-        // Set input values welcome
-        if (welcomeTitleInput) welcomeTitleInput.value = config.welcomeTitle || '👋 Selamat Datang!';
-        if (welcomeMessageInput) welcomeMessageInput.value = config.welcomeMessage || '';
-        if (welcomeImageInput) welcomeImageInput.value = config.welcomeImage || '';
-        if (welcomeThumbnailCheckbox) welcomeThumbnailCheckbox.checked = config.welcomeThumbnail ?? true;
-
-        // Set input values automod
-        if (automodWordsInput) automodWordsInput.value = config.bannedWords || '';
-        if (automodMaxStrikesInput) automodMaxStrikesInput.value = config.maxStrikes || 3;
-        if (automodMuteDurationInput) automodMuteDurationInput.value = config.muteDuration || 10;
-
-        // Set input values AI
-        if (aiPersonalityInput) aiPersonalityInput.value = config.aiPersonality || '';
-        
-        // Refresh tabs
-        switchTab(activeTab);
-        
-        updateEmbedPreview();
-      } catch (error) {
-        showToast('Gagal Memuat Konfigurasi', error.message || 'Gagal memuat setting server ini.', 'error');
-      }
-    }
-
-    function switchTab(tabId) {
-      activeTab = tabId;
-      
-      // Toggle button states
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      const targetBtn = document.getElementById(`tab-btn-${tabId}`);
-      if (targetBtn) targetBtn.classList.add('active');
-      
-      // Toggle panes
-      document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.add('hidden');
-      });
-      const targetPane = document.getElementById(`tab-content-${tabId}`);
-      if (targetPane) targetPane.classList.remove('hidden');
-
-      // Hide save-bar for warnings, rules, roles, announcements, mabar, reaction-roles, and general-announce tabs, show for form configs
-      const saveBar = document.getElementById('save-bar');
-      if (saveBar) {
-        if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce') {
-          saveBar.classList.add('hidden');
-        } else {
-          saveBar.classList.remove('hidden');
-        }
-      }
-
-      // Action load based on tab
-      if (tabId === 'warnings') {
-        loadWarnings();
-      } else if (tabId === 'rules') {
-        updateRulesPreview();
-      } else if (tabId === 'roles') {
-        loadRoles();
-      } else if (tabId === 'announcements') {
-        updateAnnouncePreview();
-      } else if (tabId === 'general-announce') {
-        updateGeneralAnnouncePreview();
-      } else if (tabId === 'mabar') {
-        loadMabar();
-      } else if (tabId === 'reaction-roles') {
-        loadReactionRoles();
-      } else if (tabId === 'ai') {
-        loadAiHistory();
-      }
-    }
-
-    // --- WARNINGS LOG LOGIC ---
-    async function loadWarnings() {
-      if (!selectedGuildId) return;
-      const tbody = document.getElementById('warnings-table-body');
-      if (!tbody) return;
-      tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500 italic"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Loading warning logs...</td></tr>`;
-
-      try {
-        const response = await fetch(`/api/moderation/${selectedGuildId}/warnings`, {
-          headers: { 'Authorization': token }
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem('maya_passcode');
-          loginOverlay.classList.remove('hidden', 'opacity-0');
-          appContainer.classList.add('hidden');
-          showToast('Sesi Berakhir', 'Silakan masukkan passcode kembali.', 'error');
-          return;
-        }
-
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error || 'Gagal memuat log strike.');
-        }
-        const { warnings } = await response.json();
-        
-        if (!warnings || warnings.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500 italic">Bersih! Tidak ada pelanggaran strike terekam di server ini.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = warnings.map(log => {
-          const date = new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-          return `
-            <tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
-              <td class="p-4 flex items-center gap-3">
-                <img src="${log.userAvatar}" class="w-8 h-8 rounded-full border border-white/10" alt="Avatar">
-                <div>
-                  <div class="font-semibold text-white">${log.userTag}</div>
-                  <div class="text-[10px] text-gray-500 font-mono select-all">${log.userId}</div>
-                </div>
-              </td>
-              <td class="p-4 font-medium text-white max-w-xs truncate">${log.reason}</td>
-              <td class="p-4">
-                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-gray-300 border border-white/5">
-                  ${log.moderatorId === 'AUTOMOD' ? '🤖 Automod' : '🛡️ Staff'}
-                </span>
-              </td>
-              <td class="p-4 text-gray-400">${date}</td>
-              <td class="p-4 text-center">
-                <div class="flex items-center justify-center gap-2">
-                  <button 
-                    onclick="deleteWarning(${log.id})"
-                    title="Hapus strike tunggal ini"
-                    class="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/25 text-amber-400 hover:bg-amber-500/20 hover:text-white transition-all font-medium text-[10px]"
-                  >
-                    <i class="fa-solid fa-trash-can mr-1"></i> Hapus
-                  </button>
-                  <button 
-                    onclick="resetUserWarnings('${log.userId}', '${log.userTag}')"
-                    title="Reset semua strike untuk pengguna ini"
-                    class="px-2.5 py-1 rounded bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 hover:text-white transition-all font-medium text-[10px]"
-                  >
-                    <i class="fa-solid fa-user-slash mr-1"></i> Reset User
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-400 italic">Gagal mengambil data warning logs.</td></tr>`;
-      }
-    }
-
-    function toggleAddStrikeForm() {
-      const form = document.getElementById('manual-strike-form');
-      if (form) form.classList.toggle('hidden');
-    }
-
-    async function submitManualStrike() {
-      if (!selectedGuildId) {
-        showToast('Error', 'Silakan pilih server terlebih dahulu.', 'error');
-        return;
-      }
-      const userIdInput = document.getElementById('manual-strike-userid');
-      const reasonInput = document.getElementById('manual-strike-reason');
-      const btn = document.getElementById('submit-strike-btn');
-
-      const userId = userIdInput.value.trim();
-      const reason = reasonInput.value.trim();
-
-      if (!userId || !reason) {
-        showToast('Error', 'User ID dan Alasan Strike wajib diisi.', 'error');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...`;
-
-      try {
-        const response = await fetch(`/api/moderation/${selectedGuildId}/warnings`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token
-          },
-          body: JSON.stringify({ userId, reason })
-        });
-
-        if (response.ok) {
-          showToast('Sukses', 'Strike berhasil ditambahkan!', 'success');
-          userIdInput.value = '';
-          reasonInput.value = '';
-          toggleAddStrikeForm();
-          loadWarnings();
-        } else {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error || 'Gagal menyimpan strike.');
-        }
-      } catch (error) {
-        showToast('Gagal', error.message || 'Gagal terhubung ke API.', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-gavel"></i> Simpan Strike`;
-      }
-    }
+  <script type="text/template">
 
     async function deleteWarning(id) {
       if (!confirm(`Hapus log strike #${id}? Strike count pengguna ini akan berkurang.`)) return;
@@ -1777,9 +1202,12 @@
     });
 
     async function loadRoles() {
-      if (!selectedGuildId) return;
       const tbody = document.getElementById('roles-table-body');
       if (!tbody) return;
+      if (!selectedGuildId) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-amber-400/90 italic bg-amber-500/5"><i class="fa-solid fa-hand-pointer mr-1.5"></i> Silakan pilih server di sidebar sebelah kiri terlebih dahulu.</td></tr>`;
+        return;
+      }
       tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500 italic"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Loading roles list...</td></tr>`;
 
       try {
@@ -2366,15 +1794,22 @@
     }
 
     async function loadReactionRoles() {
-      if (!selectedGuildId) return;
       const list = document.getElementById('rr-menus-list');
+      if (!list) return;
+      if (!selectedGuildId) {
+        list.innerHTML = `<div class="p-6 text-center text-amber-400/90 text-xs italic bg-amber-500/5 rounded-xl border border-amber-500/10"><i class="fa-solid fa-hand-pointer mr-1.5"></i> Silakan pilih server di sidebar sebelah kiri terlebih dahulu.</div>`;
+        return;
+      }
       list.innerHTML = `<div class="text-center py-6 text-gray-500 text-xs italic"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Memuat panel...</div>`;
 
       try {
         const response = await fetch(`/api/reaction-roles/${selectedGuildId}`, {
           headers: { 'Authorization': token }
         });
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || 'Gagal memuat panel Reaction Roles.');
+        }
         const data = await response.json();
         const menus = data.menus || [];
 
