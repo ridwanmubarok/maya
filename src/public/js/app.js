@@ -329,7 +329,6 @@ async function selectGuild(guildId) {
     
     const { config, channels } = await response.json();
     
-    const rrChannelSelect = document.getElementById('rr-channel');
 
     if (welcomeChannelSelect) {
       welcomeChannelSelect.innerHTML = `
