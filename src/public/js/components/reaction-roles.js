@@ -107,10 +107,10 @@ async function createReactionRoleMenu() {
   const createBtn = document.getElementById('create-rr-btn');
   const originalHtml = createBtn ? createBtn.innerHTML : '';
 
-  const channelId = rrChannelSelect.value;
-  const title = rrTitleInput.value.trim();
-  const description = rrDescriptionInput.value.trim();
-  const color = rrColorInput.value;
+  const channelId = rrChannelSelect ? rrChannelSelect.value : '';
+  const title = rrTitleInput ? rrTitleInput.value.trim() : '';
+  const description = rrDescriptionInput ? rrDescriptionInput.value.trim() : '';
+  const color = rrColorInput ? rrColorInput.value : '#5865F2';
 
   if (!channelId) {
     showToast('Error', 'Silakan pilih channel target terlebih dahulu.', 'error');

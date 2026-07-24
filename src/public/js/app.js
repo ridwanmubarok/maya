@@ -15,7 +15,7 @@ let rulesChannelSelect, rulesTitleInput, rulesDescriptionInput, rulesColorInput,
 let announceChannelSelect, announceTitleInput, announceDescriptionInput, announceColorInput, announceColorPicker, announceThumbnailInput, announceBannerInput, announceBtnLabelInput, announceBtnUrlInput;
 let genAnnounceChannelSelect, genAnnounceTitleInput, genAnnounceMentionSelect, genAnnounceDescriptionInput, genAnnounceColorInput, genAnnounceColorPicker, genAnnounceThumbnailInput, genAnnounceBannerInput, genAnnounceBtnLabelInput, genAnnounceBtnUrlInput;
 let mabarChannelSelect, mabarGameInput, mabarTimeInput, mabarSlotsInput, mabarDescriptionInput;
-let rrChannelSelect, rrTitleInput, rrDescriptionInput;
+let rrChannelSelect, rrTitleInput, rrDescriptionInput, rrColorInput, rrColorPicker;
 let newRoleNameInput, newRoleColorInput, newRoleColorPicker, newRoleHoistCheckbox;
 let previewTitle, previewDescription, previewThumbnailContainer, previewImageContainer, previewImage;
 
@@ -104,6 +104,8 @@ function initDomReferences() {
   rrChannelSelect = document.getElementById('rr-channel');
   rrTitleInput = document.getElementById('rr-title');
   rrDescriptionInput = document.getElementById('rr-description');
+  rrColorInput = document.getElementById('rr-color');
+  rrColorPicker = document.getElementById('rr-color-picker');
 
   // New Role Inputs
   newRoleNameInput = document.getElementById('new-role-name');
