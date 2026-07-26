@@ -40,7 +40,8 @@ const command: Command = {
 
     // Build Web Stage Link
     const port = process.env.PORT || 3000;
-    const baseUrl = process.env.PUBLIC_URL || `http://localhost:${port}`;
+    const rawPublicUrl = process.env.PUBLIC_URL || "http://maya.rogatekno.my.id";
+    const baseUrl = rawPublicUrl.replace(/\/+$/, "");
     const userAvatar = interaction.user.displayAvatarURL({ extension: "png" });
 
     const stageUrl = `${baseUrl}/stage.html?room=${room.id}&user=${encodeURIComponent(hostName)}&userId=${hostId}&avatar=${encodeURIComponent(userAvatar)}`;
