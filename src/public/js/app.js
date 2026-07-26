@@ -350,17 +350,12 @@ async function selectGuild(guildId) {
     if (genAnnounceChannelSelect) genAnnounceChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${escapeHtml(c.name)}</option>`).join('');
     if (rrChannelSelect) rrChannelSelect.innerHTML = `<option value="">-- Pilih Channel Target --</option>` + channels.map(c => `<option value="${c.id}">#${escapeHtml(c.name)}</option>`).join('');
 
-    // Fetch server roles
-    apiFetch(`/api/roles/${guildId}`)
-      .then(res => res.json())
-      .then(data => {
-        guildRoles = data.roles || [];
-        const container = document.getElementById('rr-options-container');
-        if (container && container.children.length === 0) {
-          addRrOptionRow();
-        }
-      }).catch(() => {});
-    
+    // Reset reaction role options container on guild switch to prevent stale roles
+    const rrContainer = document.getElementById('rr-options-container');
+    if (rrContainer) rrContainer.innerHTML = '';
+    guildRoles = [];
+
+    // Fill form fields with config data
     if (welcomeTitleInput) welcomeTitleInput.value = config.welcomeTitle || '👋 Selamat Datang!';
     if (welcomeMessageInput) welcomeMessageInput.value = config.welcomeMessage || '';
     if (welcomeImageInput) welcomeImageInput.value = config.welcomeImage || '';
@@ -371,7 +366,17 @@ async function selectGuild(guildId) {
     if (automodMuteDurationInput) automodMuteDurationInput.value = config.muteDuration || 10;
 
     if (aiPersonalityInput) aiPersonalityInput.value = config.aiPersonality || '';
-    
+
+    // Fetch server roles and await before showing tab (prevents stale roles on guild switch)
+    try {
+      const rolesRes = await apiFetch(`/api/roles/${guildId}`);
+      const rolesData = await rolesRes.json();
+      guildRoles = rolesData.roles || [];
+    } catch (_) { guildRoles = []; }
+
+    // Always reset and add one fresh empty row after roles are loaded for the new guild
+    if (rrContainer) addRrOptionRow();
+
     switchTab(activeTab);
     updateEmbedPreview();
   } catch (error) {

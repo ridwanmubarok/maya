@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maya Stage • Nonton Bareng Real-Time</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/stage.css" />
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body class="dark-theme">
+  <div class="stage-app">
+    <!-- Header Bar -->
+    <header class="stage-header">
+      <div class="brand">
+        <div class="logo-icon">🍿</div>
+        <div class="logo-text">
+          <span class="title" id="stageTitle">Maya Stage</span>
+          <span class="subtitle" id="stageHostInfo">Loading room...</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="live-badge">
+          <span class="pulse-dot"></span> LIVE
+        </div>
+        <div class="audience-badge">
+          👥 <span id="audienceCount">1</span> Penonton
+        </div>
+        <button id="btnCopyLink" class="btn btn-secondary">
+          📋 Salin Link Stage
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="stage-container">
+      <!-- Left / Top: Video Stage Screen -->
+      <section class="video-section">
+        <div class="video-viewport" id="videoViewport">
+          <!-- Floating Reaction Canvas Layer -->
+          <div class="floating-reactions-container" id="floatingReactions"></div>
+
+          <!-- Player Container -->
+          <div id="ytPlayerContainer" class="player-wrapper">
+            <div id="ytPlayer"></div>
+          </div>
+          <div id="html5PlayerContainer" class="player-wrapper hidden">
+            <video id="html5Player" controls></video>
+          </div>
+
+          <!-- Video Overlay Banner when paused by Host -->
+          <div id="syncOverlay" class="sync-overlay hidden">
+            <div class="sync-card">
+              <div class="spinner"></div>
+              <p id="syncOverlayText">Disinkronkan dengan Host...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Host Controls & Status Bar -->
+        <div class="stage-controls-bar">
+          <div class="host-info-chip" id="hostBadge">
+            <span class="badge-icon">👑</span> Host: <strong id="hostNameText">...</strong>
+          </div>
+          
+          <!-- Host Video Controls (Visible if user is host) -->
+          <div class="control-buttons" id="hostControlPanel">
+            <button id="btnPlayPause" class="btn btn-primary">▶ Play</button>
+            <button id="btnSyncAll" class="btn btn-warning">🔄 Sync Semua Penonton</button>
+          </div>
+
+          <!-- Quick Reaction Buttons -->
+          <div class="reaction-bar">
+            <span class="reaction-label">Reaksi:</span>
+            <button class="btn-reaction" data-emoji="❤️">❤️</button>
+            <button class="btn-reaction" data-emoji="🔥">🔥</button>
+            <button class="btn-reaction" data-emoji="😂">😂</button>
+            <button class="btn-reaction" data-emoji="👏">👏</button>
+            <button class="btn-reaction" data-emoji="🍿">🍿</button>
+            <button class="btn-reaction" data-emoji="🎉">🎉</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Tabs for Chat & Audience -->
+      <aside class="sidebar-section">
+        <div class="sidebar-tabs">
+          <button id="tabChatBtn" class="tab-btn active">💬 Live Chat</button>
+          <button id="tabAudienceBtn" class="tab-btn">👥 Penonton (<span id="tabAudienceCount">0</span>)</button>
+        </div>
+
+        <!-- Tab 1: Live Chat -->
+        <div id="tabChatContent" class="tab-content active">
+          <div class="chat-messages" id="chatMessages">
+            <!-- Messages render here -->
+          </div>
+          <form id="chatForm" class="chat-input-form">
+            <input type="text" id="chatInput" placeholder="Kirim pesan di Stage..." maxlength="200" autocomplete="off" />
+            <button type="submit" class="btn btn-send">Kirim</button>
+          </form>
+        </div>
+
+        <!-- Tab 2: Audience List -->
+        <div id="tabAudienceContent" class="tab-content">
+          <ul class="audience-list" id="audienceList">
+            <!-- Audience list renders here -->
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/js/stage.js"></script>
+</body>
+</html>
