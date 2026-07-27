@@ -16,13 +16,13 @@ const command: Command = {
     .addStringOption((opt) =>
       opt
         .setName("posisi")
-        .setDescription("Posisi atau bidang pekerjaan (e.g. Frontend Developer, Designer, Admin, Finance)")
+        .setDescription("Posisi atau bidang pekerjaan (misal: Frontend Developer, Designer, Admin)")
         .setRequired(true)
     )
     .addStringOption((opt) =>
       opt
         .setName("lokasi")
-        .setDescription("Lokasi pekerjaan (e.g. Jakarta, Bandung, Remote, Surabaya, Indonesia)")
+        .setDescription("Lokasi pekerjaan (misal: Jakarta, Bandung, Remote)")
         .setRequired(false)
     ),
 
@@ -37,21 +37,17 @@ const command: Command = {
 
       if (!jobs || jobs.length === 0) {
         await interaction.editReply({
-          content: `❌ Tidak ditemukan lowongan kerja untuk posisi **${posisi}** di lokasi **${lokasi}**. Coba kata kunci posisi yang lebih umum.`,
+          content: `Tidak ditemukan lowongan kerja untuk posisi **${posisi}** di lokasi **${lokasi}**. Silakan coba kata kunci posisi yang lebih umum.`,
         });
         return;
       }
 
       const embed = new EmbedBuilder()
-        .setTitle(`💼 Lowongan Kerja: ${posisi}`)
-        .setDescription(
-          `Hasil pencarian lowongan pekerjaan terbaru untuk bidang **${posisi}** (Lokasi: **${lokasi}**):\n\n` +
-          `Klik tombol di bawah pesan ini untuk langsung membuka dan melamar pekerjaan di situs resminya!`
-        )
-        .setColor("#0066FF")
-        .setThumbnail("https://cdn-icons-png.flaticon.com/512/3858/3858596.png")
+        .setTitle(`Peluang Karir: ${posisi}`)
+        .setDescription(`Berikut daftar lowongan pekerjaan aktif untuk posisi **${posisi}** (Lokasi: **${lokasi}**).`)
+        .setColor("#2563EB") // Corporate Professional Blue
         .setFooter({
-          text: `Maya Job Finder • Ditemukan ${jobs.length} lowongan`,
+          text: `Maya Career Directory • Total ${jobs.length} hasil ditemukan`,
           iconURL: interaction.client.user?.displayAvatarURL(),
         })
         .setTimestamp();
@@ -62,20 +58,20 @@ const command: Command = {
         const itemNumber = index + 1;
 
         embed.addFields({
-          name: `${itemNumber}. ${job.title} — ${job.company}`,
+          name: `${itemNumber}. ${job.title}`,
           value:
-            `📍 **Lokasi**: ${job.location}\n` +
-            `💼 **Tipe**: ${job.type} | 💰 **Gaji**: ${job.salary}\n` +
-            `🌐 **Sumber**: ${job.source}\n`,
+            `**Perusahaan**: ${job.company}\n` +
+            `**Lokasi**: ${job.location} | **Tipe**: ${job.type}\n` +
+            `**Estimasi Kompensasi**: ${job.salary}\n` +
+            `**Portal Resmi**: ${job.source}`,
           inline: false,
         });
 
-        // Add Direct Apply Link Button for each job (Max 5 buttons in an ActionRow)
         if (buttons.length < 5) {
-          const buttonLabel = `💼 Lamar #${itemNumber} (${job.company.substring(0, 15)})`;
+          const compName = job.company.length > 18 ? `${job.company.substring(0, 15)}...` : job.company;
           buttons.push(
             new ButtonBuilder()
-              .setLabel(buttonLabel)
+              .setLabel(`Lamar #${itemNumber} (${compName})`)
               .setStyle(ButtonStyle.Link)
               .setURL(job.url)
           );
@@ -89,9 +85,9 @@ const command: Command = {
         components: [row],
       });
     } catch (error) {
-      console.error("Error fetching jobs in /loker command:", error);
+      console.error("Error in /loker command:", error);
       await interaction.editReply({
-        content: "❌ Terjadi kesalahan saat mencari data lowongan kerja. Silakan coba beberapa saat lagi.",
+        content: "Terjadi kesalahan sistem saat memproses pencarian lowongan kerja. Silakan coba beberapa saat lagi.",
       });
     }
   },

@@ -13,21 +13,21 @@ export const createEmbed = {
   success: (title: string, description: string) => {
     return new EmbedBuilder()
       .setColor(COLORS.SUCCESS)
-      .setTitle(`✅ ${title}`)
+      .setTitle(title)
       .setDescription(description)
       .setTimestamp();
   },
   error: (title: string, description: string) => {
     return new EmbedBuilder()
       .setColor(COLORS.ERROR)
-      .setTitle(`❌ ${title}`)
+      .setTitle(title)
       .setDescription(description)
       .setTimestamp();
   },
   warning: (title: string, description: string) => {
     return new EmbedBuilder()
       .setColor(COLORS.WARNING)
-      .setTitle(`⚠️ ${title}`)
+      .setTitle(title)
       .setDescription(description)
       .setTimestamp();
   },
@@ -46,10 +46,10 @@ export const createEmbed = {
 
     return new EmbedBuilder()
       .setColor(COLORS.AI)
-      .setTitle(`🔮 Maya`)
+      .setTitle("Maya AI")
       .addFields(
-        { name: "❓ Pertanyaan", value: prompt.length > 1024 ? prompt.substring(0, 1021) + "..." : prompt },
-        { name: "✨ Jawaban", value: truncatedResponse }
+        { name: "Pertanyaan", value: prompt.length > 1024 ? prompt.substring(0, 1021) + "..." : prompt },
+        { name: "Jawaban", value: truncatedResponse }
       )
       .setTimestamp()
       .setFooter({ text: "Didukung oleh NVIDIA NIM (Llama 3.1)" });

@@ -25,15 +25,14 @@ export function createMabarEmbed(session: MabarSessionData): EmbedBuilder {
     : "*Belum ada yang bergabung. Jadilah yang pertama!*";
 
   return new EmbedBuilder()
-    .setTitle(`🎮 JADWAL MABAR: ${session.game.toUpperCase()}`)
+    .setTitle(`Jadwal Mabar: ${session.game.toUpperCase()}`)
     .setDescription(session.description)
-    .setColor(0xF04747) // Red/Rose theme for gaming
+    .setColor(0x5865F2) // Discord Blurple
     .addFields(
-      { name: "🕒 Waktu Bermain", value: `**${session.playTime}**`, inline: true },
-      { name: "👥 Slot Pemain", value: `**${slotsInfo}**`, inline: true },
-      { name: "📝 Daftar Peserta", value: participantList }
+      { name: "Waktu Bermain", value: `**${session.playTime}**`, inline: true },
+      { name: "Slot Pemain", value: `**${slotsInfo}**`, inline: true },
+      { name: "Daftar Peserta", value: participantList }
     )
-    .setThumbnail("https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400&auto=format&fit=crop&q=80") // Gaming photo
     .setFooter({ text: `Dibuat oleh user ID: ${session.creatorId}` })
     .setTimestamp();
 }
@@ -44,15 +43,13 @@ export function createMabarEmbed(session: MabarSessionData): EmbedBuilder {
 export function createMabarButtons(sessionId: string): ActionRowBuilder<ButtonBuilder> {
   const joinButton = new ButtonBuilder()
     .setCustomId(`mabar_join:${sessionId}`)
-    .setLabel("Join Mabar")
-    .setEmoji("✅")
-    .setStyle(ButtonStyle.Success);
+    .setLabel("Gabung Mabar")
+    .setStyle(ButtonStyle.Primary);
 
   const leaveButton = new ButtonBuilder()
     .setCustomId(`mabar_leave:${sessionId}`)
-    .setLabel("Leave")
-    .setEmoji("❌")
-    .setStyle(ButtonStyle.Danger);
+    .setLabel("Keluar Mabar")
+    .setStyle(ButtonStyle.Secondary);
 
   return new ActionRowBuilder<ButtonBuilder>().addComponents(joinButton, leaveButton);
 }

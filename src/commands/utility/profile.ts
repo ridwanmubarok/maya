@@ -63,11 +63,11 @@ const command: Command = {
     }
 
     // Strike status indicator
-    let strikeStatus = "🟢 **Bersih (0 Strike)**";
+    let strikeStatus = "Bersih (0 Peringatan)";
     if (strikeCount === 1) {
-      strikeStatus = "🟡 **1 Strike Warning**";
+      strikeStatus = "1 Strike Warning";
     } else if (strikeCount >= 2) {
-      strikeStatus = `🔴 **${strikeCount} Strike Warning**`;
+      strikeStatus = `${strikeCount} Strike Warning`;
     }
 
     const highestRole = member?.roles.highest;
@@ -81,11 +81,11 @@ const command: Command = {
       })
       .setThumbnail(targetUser.displayAvatarURL({ size: 512 }))
       .addFields(
-        { name: "👤 Pengguna", value: `${targetUser} (${targetUser.tag})`, inline: true },
-        { name: "🔰 Status Moderasi", value: strikeStatus, inline: true },
-        { name: "📅 Bergabung Server", value: joinedAt, inline: true },
-        { name: "🎂 Akun Dibuat", value: createdAt, inline: true },
-        { name: "🏷️ Roles Member", value: rolesString, inline: false }
+        { name: "Pengguna", value: `${targetUser} (${targetUser.tag})`, inline: true },
+        { name: "Status Moderasi", value: strikeStatus, inline: true },
+        { name: "Bergabung Server", value: joinedAt, inline: true },
+        { name: "Akun Dibuat", value: createdAt, inline: true },
+        { name: "Roles Member", value: rolesString, inline: false }
       )
       .setFooter({ text: `ID: ${targetUser.id} • Server ${guild.name}` })
       .setTimestamp();

@@ -29,7 +29,7 @@ const command: Command = {
     .addStringOption((opt) =>
       opt
         .setName("kategori")
-        .setDescription("Kategori beasiswa (e.g. Teknologi/IT, Umum, Luar Negeri)")
+        .setDescription("Kategori beasiswa (misal: Teknologi/IT, Umum, Luar Negeri)")
         .setRequired(false)
     ),
 
@@ -44,21 +44,17 @@ const command: Command = {
 
       if (!items || items.length === 0) {
         await interaction.editReply({
-          content: `❌ Tidak ditemukan informasi beasiswa untuk jenjang **${jenjang}** & kategori **${kategori}**. Silakan coba kombinasi lain.`,
+          content: `Tidak ditemukan informasi beasiswa untuk jenjang **${jenjang}** & kategori **${kategori}**. Silakan coba kombinasi lain.`,
         });
         return;
       }
 
       const embed = new EmbedBuilder()
-        .setTitle(`🎓 Informasi Beasiswa Terbaru`)
-        .setDescription(
-          `Berikut daftar rekomendasi program beasiswa resmi yang sedang aktif (Jenjang: **${jenjang}** | Kategori: **${kategori}**):\n\n` +
-          `Klik tombol di bawah pesan ini untuk melihat rincian persyaratan & mendaftar di situs resminya!`
-        )
-        .setColor("#00CC99")
-        .setThumbnail("https://cdn-icons-png.flaticon.com/512/2997/2997295.png")
+        .setTitle(`Direktori Beasiswa Resmi`)
+        .setDescription(`Daftar rekomendasi program beasiswa resmi aktif (Jenjang: **${jenjang}** | Kategori: **${kategori}**).`)
+        .setColor("#059669") // Enterprise Emerald Green
         .setFooter({
-          text: `Maya Edu Finder • Ditemukan ${items.length} program beasiswa`,
+          text: `Maya Education Directory • Total ${items.length} program ditemukan`,
           iconURL: interaction.client.user?.displayAvatarURL(),
         })
         .setTimestamp();
@@ -71,17 +67,18 @@ const command: Command = {
         embed.addFields({
           name: `${num}. ${item.title}`,
           value:
-            `🏛️ **Penyelenggara**: ${item.organizer}\n` +
-            `🎓 **Jenjang**: ${item.level} | 💰 **Cakupan**: ${item.coverage}\n` +
-            `📅 **Status/Deadline**: ${item.deadline} | 🌐 **Sumber**: ${item.source}\n`,
+            `**Penyelenggara**: ${item.organizer}\n` +
+            `**Jenjang**: ${item.level} | **Cakupan**: ${item.coverage}\n` +
+            `**Status Pendaftaran**: ${item.deadline}\n` +
+            `**Portal Resmi**: ${item.source}`,
           inline: false,
         });
 
         if (buttons.length < 5) {
-          const label = `🎓 Daftar #${num} (${item.source.substring(0, 15)})`;
+          const srcName = item.source.length > 18 ? `${item.source.substring(0, 15)}...` : item.source;
           buttons.push(
             new ButtonBuilder()
-              .setLabel(label)
+              .setLabel(`Daftar #${num} (${srcName})`)
               .setStyle(ButtonStyle.Link)
               .setURL(item.url)
           );
@@ -97,7 +94,7 @@ const command: Command = {
     } catch (error) {
       console.error("Error in /beasiswa command:", error);
       await interaction.editReply({
-        content: "❌ Terjadi kesalahan saat mengambil info beasiswa. Silakan coba beberapa saat lagi.",
+        content: "Terjadi kesalahan sistem saat memproses informasi beasiswa. Silakan coba beberapa saat lagi.",
       });
     }
   },

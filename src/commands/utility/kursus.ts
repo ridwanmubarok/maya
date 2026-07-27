@@ -16,7 +16,7 @@ const command: Command = {
     .addStringOption((opt) =>
       opt
         .setName("topik")
-        .setDescription("Topik/materi yang ingin dipelajari (e.g. Web Dev, Python, AI, Data Science, Cyber Security)")
+        .setDescription("Topik/materi yang ingin dipelajari (misal: Web Dev, Python, AI, Data Science)")
         .setRequired(false)
     )
     .addStringOption((opt) =>
@@ -46,21 +46,17 @@ const command: Command = {
 
       if (!items || items.length === 0) {
         await interaction.editReply({
-          content: `❌ Tidak ditemukan kursus gratis untuk topik **${topik}** & platform **${platform}**. Silakan coba topik lain.`,
+          content: `Tidak ditemukan kursus gratis untuk topik **${topik}** & platform **${platform}**. Silakan coba topik lain.`,
         });
         return;
       }
 
       const embed = new EmbedBuilder()
-        .setTitle(`📜 Rekomendasi Kursus & Pelatihan Gratis`)
-        .setDescription(
-          `Berikut daftar pilihan kursus online bersertifikat gratis (Topik: **${topik}** | Platform: **${platform}**):\n\n` +
-          `Klik tombol di bawah pesan ini untuk langsung mulai belajar di situs resminya!`
-        )
-        .setColor("#9933FF")
-        .setThumbnail("https://cdn-icons-png.flaticon.com/512/2436/2436636.png")
+        .setTitle(`Katalog Pelatihan & Kursus Bersertifikat`)
+        .setDescription(`Daftar program sertifikasi dan pelatihan online gratis (Topik: **${topik}** | Platform: **${platform}**).`)
+        .setColor("#4F46E5") // Enterprise Indigo / Tech Blue
         .setFooter({
-          text: `Maya Course Finder • Ditemukan ${items.length} pilihan kursus gratis`,
+          text: `Maya Training Catalog • Total ${items.length} program ditemukan`,
           iconURL: interaction.client.user?.displayAvatarURL(),
         })
         .setTimestamp();
@@ -73,17 +69,18 @@ const command: Command = {
         embed.addFields({
           name: `${num}. ${item.title}`,
           value:
-            `🏢 **Penyedia**: ${item.provider}\n` +
-            `📚 **Topik**: ${item.topic} | 📜 **Benefit**: ${item.certificate}\n` +
-            `⏱️ **Durasi**: ${item.duration} | 🌐 **Sumber**: ${item.source}\n`,
+            `**Penyedia**: ${item.provider}\n` +
+            `**Topik**: ${item.topic} | **Sertifikasi**: ${item.certificate}\n` +
+            `**Est. Durasi**: ${item.duration}\n` +
+            `**Portal Resmi**: ${item.source}`,
           inline: false,
         });
 
         if (buttons.length < 5) {
-          const label = `📜 Belajar #${num} (${item.provider.substring(0, 15)})`;
+          const provName = item.provider.length > 18 ? `${item.provider.substring(0, 15)}...` : item.provider;
           buttons.push(
             new ButtonBuilder()
-              .setLabel(label)
+              .setLabel(`Mulai #${num} (${provName})`)
               .setStyle(ButtonStyle.Link)
               .setURL(item.url)
           );
@@ -99,7 +96,7 @@ const command: Command = {
     } catch (error) {
       console.error("Error in /kursus command:", error);
       await interaction.editReply({
-        content: "❌ Terjadi kesalahan saat mengambil daftar kursus. Silakan coba beberapa saat lagi.",
+        content: "Terjadi kesalahan sistem saat memproses katalog kursus. Silakan coba beberapa saat lagi.",
       });
     }
   },
