@@ -7,7 +7,6 @@ import { prisma } from "./database";
 import { logger } from "../utils/logger";
 import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { createMabarEmbed, createMabarButtons } from "./mabarManager";
-import { nobarManager } from "./nobarManager";
 
 const app = express();
 app.use(express.json());
@@ -817,107 +816,14 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Catch-all route to serve the SPA or Stage UI
+  // Catch-all route to serve the SPA
   app.get("*", (req: Request, res: Response) => {
-    if (req.path.startsWith("/stage")) {
-      return res.sendFile(path.join(publicPath, "stage.html"));
-    }
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
   const httpServer = http.createServer(app);
-  const io = new Server(httpServer, {
-    cors: {
-      origin: "*",
-    },
-  });
-
-  // Socket.io Real-Time Synchronization for Stage Watch Party
-  io.on("connection", (socket) => {
-    let currentRoomId: string | null = null;
-
-    socket.on("join-stage", ({ roomId, username, avatarUrl, userId }) => {
-      const room = nobarManager.getRoom(roomId);
-      if (!room) {
-        socket.emit("error-message", "Room Stage tidak ditemukan atau telah ditutup.");
-        return;
-      }
-
-      currentRoomId = roomId;
-      socket.join(roomId);
-
-      const isHost = socket.id === room.hostId || userId === room.hostId || room.participants.size === 0;
-      const participant = {
-        socketId: socket.id,
-        userId,
-        username: username || "Guest",
-        avatarUrl,
-        isHost,
-        joinedAt: new Date(),
-      };
-
-      nobarManager.addParticipant(roomId, participant);
-
-      // Send initial room data to joined user
-      socket.emit("room-data", {
-        ...room,
-        hostSocketId: Array.from(room.participants.values()).find((p) => p.isHost)?.socketId,
-        participants: nobarManager.getParticipantsList(roomId),
-      });
-
-      // Broadcast updated participant list to everyone in room
-      io.to(roomId).emit("participant-updated", nobarManager.getParticipantsList(roomId));
-
-      // System notification in chat
-      const sysMsg = nobarManager.addChatMessage(roomId, "System", `${participant.username} bergabung ke Stage Nonton Bareng!`, undefined, true);
-      if (sysMsg) {
-        io.to(roomId).emit("chat-message", sysMsg);
-      }
-    });
-
-    socket.on("video-action", ({ roomId, action, currentTime, playbackRate }) => {
-      const room = nobarManager.getRoom(roomId);
-      if (!room) return;
-
-      nobarManager.updateRoomVideoState(roomId, action === "play", currentTime, playbackRate || 1);
-
-      // Broadcast action to all viewers in room except sender
-      socket.to(roomId).emit("video-action", { action, currentTime, playbackRate });
-    });
-
-    socket.on("send-chat", ({ roomId, text }) => {
-      const room = nobarManager.getRoom(roomId);
-      if (!room) return;
-
-      const participant = room.participants.get(socket.id);
-      const username = participant ? participant.username : "Guest";
-      const avatarUrl = participant ? participant.avatarUrl : undefined;
-
-      const msg = nobarManager.addChatMessage(roomId, username, text, avatarUrl);
-      if (msg) {
-        io.to(roomId).emit("chat-message", msg);
-      }
-    });
-
-    socket.on("send-reaction", ({ roomId, emoji }) => {
-      socket.to(roomId).emit("floating-reaction", { emoji, socketId: socket.id });
-    });
-
-    socket.on("disconnect", () => {
-      if (currentRoomId) {
-        const { room, removedParticipant } = nobarManager.removeParticipant(currentRoomId, socket.id);
-        if (room && removedParticipant) {
-          io.to(currentRoomId).emit("participant-updated", nobarManager.getParticipantsList(currentRoomId));
-          const sysMsg = nobarManager.addChatMessage(currentRoomId, "System", `${removedParticipant.username} telah meninggalkan Stage.`, undefined, true);
-          if (sysMsg) {
-            io.to(currentRoomId).emit("chat-message", sysMsg);
-          }
-        }
-      }
-    });
-  });
 
   httpServer.listen(Number(port), "0.0.0.0", () => {
-    logger.info(`Web Dashboard & Stage Server berjalan di http://localhost:${port}`);
+    logger.info(`Web Dashboard berjalan di http://localhost:${port}`);
   });
 }
