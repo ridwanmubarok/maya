@@ -8,7 +8,6 @@ const event: BotEvent = {
   async execute(client: MayaClient) {
     logger.info(`Bot berhasil login sebagai ${client.user?.tag}!`);
 
-    // Prepare commands data for registration
     const commandData = client.commands.map(cmd => cmd.data.toJSON());
     const token = process.env.DISCORD_TOKEN;
     const clientId = process.env.CLIENT_ID;
@@ -18,35 +17,33 @@ const event: BotEvent = {
       return;
     }
 
-    // Periksa apakah CLIENT_ID adalah angka murni (Snowflake)
     if (!/^\d+$/.test(clientId)) {
-      logger.error(`CLIENT_ID "${clientId}" tidak valid (harus berupa deretan angka/snowflake). Harap isi CLIENT_ID asli Anda di file .env.`);
+      logger.error(`CLIENT_ID "${clientId}" tidak valid. Harap isi CLIENT_ID asli di file .env.`);
       return;
     }
 
     const rest = new REST({ version: "10" }).setToken(token);
 
     try {
-      logger.info(`Mulai mendaftarkan ${commandData.length} slash command...`);
+      logger.info(`Mendaftarkan ${commandData.length} global slash command...`);
 
-      // 1. Register global commands
+      // 1. Register Global Commands ONLY (to prevent command duplication)
       await rest.put(
         Routes.applicationCommands(clientId),
         { body: commandData }
       );
       logger.info(`Sukses mendaftarkan global slash commands.`);
 
-      // 2. Register instant guild commands for all connected servers
+      // 2. Clear any leftover duplicate per-guild commands if any exist
       const guilds = client.guilds.cache;
-      for (const [guildId, guild] of guilds) {
+      for (const [guildId] of guilds) {
         try {
           await rest.put(
             Routes.applicationGuildCommands(clientId, guildId),
-            { body: commandData }
+            { body: [] }
           );
-          logger.info(`Sukses mendaftarkan instant slash commands ke server: ${guild.name} (${guildId})`);
-        } catch (e) {
-          logger.warn(`Gagal mendaftarkan guild commands untuk ${guild.name}: ${e}`);
+        } catch {
+          // Ignore if guild command clearance fails
         }
       }
     } catch (error) {

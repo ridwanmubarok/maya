@@ -39,7 +39,7 @@ const command: Command = {
         return;
       }
 
-      if (tebakManager.isSessionActive(channel.id)) {
+      if (tebakManager.isChannelActive(channel.id)) {
         await interaction.reply({
           content: "Sesi tebak-tebakan masih berlangsung di channel ini! Jawab pertanyaan yang ada terlebih dahulu.",
           ephemeral: true,

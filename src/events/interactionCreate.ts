@@ -2,14 +2,22 @@ import { Events, Interaction } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { createEmbed } from "../utils/embeds";
-
 import { handleMabarJoin, handleMabarLeave } from "../services/mabarManager";
+import { tebakManager } from "../services/tebakManager";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
   async execute(interaction: Interaction) {
+    // Handle Button Interactions
     if (interaction.isButton()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("tebak_answer:")) {
+        const sessionId = customId.split(":")[1];
+        await tebakManager.handleButton(interaction, sessionId);
+        return;
+      }
+
       if (customId.startsWith("mabar_join:")) {
         const sessionId = customId.split(":")[1];
         await interaction.deferReply({ ephemeral: true });
@@ -17,6 +25,7 @@ const event: BotEvent = {
         await interaction.editReply({ content: res.message });
         return;
       }
+
       if (customId.startsWith("mabar_leave:")) {
         const sessionId = customId.split(":")[1];
         await interaction.deferReply({ ephemeral: true });
@@ -24,19 +33,20 @@ const event: BotEvent = {
         await interaction.editReply({ content: res.message });
         return;
       }
+
       if (customId.startsWith("rr:")) {
         const roleId = customId.split(":")[1];
         await interaction.deferReply({ ephemeral: true });
 
         const member = interaction.member && "roles" in interaction.member ? (interaction.member as any) : null;
         if (!member || !interaction.guild) {
-          await interaction.editReply({ content: "❌ Perintah hanya dapat dijalankan di dalam server." });
+          await interaction.editReply({ content: "Perintah hanya dapat dijalankan di dalam server." });
           return;
         }
 
         const role = interaction.guild.roles.cache.get(roleId) || await interaction.guild.roles.fetch(roleId).catch(() => null);
         if (!role) {
-          await interaction.editReply({ content: "❌ Role tidak ditemukan di server." });
+          await interaction.editReply({ content: "Role tidak ditemukan di server." });
           return;
         }
 
@@ -44,19 +54,30 @@ const event: BotEvent = {
         try {
           if (hasRole) {
             await member.roles.remove(role);
-            await interaction.editReply({ content: `ℹ️ Role **${role.name}** berhasil dilepaskan!` });
+            await interaction.editReply({ content: `Role **${role.name}** berhasil dilepaskan.` });
           } else {
             await member.roles.add(role);
-            await interaction.editReply({ content: `✅ Role **${role.name}** berhasil ditambahkan!` });
+            await interaction.editReply({ content: `Role **${role.name}** berhasil ditambahkan.` });
           }
         } catch (err: any) {
           logger.error(`Error toggling reaction role ${role.name}:`, err);
-          await interaction.editReply({ content: `❌ Bot tidak memiliki izin untuk mengelola role **${role.name}**. (Pastikan posisi role bot lebih tinggi di server).` });
+          await interaction.editReply({ content: `Bot tidak memiliki izin untuk mengelola role **${role.name}**.` });
         }
         return;
       }
     }
 
+    // Handle Modal Submissions
+    if (interaction.isModalSubmit()) {
+      const { customId } = interaction;
+      if (customId.startsWith("modal_tebak:")) {
+        const sessionId = customId.split(":")[1];
+        await tebakManager.handleModalSubmit(interaction, sessionId);
+        return;
+      }
+    }
+
+    // Handle Autocomplete
     if (interaction.isAutocomplete()) {
       const client = interaction.client as MayaClient;
       const command = client.commands.get(interaction.commandName);
@@ -72,6 +93,7 @@ const event: BotEvent = {
       return;
     }
 
+    // Handle Chat Input Commands
     if (!interaction.isChatInputCommand()) return;
 
     const client = interaction.client as MayaClient;
@@ -87,7 +109,7 @@ const event: BotEvent = {
       await command.execute(interaction);
     } catch (error) {
       logger.error(`Error saat menjalankan command /${interaction.commandName}:`, error);
-      
+
       const embedError = createEmbed.error(
         "Terjadi Kesalahan",
         "Maaf, terjadi kesalahan saat menjalankan perintah ini. Silakan coba lagi nanti."
@@ -99,7 +121,7 @@ const event: BotEvent = {
         await interaction.reply({ embeds: [embedError], ephemeral: true }).catch(() => {});
       }
     }
-  }
+  },
 };
 
 export default event;

@@ -1,4 +1,16 @@
-import { TextChannel, EmbedBuilder } from "discord.js";
+import {
+  TextChannel,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ButtonInteraction,
+  ModalSubmitInteraction,
+  Message,
+} from "discord.js";
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
@@ -13,8 +25,10 @@ export interface TebakQuestion {
 }
 
 export interface ActiveSession {
+  sessionId: string;
   guildId: string;
   channelId: string;
+  messageId?: string;
   question: TebakQuestion;
   startTime: number;
   timer: NodeJS.Timeout;
@@ -25,16 +39,16 @@ const QUESTION_BANK: TebakQuestion[] = [
     id: "q1",
     category: "Tebak-Tebakan Kekinian",
     question: "Kenapa HP Android kalau lagi charging tidak bisa diajak jalan-jalan?",
-    answer: "Karena Kabelan",
-    acceptableAnswers: ["kabelan", "ke kabelan", "kebatasan kabel"],
-    clue: "Plesetan kata kesebelasan / kabel...",
+    answer: "Kabelan",
+    acceptableAnswers: ["kabelan", "karena kabelan", "ke kabelan"],
+    clue: "Plesetan kata kesebelasan...",
   },
   {
     id: "q2",
     category: "Teka-Teki Lucu",
     question: "Pintu apa yang tidak bisa didorong oleh 10 orang kuat sekalipun?",
     answer: "Pintu Geser",
-    acceptableAnswers: ["pintu geser", "geser", "pintu sliding"],
+    acceptableAnswers: ["pintu geser", "geser", "sliding door"],
     clue: "Bukan didorong, tapi...",
   },
   {
@@ -45,82 +59,11 @@ const QUESTION_BANK: TebakQuestion[] = [
     acceptableAnswers: ["balon", "balon gas"],
     clue: "Diisi gas/udara ringan.",
   },
-  {
-    id: "q4",
-    category: "Tebak-Tebakan Gaul",
-    question: "Kera apa yang kalau dipeluk malah bikin hangat?",
-    answer: "Kerajinan Tangan",
-    acceptableAnswers: ["keranjang", "kerajinan", "keramaian"],
-    clue: "Kera yang kreatif...",
-  },
-  {
-    id: "q5",
-    category: "Teka-Teki Lucu",
-    question: "Hewan apa yang paling hemat listrik dan tidak suka kepanasan?",
-    answer: "Kuda Laut",
-    acceptableAnswers: ["kuda laut", "kudalaut"],
-    clue: "Tinggal di air...",
-  },
-  {
-    id: "q6",
-    category: "Tebak Plesetan",
-    question: "Susu apa yang tidak bisa diminum?",
-    answer: "Susah Ditebak",
-    acceptableAnswers: ["susah ditebak", "susah"],
-    clue: "Plesetan kata susah...",
-  },
 ];
-
-/**
- * Generate dynamic, hilarious riddle using NVIDIA AI LLM Engine
- */
-async function generateAiTebakQuestion(): Promise<TebakQuestion | null> {
-  const prompt = `
-Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia yang SANGAT LUCU, KEKINIAN (Gen-Z / Gaul / Plesetan Cerdas / Out of the Box), dan TIDAK GARING!
-Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
-{
-  "category": "Tebak-Tebakan Kekinian",
-  "question": "Pertanyaan tebak-tebakan lucu di sini...",
-  "answer": "Jawaban utama singkat",
-  "acceptableAnswers": ["jawaban utama", "kata kunci singkat", "variasi"],
-  "clue": "Petunjuk kocak..."
-}
-`.trim();
-
-  try {
-    const raw = await askNvidia(prompt);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const data = JSON.parse(jsonMatch[0]);
-      if (data.question && data.answer) {
-        const acceptable = Array.isArray(data.acceptableAnswers) && data.acceptableAnswers.length > 0
-          ? data.acceptableAnswers.map((a: string) => a.toLowerCase())
-          : [data.answer.toLowerCase()];
-        
-        // Ensure main answer is included
-        if (!acceptable.includes(data.answer.toLowerCase())) {
-          acceptable.push(data.answer.toLowerCase());
-        }
-
-        return {
-          id: `ai-q-${Date.now()}`,
-          category: data.category || "Tebak-Tebakan AI Kekinian",
-          question: data.question,
-          answer: data.answer,
-          acceptableAnswers: acceptable,
-          clue: data.clue || "Gunakan logika gaul & out of the box!",
-        };
-      }
-    }
-  } catch (error) {
-    logger.error("TebakManager: Error generating AI riddle:", error);
-  }
-  return null;
-}
 
 export class TebakManager {
   private static instance: TebakManager;
-  private activeSessions: Map<string, ActiveSession> = new Map();
+  private activeSessions: Map<string, ActiveSession> = new Map(); // key: sessionId
 
   private constructor() {}
 
@@ -131,24 +74,20 @@ export class TebakManager {
     return TebakManager.instance;
   }
 
-  public isSessionActive(channelId: string): boolean {
-    return this.activeSessions.has(channelId);
-  }
-
-  public getActiveSession(channelId: string): ActiveSession | undefined {
-    return this.activeSessions.get(channelId);
+  public isChannelActive(channelId: string): boolean {
+    return Array.from(this.activeSessions.values()).some((s) => s.channelId === channelId);
   }
 
   /**
    * Start a new riddle session in channel
    */
   public async startRiddleSession(channel: TextChannel, guildId: string): Promise<boolean> {
-    if (this.activeSessions.has(channel.id)) {
-      return false; // Session already running
+    if (this.isChannelActive(channel.id)) {
+      return false;
     }
 
-    // Try dynamic NVIDIA AI generator first, fallback to bank if offline
-    let question = await generateAiTebakQuestion();
+    const sessionId = `tbk-${Date.now()}`;
+    let question = await this.generateAiTebakQuestion();
     if (!question) {
       question = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
     }
@@ -158,91 +97,225 @@ export class TebakManager {
       .setDescription(
         `**Pertanyaan**:\n> ${question.question}\n\n` +
         `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul!"}\n\n` +
-        `Ketik jawaban kamu langsung di channel chat ini!\nBatas waktu menjawab: **30 detik**.`
+        `Klik tombol **Jawab Tebak-Tebakan** di bawah ini untuk mengisi jawaban kamu!\nBatas waktu: **45 detik**.`
       )
       .setColor("#2563EB")
-      .setFooter({ text: "Maya AI Trivia Engine • NVIDIA LLM Dynamic Riddles" })
+      .setFooter({ text: "Maya AI Trivia Engine • Klik tombol di bawah untuk menjawab!" })
       .setTimestamp();
 
-    await channel.send({ embeds: [embed] });
+    const answerButton = new ButtonBuilder()
+      .setCustomId(`tebak_answer:${sessionId}`)
+      .setLabel("Jawab Tebak-Tebakan")
+      .setStyle(ButtonStyle.Primary);
 
-    // Set 30s timeout handler
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(answerButton);
+
+    const message = await channel.send({ embeds: [embed], components: [row] });
+
+    // Set 45s timeout
     const timer = setTimeout(async () => {
-      await this.handleTimeout(channel.id, channel);
-    }, 30000);
+      await this.handleTimeout(sessionId, channel, message);
+    }, 45000);
 
     const session: ActiveSession = {
+      sessionId,
       guildId,
       channelId: channel.id,
+      messageId: message.id,
       question,
       startTime: Date.now(),
       timer,
     };
 
-    this.activeSessions.set(channel.id, session);
-
-    // Create Message Collector to listen for correct answer in channel
-    const collector = channel.createMessageCollector({
-      filter: (m) => !m.author.bot,
-      time: 30000,
-    });
-
-    collector.on("collect", async (message) => {
-      const userText = message.content.trim().toLowerCase();
-      const isCorrect = question.acceptableAnswers.some(
-        (ans) => ans.toLowerCase() === userText || userText.includes(ans.toLowerCase())
-      );
-
-      if (isCorrect) {
-        collector.stop("answered");
-        clearTimeout(timer);
-        this.activeSessions.delete(channel.id);
-
-        // Add 10 points to DB
-        const newScore = await this.addScore(guildId, message.author.id, message.author.displayName || message.author.username, 10);
-
-        const winnerEmbed = new EmbedBuilder()
-          .setTitle("Jawaban Benar!")
-          .setDescription(
-            `Selamat <@${message.author.id}>! Jawaban kamu **${question.answer}** tepat sekali!\n\n` +
-            `**+10 Poin** ditambahkan ke skor kamu.\n` +
-            `Total Skor Kamu: **${newScore} Poin**`
-          )
-          .setColor("#10B981")
-          .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak leaderboard untuk lihat peringkat" })
-          .setTimestamp();
-
-        await channel.send({ embeds: [winnerEmbed] });
-      }
-    });
-
+    this.activeSessions.set(sessionId, session);
     return true;
   }
 
   /**
-   * Handle timeout when no one answers correctly
+   * Handle Button Click -> Open Modal Window
    */
-  private async handleTimeout(channelId: string, channel: TextChannel) {
-    const session = this.activeSessions.get(channelId);
+  public async handleButton(interaction: ButtonInteraction, sessionId: string) {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      await interaction.reply({
+        content: "Sesi tebak-tebakan ini telah berakhir atau waktu telah habis.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId(`modal_tebak:${sessionId}`)
+      .setTitle("Jawab Tebak-Tebakan");
+
+    const answerInput = new TextInputBuilder()
+      .setCustomId("jawaban_user")
+      .setLabel("Jawaban Kamu")
+      .setPlaceholder("Ketik jawaban kamu di sini...")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(100);
+
+    const row = new ActionRowBuilder<TextInputBuilder>().addComponents(answerInput);
+    modal.addComponents(row);
+
+    await interaction.showModal(modal);
+  }
+
+  /**
+   * Handle Modal Submit -> Check Answer
+   */
+  public async handleModalSubmit(interaction: ModalSubmitInteraction, sessionId: string) {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      await interaction.reply({
+        content: "Sesi tebak-tebakan ini telah selesai.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const userAnswer = interaction.fields.getTextInputValue("jawaban_user").trim().toLowerCase();
+    const isCorrect = session.question.acceptableAnswers.some(
+      (ans) => ans.toLowerCase() === userAnswer || userAnswer.includes(ans.toLowerCase())
+    );
+
+    if (isCorrect) {
+      // Clear session & timer
+      clearTimeout(session.timer);
+      this.activeSessions.delete(sessionId);
+
+      // Add 10 points to DB
+      const newScore = await this.addScore(
+        session.guildId,
+        interaction.user.id,
+        interaction.user.displayName || interaction.user.username,
+        10
+      );
+
+      // Update original riddle message (disable button & show winner)
+      if (session.messageId && interaction.channel) {
+        try {
+          const channel = interaction.channel as TextChannel;
+          const msg = await channel.messages.fetch(session.messageId);
+          if (msg) {
+            const winnerEmbed = new EmbedBuilder()
+              .setTitle(`Tebak-Tebakan Selesai! (Dijawab Benar)`)
+              .setDescription(
+                `**Pertanyaan**:\n> ${session.question.question}\n\n` +
+                `Pemenang: <@${interaction.user.id}> (+10 Poin)\n` +
+                `Jawaban Benar: **${session.question.answer}**\n` +
+                `Total Skor <@${interaction.user.id}>: **${newScore} Poin**`
+              )
+              .setColor("#10B981")
+              .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak leaderboard untuk lihat peringkat" })
+              .setTimestamp();
+
+            const disabledButton = new ButtonBuilder()
+              .setCustomId(`disabled_${sessionId}`)
+              .setLabel("Tebak-Tebakan Selesai")
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(true);
+
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
+            await msg.edit({ embeds: [winnerEmbed], components: [row] });
+          }
+        } catch (e) {
+          logger.error("Error updating message on correct answer:", e);
+        }
+      }
+
+      await interaction.reply({
+        content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, +10 Poin telah ditambahkan ke profil kamu.`,
+        ephemeral: true,
+      });
+    } else {
+      // Incorrect answer: Keep session open for others/retries
+      await interaction.reply({
+        content: `Jawaban kamu "${userAnswer}" belum tepat. Silakan coba tebak lagi!`,
+        ephemeral: true,
+      });
+    }
+  }
+
+  /**
+   * Handle Timeout (45s expired)
+   */
+  private async handleTimeout(sessionId: string, channel: TextChannel, message: Message) {
+    const session = this.activeSessions.get(sessionId);
     if (!session) return;
 
-    this.activeSessions.delete(channelId);
+    this.activeSessions.delete(sessionId);
 
     const timeoutEmbed = new EmbedBuilder()
       .setTitle("Waktu Menjawab Habis!")
       .setDescription(
-        `Waktu 30 detik telah habis dan tidak ada yang menjawab dengan benar.\n\n` +
+        `Waktu 45 detik telah habis dan tidak ada yang menjawab dengan benar.\n\n` +
         `Jawaban yang benar adalah: **${session.question.answer}**.`
       )
       .setColor("#EF4444")
       .setFooter({ text: "Maya AI Trivia Engine • Gunakan /tebak main untuk mencoba lagi" })
       .setTimestamp();
 
+    const disabledButton = new ButtonBuilder()
+      .setCustomId(`disabled_${sessionId}`)
+      .setLabel("Waktu Habis")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true);
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
+
     try {
-      await channel.send({ embeds: [timeoutEmbed] });
+      await message.edit({ embeds: [timeoutEmbed], components: [row] });
     } catch (e) {
-      logger.error("Error sending timeout embed:", e);
+      logger.error("Error editing timeout message:", e);
     }
+  }
+
+  /**
+   * Generate dynamic AI riddle
+   */
+  private async generateAiTebakQuestion(): Promise<TebakQuestion | null> {
+    const prompt = `
+Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia yang SANGAT LUCU, KEKINIAN (Gen-Z / Gaul / Plesetan Cerdas), dan TIDAK GARING!
+Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
+{
+  "category": "Tebak-Tebakan Kekinian",
+  "question": "Pertanyaan tebak-tebakan lucu di sini...",
+  "answer": "Jawaban utama singkat",
+  "acceptableAnswers": ["jawaban utama", "kata kunci singkat"],
+  "clue": "Petunjuk kocak..."
+}
+`.trim();
+
+    try {
+      const raw = await askNvidia(prompt);
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        if (data.question && data.answer) {
+          const acceptable = Array.isArray(data.acceptableAnswers) && data.acceptableAnswers.length > 0
+            ? data.acceptableAnswers.map((a: string) => a.toLowerCase())
+            : [data.answer.toLowerCase()];
+
+          if (!acceptable.includes(data.answer.toLowerCase())) {
+            acceptable.push(data.answer.toLowerCase());
+          }
+
+          return {
+            id: `ai-q-${Date.now()}`,
+            category: data.category || "Tebak-Tebakan AI Kekinian",
+            question: data.question,
+            answer: data.answer,
+            acceptableAnswers: acceptable,
+            clue: data.clue || "Gunakan logika gaul & out of the box!",
+          };
+        }
+      }
+    } catch (error) {
+      logger.error("TebakManager: Error generating AI riddle:", error);
+    }
+    return null;
   }
 
   /**
@@ -283,7 +356,7 @@ export class TebakManager {
   }
 
   /**
-   * Get Top 10 Leaderboard for a guild
+   * Get Top 10 Leaderboard
    */
   public async getLeaderboard(guildId: string): Promise<{ userId: string; username: string; score: number }[]> {
     try {
