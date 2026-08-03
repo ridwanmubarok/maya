@@ -27,15 +27,28 @@ const event: BotEvent = {
     const rest = new REST({ version: "10" }).setToken(token);
 
     try {
-      logger.info(`Mulai mendaftarkan ${commandData.length} global slash command...`);
+      logger.info(`Mulai mendaftarkan ${commandData.length} slash command...`);
 
-      // Register commands globally (highly recommended for production/public bots)
+      // 1. Register global commands
       await rest.put(
         Routes.applicationCommands(clientId),
         { body: commandData }
       );
-
       logger.info(`Sukses mendaftarkan global slash commands.`);
+
+      // 2. Register instant guild commands for all connected servers
+      const guilds = client.guilds.cache;
+      for (const [guildId, guild] of guilds) {
+        try {
+          await rest.put(
+            Routes.applicationGuildCommands(clientId, guildId),
+            { body: commandData }
+          );
+          logger.info(`Sukses mendaftarkan instant slash commands ke server: ${guild.name} (${guildId})`);
+        } catch (e) {
+          logger.warn(`Gagal mendaftarkan guild commands untuk ${guild.name}: ${e}`);
+        }
+      }
     } catch (error) {
       logger.error("Gagal mendaftarkan slash command:", error);
     }
