@@ -10,6 +10,7 @@ import {
   ButtonInteraction,
   ModalSubmitInteraction,
   Message,
+  MessageFlags,
 } from "discord.js";
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
@@ -139,7 +140,7 @@ export class TebakManager {
     if (!session) {
       await interaction.reply({
         content: "Sesi tebak-tebakan ini telah berakhir atau waktu telah habis.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -170,7 +171,7 @@ export class TebakManager {
     if (!session) {
       await interaction.reply({
         content: "Sesi tebak-tebakan ini telah selesai.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -220,20 +221,22 @@ export class TebakManager {
             const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
             await msg.edit({ embeds: [winnerEmbed], components: [row] });
           }
-        } catch (e) {
-          logger.error("Error updating message on correct answer:", e);
+        } catch (e: any) {
+          if (e?.code !== 10008) {
+            logger.error("Error updating message on correct answer:", e);
+          }
         }
       }
 
       await interaction.reply({
         content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, +10 Poin telah ditambahkan ke profil kamu.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } else {
       // Incorrect answer: Keep session open for others/retries
       await interaction.reply({
         content: `Jawaban kamu "${userAnswer}" belum tepat. Silakan coba tebak lagi!`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
@@ -267,8 +270,10 @@ export class TebakManager {
 
     try {
       await message.edit({ embeds: [timeoutEmbed], components: [row] });
-    } catch (e) {
-      logger.error("Error editing timeout message:", e);
+    } catch (e: any) {
+      if (e?.code !== 10008) {
+        logger.error("Error editing timeout message:", e);
+      }
     }
   }
 

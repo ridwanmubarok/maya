@@ -38,12 +38,28 @@ const command: Command = {
         })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      try {
+        await interaction.editReply({ embeds: [embed] });
+      } catch (err: any) {
+        if (err?.code === 10008 && interaction.channel && "send" in interaction.channel) {
+          await (interaction.channel as any).send({ embeds: [embed] });
+        } else {
+          throw err;
+        }
+      }
     } catch (error) {
       console.error("Error in /makna command:", error);
-      await interaction.editReply({
-        content: "Terjadi kesalahan sistem saat memproses bedah makna lagu. Silakan coba beberapa saat lagi.",
-      });
+      try {
+        await interaction.editReply({
+          content: "Terjadi kesalahan sistem saat memproses bedah makna lagu. Silakan coba beberapa saat lagi.",
+        });
+      } catch (e: any) {
+        if (e?.code === 10008 && interaction.channel && "send" in interaction.channel) {
+          await (interaction.channel as any).send({
+            content: "Terjadi kesalahan sistem saat memproses bedah makna lagu. Silakan coba beberapa saat lagi.",
+          });
+        }
+      }
     }
   },
 };
