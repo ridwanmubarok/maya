@@ -83,3 +83,16 @@ model ReactionRoleOption {
   emoji     String?
   style     String           @default("Primary")
 }
+
+model TriviaScore {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  userId    String
+  username  String
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([guildId, userId])
+  @@index([guildId, score])
+}
