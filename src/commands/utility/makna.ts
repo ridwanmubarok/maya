@@ -9,13 +9,13 @@ const command: Command = {
     .addStringOption((opt) =>
       opt
         .setName("judul")
-        .setDescription("Judul lagu atau kata kunci (misal: Hati-Hati di Jalan, Bohemian Rhapsody)")
+        .setDescription("Judul lagu atau kata kunci (misal: Hati-Hati di Jalan, Birds of a Feather)")
         .setRequired(true)
     )
     .addStringOption((opt) =>
       opt
         .setName("artis")
-        .setDescription("Nama penyanyi atau band (Opsional, misal: Tulus, Queen)")
+        .setDescription("Nama penyanyi atau band (Opsional, misal: Tulus, Billie Eilish)")
         .setRequired(false)
     ),
 
@@ -30,30 +30,8 @@ const command: Command = {
 
       const embed = new EmbedBuilder()
         .setTitle(`Bedah & Makna Lagu: ${result.title} — ${result.artist}`)
-        .setDescription(`Berikut hasil analisis dan bedah makna mendalam untuk lagu **${result.title}** oleh **${result.artist}**.`)
+        .setDescription(result.fullMeaningText)
         .setColor("#9333EA") // Purple Indigo
-        .addFields(
-          {
-            name: "Pesan Utama & Tema Inti",
-            value: truncateField(result.coreMessage),
-            inline: false,
-          },
-          {
-            name: "Kisah di Balik Pembuatan Lagu",
-            value: truncateField(result.storyBehind),
-            inline: false,
-          },
-          {
-            name: "Bedah Makna Lirik Pilihan",
-            value: truncateField(result.stanzaAnalysis),
-            inline: false,
-          },
-          {
-            name: "Nuansa Emosional & Refleksi",
-            value: truncateField(result.emotionalVibe),
-            inline: false,
-          }
-        )
         .setFooter({
           text: `Maya Music Directory • AI Song Interpretation Engine`,
           iconURL: interaction.client.user?.displayAvatarURL(),
@@ -69,11 +47,5 @@ const command: Command = {
     }
   },
 };
-
-function truncateField(val: string, maxLen = 1000): string {
-  if (!val || val.trim().length === 0) return "Informasi analisis lagu terlampir.";
-  if (val.length <= maxLen) return val;
-  return `${val.substring(0, maxLen - 3)}...`;
-}
 
 export default command;
