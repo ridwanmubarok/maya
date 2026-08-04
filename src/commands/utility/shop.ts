@@ -37,26 +37,20 @@ const command: Command = {
       return;
     }
 
-    // Embed Katalog Visual Bergambar Premium
+    // Embed Katalog Minimalis & Elegan
     const embed = new EmbedBuilder()
-      .setTitle(`🛒 Toko Server & Penukaran Hadiah • ${interaction.guild?.name || "Server"}`)
+      .setTitle(`Toko Server & Penukaran Hadiah`)
       .setDescription(
-        `Kumpulkan **Rogatekno Koin (RTK)** dari Tebak-Tebakan & Nongkrong di Voice Channel, lalu tukarkan dengan hadiah favoritmu di bawah ini! ✨\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        items.map((item, idx) => {
-          const catEmoji = item.category === "ROLE" ? "👑" : item.category === "VOUCHER" ? "🍔" : "🎮";
-          return (
-            `${catEmoji} **${idx + 1}. ${item.title}**\n` +
-            `> 💰 Harga: **${item.priceRtk.toLocaleString("id-ID")} RTK**\n` +
-            `> 📝 *${item.description || "Tidak ada deskripsi."}*\n`
-          );
-        }).join("\n") +
-        `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `👇 *Pilih item yang ingin kamu beli melalui menu dropdown di bawah ini:*`
+        `Penukaran item menggunakan **Rogatekno Koin (RTK)**.\n\n` +
+        `**Katalog Produk:**\n` +
+        items.map((item, idx) => 
+          `**${idx + 1}. ${item.title}** — **${item.priceRtk.toLocaleString("id-ID")} RTK**\n` +
+          `${item.description ? `${item.description}\n` : ""}`
+        ).join("\n") +
+        `\nPilih produk dari menu di bawah untuk melakukan penukaran.`
       )
-      .setColor("#F59E0B")
-      .setThumbnail(interaction.guild?.iconURL() || interaction.client.user?.displayAvatarURL() || null)
-      .setFooter({ text: "Rogatekno Economy & Shop Engine • Transaksi aman & terverifikasi" })
+      .setColor("#3B82F6")
+      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop` })
       .setTimestamp();
 
     // Set banner image jika ada produk yang memiliki imageUrl
@@ -65,19 +59,17 @@ const command: Command = {
       embed.setImage(featuredItem.imageUrl);
     }
 
-    // Dropdown Select Menu
+    // Dropdown Select Menu Clean
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId("shop_select_item")
-      .setPlaceholder("🛒 Pilih Produk yang Ingin Dibeli...");
+      .setPlaceholder("Pilih produk yang ingin ditukarkan...");
 
     items.slice(0, 25).forEach(item => {
-      const emoji = item.category === "ROLE" ? "👑" : item.category === "VOUCHER" ? "🍔" : "🎮";
       selectMenu.addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel(`${item.title.substring(0, 50)}`)
           .setValue(`${item.id}`)
           .setDescription(`Harga: ${item.priceRtk.toLocaleString("id-ID")} RTK`)
-          .setEmoji(emoji)
       );
     });
 
