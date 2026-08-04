@@ -5,20 +5,18 @@ function loadMenfessConfig(config, channels) {
   const channelSelect = document.getElementById('menfess-channel');
 
   if (enabledCheckbox) {
-    enabledCheckbox.checked = config.menfessEnabled ?? true;
+    enabledCheckbox.checked = config.menfessEnabled !== false;
   }
 
   if (channelSelect) {
-    channelSelect.innerHTML = `
-      <option value="">Pilih Channel (Default: Channel Utama / System)</option>
-      ${channels.map(c => `<option value="${c.id}" ${config.menfessChannelId === c.id ? 'selected' : ''}>#${escapeHtml(c.name)}</option>`).join('')}
-    `;
+    channelSelect.innerHTML = `<option value="">Pilih Channel (Default: Channel Utama / System)</option>` +
+      channels.map(c => `<option value="${c.id}" ${config.menfessChannelId === c.id ? 'selected' : ''}>#${escapeHtml(c.name)}</option>`).join('');
   }
 }
 
 async function saveMenfessConfig() {
-  if (!currentGuildId) {
-    showToast('Silakan pilih server terlebih dahulu.', 'error');
+  if (!selectedGuildId) {
+    showToast('Pilih Server', 'Silakan pilih server terlebih dahulu.', 'error');
     return;
   }
 
@@ -26,7 +24,7 @@ async function saveMenfessConfig() {
   const channelId = document.getElementById('menfess-channel')?.value || null;
 
   try {
-    const res = await apiFetch(`/api/configs/${currentGuildId}`, {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -40,8 +38,8 @@ async function saveMenfessConfig() {
       throw new Error(err.error || 'Gagal menyimpan pengaturan Menfess.');
     }
 
-    showToast('Pengaturan AI Menfess berhasil disimpan! 💌', 'success');
+    showToast('Berhasil Disimpan', 'Pengaturan AI Menfess berhasil disimpan! 💌', 'success');
   } catch (error) {
-    showToast(error.message, 'error');
+    showToast('Gagal Menyimpan', error.message, 'error');
   }
 }
