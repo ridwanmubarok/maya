@@ -371,6 +371,10 @@ async function selectGuild(guildId) {
       loadDailyRiddleConfig(config, channels);
     }
 
+    if (typeof loadMenfessConfig === 'function') {
+      loadMenfessConfig(config, channels);
+    }
+
     // Fetch server roles and await before showing tab (prevents stale roles on guild switch)
     try {
       const rolesRes = await apiFetch(`/api/roles/${guildId}`);
@@ -407,7 +411,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle') {
+    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'menfess') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');

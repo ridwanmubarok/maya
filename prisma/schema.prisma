@@ -24,6 +24,8 @@ model GuildConfig {
   dailyRiddleEnabled     Boolean  @default(true)
   dailyRiddlePostHour    Int      @default(9)
   dailyLeaderboardPostHour Int    @default(21)
+  menfessChannelId       String?
+  menfessEnabled         Boolean  @default(true)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -103,3 +105,18 @@ model TriviaScore {
   @@index([guildId, score])
   @@index([guildId, dailyScore])
 }
+
+model MenfessLog {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  guildId     String
+  channelId   String
+  messageId   String
+  senderId    String
+  content     String
+  replyToCode String?
+  createdAt   DateTime @default(now())
+
+  @@index([guildId, code])
+}
+

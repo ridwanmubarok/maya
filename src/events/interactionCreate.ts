@@ -1,9 +1,10 @@
-import { Events, Interaction } from "discord.js";
+import { ActionRowBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { createEmbed } from "../utils/embeds";
 import { handleMabarJoin, handleMabarLeave } from "../services/mabarManager";
 import { tebakManager } from "../services/tebakManager";
+import { submitMenfess } from "../services/menfessService";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -11,6 +12,28 @@ const event: BotEvent = {
     // Handle Button Interactions
     if (interaction.isButton()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("menfess_reply:")) {
+        const replyToCode = customId.split(":")[1];
+        const modal = new ModalBuilder()
+          .setCustomId(`modal_menfess:${replyToCode}`)
+          .setTitle(`💬 Balas Anonim #${replyToCode}`);
+
+        const contentInput = new TextInputBuilder()
+          .setCustomId("input_menfess_content")
+          .setLabel(`Balasan Anonim untuk #${replyToCode}`)
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder("Tuliskan balasan anonim kamu di sini...")
+          .setMinLength(5)
+          .setMaxLength(1000)
+          .setRequired(true);
+
+        const row = new ActionRowBuilder<TextInputBuilder>().addComponents(contentInput);
+        modal.addComponents(row);
+
+        await interaction.showModal(modal);
+        return;
+      }
 
       if (customId.startsWith("tebak_answer:")) {
         const sessionId = customId.split(":")[1];
@@ -73,6 +96,47 @@ const event: BotEvent = {
       if (customId.startsWith("modal_tebak:")) {
         const sessionId = customId.split(":")[1];
         await tebakManager.handleModalSubmit(interaction, sessionId);
+        return;
+      }
+
+      if (customId.startsWith("modal_menfess:")) {
+        const replyToParam = customId.split(":")[1];
+        const replyToCode = replyToParam && replyToParam !== "none" ? replyToParam : undefined;
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const content = interaction.fields.getTextInputValue("input_menfess_content");
+        let overrideReplyTo: string | undefined = replyToCode;
+        try {
+          const manualReply = interaction.fields.getTextInputValue("input_menfess_reply_to")?.trim().toUpperCase();
+          if (manualReply) overrideReplyTo = manualReply;
+        } catch (_) {}
+
+        if (!interaction.guildId) {
+          await interaction.editReply({ content: "Perintah ini hanya dapat dijalankan di server." });
+          return;
+        }
+
+        const result = await submitMenfess(
+          interaction.client,
+          interaction.guildId,
+          interaction.user.id,
+          content,
+          overrideReplyTo
+        );
+
+        if (!result.success) {
+          const errEmbed = createEmbed.error("Menfess Gagal Diposting", result.reason || "Pesan tidak dapat diposting.");
+          await interaction.editReply({ embeds: [errEmbed] });
+          return;
+        }
+
+        const successEmbed = createEmbed.success(
+          "💌 Menfess Berhasil Diposting!",
+          `Pesan anonim kamu telah lolos sensor AI dan berhasil diposting ke <#${result.channelId}> dengan kode **#${result.code}**.`
+        );
+
+        await interaction.editReply({ embeds: [successEmbed] });
         return;
       }
     }

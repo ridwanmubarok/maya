@@ -167,7 +167,9 @@ export function startDashboard(client: MayaClient) {
       dailyRiddleChannelId,
       dailyRiddleEnabled,
       dailyRiddlePostHour,
-      dailyLeaderboardPostHour
+      dailyLeaderboardPostHour,
+      menfessChannelId,
+      menfessEnabled
     } = req.body;
 
     try {
@@ -187,7 +189,9 @@ export function startDashboard(client: MayaClient) {
           dailyRiddleChannelId: dailyRiddleChannelId || null,
           dailyRiddleEnabled: dailyRiddleEnabled !== undefined ? Boolean(dailyRiddleEnabled) : true,
           dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
-          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21
+          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21,
+          menfessChannelId: menfessChannelId || null,
+          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true
         },
         create: {
           guildId,
@@ -204,7 +208,9 @@ export function startDashboard(client: MayaClient) {
           dailyRiddleChannelId: dailyRiddleChannelId || null,
           dailyRiddleEnabled: dailyRiddleEnabled !== undefined ? Boolean(dailyRiddleEnabled) : true,
           dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
-          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21
+          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21,
+          menfessChannelId: menfessChannelId || null,
+          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true
         }
       });
 

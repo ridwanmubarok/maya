@@ -160,6 +160,9 @@
               <button onclick="switchTab('daily-riddle')" id="tab-btn-daily-riddle" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-puzzle-piece w-4 text-center"></i> Tebak-Tebakan Harian
               </button>
+              <button onclick="switchTab('menfess')" id="tab-btn-menfess" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-heart w-4 text-center"></i> AI Menfess
+              </button>
             </nav>
           </div>
         </aside>
@@ -995,6 +998,38 @@
               <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Tebak-Tebakan Harian
             </button>
           </div>
+
+          <!-- TAB content: MENFESS (Self-contained) -->
+          <div id="tab-content-menfess" class="tab-pane hidden space-y-6 max-w-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">AI Menfess &amp; Confession</h3>
+                <p class="text-xs text-gray-400">Konfigurasi channel target dan moderasi otomatis NVIDIA AI untuk pesan anonim</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Fitur Menfess Anonim</h4>
+                <p class="text-xs text-gray-400">Izinkan member mengirim curhatan &amp; salam anonim lewat command /menfess</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="menfess-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="menfess-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Menfess</label>
+              <select id="menfess-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: Channel Utama / System)</option>
+              </select>
+            </div>
+
+            <button onclick="saveMenfessConfig()" class="w-full bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+              <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan AI Menfess
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1027,6 +1062,7 @@
   <script src="/js/components/reaction-roles.js"></script>
   <script src="/js/components/roles.js"></script>
   <script src="/js/components/daily-riddle.js"></script>
+  <script src="/js/components/menfess.js"></script>
 
 </body>
 </html>
