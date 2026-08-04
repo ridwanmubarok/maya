@@ -31,28 +31,28 @@ const event: BotEvent = {
     const rest = new REST({ version: "10" }).setToken(token);
 
     try {
-      logger.info(`Mendaftarkan ${commandData.length} slash commands ke ${client.guilds.cache.size} server...`);
+      logger.info(`Mendaftarkan ${commandData.length} global slash command...`);
 
-      // 1. Mendaftarkan langsung per-Guild agar instan (0 detik delay) tanpa menunggu cache global Discord
+      // 1. Membersihkan per-guild commands agar TIDAK DUPLIKAT di Discord
       const guilds = client.guilds.cache;
       for (const [guildId] of guilds) {
         try {
           await rest.put(
             Routes.applicationGuildCommands(clientId, guildId),
-            { body: commandData }
+            { body: [] }
           );
-        } catch (guildErr: any) {
-          logger.warn(`Gagal mendaftarkan guild commands untuk ${guildId}: ${guildErr?.message || guildErr}`);
+        } catch (_) {
+          // Abaikan jika clear guild command gagal
         }
       }
 
-      // 2. Mendaftarkan Global Commands sebagai backup
+      // 2. Mendaftarkan HANYA Global Commands tunggal
       await rest.put(
         Routes.applicationCommands(clientId),
         { body: commandData }
       );
 
-      logger.info(`Sukses mendaftarkan ${commandData.length} slash commands secara instan!`);
+      logger.info(`Sukses mendaftarkan ${commandData.length} global slash command tanpa duplikasi.`);
     } catch (error) {
       logger.error("Gagal mendaftarkan slash command:", error);
     }

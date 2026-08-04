@@ -11,11 +11,11 @@ import { tebakManager } from "../../services/tebakManager";
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("cash")
-    .setDescription("Kelola dompet saldo & transfer 🪙 Rogatekno Cash")
+    .setDescription("Kelola dompet saldo & transfer Rogatekno Koin (RTK)")
     .addSubcommand((sub) =>
       sub
         .setName("saldo")
-        .setDescription("Lihat saldo 🪙 Rogatekno Cash milik kamu atau member lain")
+        .setDescription("Lihat saldo Rogatekno Koin (RTK) milik kamu atau member lain")
         .addUserOption((opt) =>
           opt
             .setName("user")
@@ -26,7 +26,7 @@ const command: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("pay")
-        .setDescription("Transfer 🪙 Rogatekno Cash ke member lain di server ini")
+        .setDescription("Transfer Rogatekno Koin (RTK) ke member lain di server ini")
         .addUserOption((opt) =>
           opt
             .setName("penerima")
@@ -36,7 +36,7 @@ const command: Command = {
         .addIntegerOption((opt) =>
           opt
             .setName("jumlah")
-            .setDescription("Jumlah 🪙 Rogatekno Cash yang ingin ditransfer")
+            .setDescription("Jumlah Rogatekno Koin (RTK) yang ingin ditransfer")
             .setMinValue(1)
             .setRequired(true)
         )
@@ -44,7 +44,7 @@ const command: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("leaderboard")
-        .setDescription("Tampilkan daftar member dengan saldo 🪙 Rogatekno Cash terbanyak")
+        .setDescription("Tampilkan daftar member dengan saldo Rogatekno Koin (RTK) terbanyak")
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -73,14 +73,15 @@ const command: Command = {
       const rank = higherCount + 1;
 
       const embed = new EmbedBuilder()
-        .setTitle(`👛 Dompet 🪙 Rogatekno Cash`)
+        .setTitle(`👛 Dompet Rogatekno Koin (RTK)`)
         .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
         .setColor("#F59E0B")
         .addFields(
           { name: "Pemilik Dompet", value: `<@${targetUser.id}>`, inline: true },
           { name: "Peringkat Server", value: `**#${rank}**`, inline: true },
-          { name: "Total Saldo", value: `**${totalScore} 🪙 Rogatekno Cash**`, inline: false },
-          { name: "Perolehan Harian Hari Ini", value: `**${dailyScore} 🪙 Rogatekno Cash**`, inline: false }
+          { name: "Total Saldo", value: `**${totalScore} RTK**`, inline: false },
+          { name: "Perolehan Harian Hari Ini", value: `**${dailyScore} RTK**`, inline: false },
+          { name: "💡 Catatan", value: `> *Ke depannya Rogatekno Koin (RTK) akan bisa ditukarkan ke item-item menarik!*` }
         )
         .setFooter({ text: "Rogatekno Economy Engine • Kumpulkan koin dari Tebak-Tebakan & Nongkrong di Voice!" })
         .setTimestamp();
@@ -92,12 +93,12 @@ const command: Command = {
       const amount = interaction.options.getInteger("jumlah", true);
 
       if (recipient.id === interaction.user.id) {
-        await interaction.reply({ content: "Kamu tidak bisa mentransfer 🪙 Rogatekno Cash ke diri sendiri!", flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: "Kamu tidak bisa mentransfer RTK ke diri sendiri!", flags: MessageFlags.Ephemeral });
         return;
       }
 
       if (recipient.bot) {
-        await interaction.reply({ content: "Kamu tidak bisa mentransfer koin ke akun bot!", flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: "Kamu tidak bisa mentransfer RTK ke akun bot!", flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -109,7 +110,7 @@ const command: Command = {
 
       if (senderBalance < amount) {
         await interaction.reply({
-          content: `Transfer gagal! Saldo kamu saat ini adalah **${senderBalance} 🪙 Rogatekno Cash**, tidak cukup untuk mentransfer **${amount} 🪙 Rogatekno Cash**.`,
+          content: `Transfer gagal! Saldo kamu saat ini adalah **${senderBalance} RTK**, tidak cukup untuk mentransfer **${amount} RTK**.`,
           flags: MessageFlags.Ephemeral
         });
         return;
@@ -125,11 +126,11 @@ const command: Command = {
       await tebakManager.addScore(guildId, recipient.id, recipient.displayName || recipient.username, amount);
 
       const embed = new EmbedBuilder()
-        .setTitle("💸 Transfer 🪙 Rogatekno Cash Berhasil!")
+        .setTitle("💸 Transfer Rogatekno Koin (RTK) Berhasil!")
         .setDescription(
           `Pengirim: <@${interaction.user.id}>\n` +
           `Penerima: <@${recipient.id}>\n` +
-          `Jumlah Transfer: **${amount} 🪙 Rogatekno Cash**`
+          `Jumlah Transfer: **${amount} RTK**`
         )
         .setColor("#10B981")
         .setTimestamp();
@@ -141,13 +142,13 @@ const command: Command = {
       const leaderboard = await tebakManager.getLeaderboard(guildId);
 
       if (!leaderboard || leaderboard.length === 0) {
-        await interaction.editReply({ content: "Belum ada saldo 🪙 Rogatekno Cash tercatat di server ini." });
+        await interaction.editReply({ content: "Belum ada saldo Rogatekno Koin (RTK) tercatat di server ini." });
         return;
       }
 
       const embed = new EmbedBuilder()
-        .setTitle(`🪙 Leaderboard Rogatekno Cash Sepanjang Masa • ${interaction.guild?.name || "Server"}`)
-        .setDescription("Daftar 10 besar anggota server dengan saldo **🪙 Rogatekno Cash** terbanyak:")
+        .setTitle(`🏆 Leaderboard Rogatekno Koin (RTK) Sepanjang Masa • ${interaction.guild?.name || "Server"}`)
+        .setDescription("Daftar 10 besar anggota server dengan akumulasi **Rogatekno Koin (RTK)** terbanyak:")
         .setColor("#F59E0B")
         .setFooter({ text: "Rogatekno Economy Engine" })
         .setTimestamp();
@@ -155,11 +156,14 @@ const command: Command = {
       let text = "";
       leaderboard.forEach((entry, index) => {
         const rank = index + 1;
-        const rankPrefix = rank === 1 ? "🥇 (Juara 1)" : rank === 2 ? "🥈 (Juara 2)" : rank === 3 ? "🥉 (Juara 3)" : `${rank}`;
-        text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.score} 🪙 Rogatekno Cash**\n`;
+        const rankPrefix = rank === 1 ? "🥇 Peringkat 1" : rank === 2 ? "🥈 Peringkat 2" : rank === 3 ? "🥉 Peringkat 3" : `#${rank}`;
+        text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.score} RTK**\n`;
       });
 
-      embed.addFields({ name: "Peringkat Saldo Terbanyak", value: text });
+      embed.addFields(
+        { name: "Peringkat Saldo Terbanyak", value: text },
+        { name: "💡 Catatan", value: `> *Ke depannya Rogatekno Koin (RTK) akan bisa ditukarkan ke item-item menarik!*` }
+      );
       await interaction.editReply({ embeds: [embed] });
     }
   }

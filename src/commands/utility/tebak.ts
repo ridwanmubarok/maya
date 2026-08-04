@@ -86,8 +86,8 @@ const command: Command = {
         }
 
         const embed = new EmbedBuilder()
-          .setTitle(`🪙 Leaderboard Rogatekno Cash Harian • ${interaction.guild?.name || "Server"}`)
-          .setDescription("Daftar 10 besar anggota server dengan perolehan **🪙 Rogatekno Cash** tertinggi hari ini:")
+          .setTitle(`🏆 Leaderboard Rogatekno Koin (RTK) Harian • ${interaction.guild?.name || "Server"}`)
+          .setDescription("Daftar 10 besar anggota server dengan perolehan **Rogatekno Koin (RTK)** tertinggi hari ini:")
           .setColor("#9333EA")
           .setFooter({
             text: `Maya Daily Trivia Leaderboard • Diperbarui Real-Time`,
@@ -98,25 +98,28 @@ const command: Command = {
         let text = "";
         leaderboard.forEach((entry, index) => {
           const rank = index + 1;
-          const rankPrefix = rank === 1 ? "🥇 (Juara 1)" : rank === 2 ? "🥈 (Juara 2)" : rank === 3 ? "🥉 (Juara 3)" : `${rank}`;
-          text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.dailyScore} 🪙 Rogatekno Cash**\n`;
+          const rankPrefix = rank === 1 ? "🥇 Peringkat 1" : rank === 2 ? "🥈 Peringkat 2" : rank === 3 ? "🥉 Peringkat 3" : `#${rank}`;
+          text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.dailyScore} RTK**\n`;
         });
 
-        embed.addFields({ name: "Peringkat Hari Ini", value: text });
+        embed.addFields(
+          { name: "Peringkat Hari Ini", value: text },
+          { name: "💡 Catatan", value: `> *Ke depannya Rogatekno Koin (RTK) akan bisa ditukarkan ke item-item menarik!*` }
+        );
         await interaction.editReply({ embeds: [embed] });
       } else {
         const leaderboard = await tebakManager.getLeaderboard(guildId);
 
         if (!leaderboard || leaderboard.length === 0) {
           await interaction.editReply({
-            content: "Belum ada saldo Rogatekno Cash di server ini. Jalankan `/tebak main` atau `/tebak daily`!",
+            content: "Belum ada saldo Rogatekno Koin (RTK) di server ini. Jalankan `/tebak main` atau `/tebak daily`!",
           });
           return;
         }
 
         const embed = new EmbedBuilder()
-          .setTitle(`🪙 Leaderboard Rogatekno Cash Sepanjang Masa • ${interaction.guild?.name || "Server"}`)
-          .setDescription("Daftar 10 besar anggota server dengan total akumulasi **🪙 Rogatekno Cash** tertinggi:")
+          .setTitle(`🏆 Leaderboard Rogatekno Koin (RTK) Sepanjang Masa • ${interaction.guild?.name || "Server"}`)
+          .setDescription("Daftar 10 besar anggota server dengan total akumulasi **Rogatekno Koin (RTK)** tertinggi:")
           .setColor("#2563EB")
           .setFooter({
             text: `Maya All-Time Trivia Leaderboard • Diperbarui Real-Time`,
@@ -127,11 +130,14 @@ const command: Command = {
         let text = "";
         leaderboard.forEach((entry, index) => {
           const rank = index + 1;
-          const rankPrefix = rank === 1 ? "🥇 (Juara 1)" : rank === 2 ? "🥈 (Juara 2)" : rank === 3 ? "🥉 (Juara 3)" : `${rank}`;
-          text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.score} 🪙 Rogatekno Cash**\n`;
+          const rankPrefix = rank === 1 ? "🥇 Peringkat 1" : rank === 2 ? "🥈 Peringkat 2" : rank === 3 ? "🥉 Peringkat 3" : `#${rank}`;
+          text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.score} RTK**\n`;
         });
 
-        embed.addFields({ name: "Peringkat Akumulasi", value: text });
+        embed.addFields(
+          { name: "Peringkat Akumulasi", value: text },
+          { name: "💡 Catatan", value: `> *Ke depannya Rogatekno Koin (RTK) akan bisa ditukarkan ke item-item menarik!*` }
+        );
         await interaction.editReply({ embeds: [embed] });
       }
     }

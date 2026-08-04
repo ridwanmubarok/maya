@@ -35,7 +35,7 @@ async function loadEconomyBalances() {
     const elemTotal = document.getElementById('stat-total-circulating');
     const elemWallets = document.getElementById('stat-total-wallets');
 
-    if (elemTotal) elemTotal.innerText = `${totalCirculating.toLocaleString('id-ID')} 🪙`;
+    if (elemTotal) elemTotal.innerText = `${totalCirculating.toLocaleString('id-ID')} RTK`;
     if (elemWallets) elemWallets.innerText = totalWallets;
 
     if (!balances || balances.length === 0) {
@@ -49,13 +49,13 @@ async function loadEconomyBalances() {
 
     tableBody.innerHTML = balances.map((b, idx) => {
       const rank = idx + 1;
-      const rankBadge = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+      const rankBadge = rank === 1 ? '🥇 Peringkat 1' : rank === 2 ? '🥈 Peringkat 2' : rank === 3 ? '🥉 Peringkat 3' : `#${rank}`;
       return `
         <tr class="border-b border-white/5 hover:bg-white/2 transition-all">
           <td class="p-4 font-semibold text-xs text-white">${rankBadge}</td>
           <td class="p-4 text-xs text-white font-medium">${escapeHtml(b.username)}</td>
-          <td class="p-4 text-xs text-amber-400 font-bold font-mono">${b.score.toLocaleString('id-ID')} 🪙</td>
-          <td class="p-4 text-xs text-purple-400 font-mono">${b.dailyScore.toLocaleString('id-ID')} 🪙</td>
+          <td class="p-4 text-xs text-amber-400 font-bold font-mono">${b.score.toLocaleString('id-ID')} RTK</td>
+          <td class="p-4 text-xs text-purple-400 font-mono">${b.dailyScore.toLocaleString('id-ID')} RTK</td>
         </tr>
       `;
     }).join('');
