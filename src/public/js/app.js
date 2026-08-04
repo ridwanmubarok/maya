@@ -407,7 +407,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce') {
+    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');
