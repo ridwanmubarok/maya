@@ -11,6 +11,7 @@ import { getGuildAnalytics } from "./analyticsService";
 import { 
   getGuildShopItems, 
   createShopItem, 
+  updateShopItem,
   deleteShopItem, 
   getGuildOrders, 
   approveShopOrder, 
@@ -233,6 +234,29 @@ export function startDashboard(client: MayaClient) {
       res.json({ success: true, item: newItem });
     } catch (error: any) {
       res.status(500).json({ error: "Gagal menambahkan produk toko baru." });
+    }
+  });
+
+  // Edit/Update produk toko
+  app.put("/api/shop/items/:id", authMiddleware, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { guildId, title, description, priceRtk, category, imageUrl } = req.body;
+
+    if (!guildId) {
+      return res.status(400).json({ error: "guildId wajib disertakan." });
+    }
+
+    try {
+      await updateShopItem(Number(id), guildId, {
+        title,
+        description,
+        priceRtk: priceRtk !== undefined ? Number(priceRtk) : undefined,
+        category,
+        imageUrl
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal mengedit produk toko." });
     }
   });
 

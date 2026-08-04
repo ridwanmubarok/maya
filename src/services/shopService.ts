@@ -44,6 +44,26 @@ export async function createShopItem(input: CreateShopItemInput) {
 }
 
 /**
+ * Edit / Update produk toko
+ */
+export async function updateShopItem(
+  id: number,
+  guildId: string,
+  data: { title?: string; description?: string; priceRtk?: number; category?: string; imageUrl?: string }
+) {
+  return await prisma.shopItem.updateMany({
+    where: { id, guildId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.priceRtk !== undefined && { priceRtk: Number(data.priceRtk) }),
+      ...(data.category !== undefined && { category: data.category }),
+      ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl || null })
+    }
+  });
+}
+
+/**
  * Hapus (nonaktifkan) produk toko
  */
 export async function deleteShopItem(id: number, guildId: string) {

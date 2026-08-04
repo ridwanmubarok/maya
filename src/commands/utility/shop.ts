@@ -37,24 +37,29 @@ const command: Command = {
       return;
     }
 
-    // Embed Katalog Visual Bergambar
+    // Embed Katalog Visual Bergambar Premium
     const embed = new EmbedBuilder()
-      .setTitle(`🛒 Toko Server & Katalog Hadiah RTK • ${interaction.guild?.name || "Server"}`)
+      .setTitle(`🛒 Toko Server & Penukaran Hadiah • ${interaction.guild?.name || "Server"}`)
       .setDescription(
-        `Selamat datang di Toko Server! Gunakan **Rogatekno Koin (RTK)** yang kamu kumpulkan dari game & voice channel untuk menukarkan item menarik di bawah ini.\n\n` +
-        `**📋 Daftar Produk Aktif Saat Ini:**\n\n` +
-        items.map((item, idx) => 
-          `**${idx + 1}. ${item.title}**\n` +
-          `> 💰 Harga: **${item.priceRtk} RTK**\n` +
-          `> 📝 *${item.description}*\n`
-        ).join("\n") +
-        `\n👇 *Pilih produk yang ingin kamu beli dari menu dropdown di bawah ini:*`
+        `Kumpulkan **Rogatekno Koin (RTK)** dari Tebak-Tebakan & Nongkrong di Voice Channel, lalu tukarkan dengan hadiah favoritmu di bawah ini! ✨\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        items.map((item, idx) => {
+          const catEmoji = item.category === "ROLE" ? "👑" : item.category === "VOUCHER" ? "🍔" : "🎮";
+          return (
+            `${catEmoji} **${idx + 1}. ${item.title}**\n` +
+            `> 💰 Harga: **${item.priceRtk.toLocaleString("id-ID")} RTK**\n` +
+            `> 📝 *${item.description || "Tidak ada deskripsi."}*\n`
+          );
+        }).join("\n") +
+        `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `👇 *Pilih item yang ingin kamu beli melalui menu dropdown di bawah ini:*`
       )
       .setColor("#F59E0B")
-      .setFooter({ text: "Rogatekno Shop Engine • Pilih item dari dropdown untuk membeli" })
+      .setThumbnail(interaction.guild?.iconURL() || interaction.client.user?.displayAvatarURL() || null)
+      .setFooter({ text: "Rogatekno Economy & Shop Engine • Transaksi aman & terverifikasi" })
       .setTimestamp();
 
-    // Set banner image jika produk pertama memiliki imageUrl
+    // Set banner image jika ada produk yang memiliki imageUrl
     const featuredItem = items.find(i => i.imageUrl && i.imageUrl.trim().startsWith("http"));
     if (featuredItem && featuredItem.imageUrl) {
       embed.setImage(featuredItem.imageUrl);
@@ -66,12 +71,13 @@ const command: Command = {
       .setPlaceholder("🛒 Pilih Produk yang Ingin Dibeli...");
 
     items.slice(0, 25).forEach(item => {
+      const emoji = item.category === "ROLE" ? "👑" : item.category === "VOUCHER" ? "🍔" : "🎮";
       selectMenu.addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel(`${item.title.substring(0, 50)}`)
           .setValue(`${item.id}`)
-          .setDescription(`Harga: ${item.priceRtk} RTK`)
-          .setEmoji(item.category === "ROLE" ? "👑" : item.category === "VOUCHER" ? "🍔" : "💎")
+          .setDescription(`Harga: ${item.priceRtk.toLocaleString("id-ID")} RTK`)
+          .setEmoji(emoji)
       );
     });
 

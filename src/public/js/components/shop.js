@@ -1,5 +1,8 @@
 // FRONTEND COMPONENT: SHOP & CATALOG MANAGEMENT
 
+let loadedShopItemsMap = {};
+let editingProductId = null;
+
 async function loadShopData() {
   if (!selectedGuildId) return;
   await Promise.all([loadShopProducts(), loadShopOrders()]);
@@ -14,6 +17,7 @@ async function loadShopProducts() {
     if (!res.ok) throw new Error('Gagal memuat katalog produk.');
 
     const { items } = await res.json();
+    loadedShopItemsMap = {};
 
     if (!items || items.length === 0) {
       container.innerHTML = `
@@ -24,6 +28,10 @@ async function loadShopProducts() {
       return;
     }
 
+    items.forEach(item => {
+      loadedShopItemsMap[item.id] = item;
+    });
+
     container.innerHTML = items.map(item => `
       <div class="glass-panel rounded-2xl overflow-hidden border border-white/5 flex flex-col justify-between p-4 space-y-3">
         <div class="space-y-2">
@@ -33,18 +41,73 @@ async function loadShopProducts() {
           }
           <div class="flex justify-between items-start">
             <h4 class="font-bold text-sm text-white font-outfit">${escapeHtml(item.title)}</h4>
-            <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-bold text-xs font-mono whitespace-nowrap">${item.priceRtk} RTK</span>
+            <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-bold text-xs font-mono whitespace-nowrap">${item.priceRtk.toLocaleString('id-ID')} RTK</span>
           </div>
           <p class="text-xs text-gray-400 line-clamp-2">${escapeHtml(item.description || 'Tidak ada deskripsi.')}</p>
         </div>
-        <button onclick="deleteProduct(${item.id})" class="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold transition-all">
-          <i class="fa-solid fa-trash mr-1"></i> Hapus Produk
-        </button>
+        <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+          <button onclick="openEditProductModal(${item.id})" class="flex-1 py-2 bg-discord-blurple/20 hover:bg-discord-blurple/30 text-discord-blurple border border-discord-blurple/30 rounded-xl text-xs font-semibold transition-all">
+            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
+          </button>
+          <button onclick="deleteProduct(${item.id})" class="py-2 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold transition-all">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
       </div>
     `).join('');
   } catch (error) {
     showToast('Shop Error', error.message || 'Gagal memuat produk.', 'error');
   }
+}
+
+function openEditProductModal(id) {
+  const item = loadedShopItemsMap[id];
+  if (!item) return;
+
+  editingProductId = id;
+
+  const titleInput = document.getElementById('new-shop-title');
+  const priceInput = document.getElementById('new-shop-price');
+  const categorySelect = document.getElementById('new-shop-category');
+  const imageInput = document.getElementById('new-shop-image');
+  const descInput = document.getElementById('new-shop-desc');
+  const formHeader = document.getElementById('shop-form-header');
+  const submitBtn = document.getElementById('shop-submit-btn');
+  const cancelBtn = document.getElementById('shop-cancel-edit-btn');
+
+  if (titleInput) titleInput.value = item.title;
+  if (priceInput) priceInput.value = item.priceRtk;
+  if (categorySelect) categorySelect.value = item.category || 'GAME';
+  if (imageInput) imageInput.value = item.imageUrl || '';
+  if (descInput) descInput.value = item.description || '';
+
+  if (formHeader) formHeader.innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-400 mr-2"></i> Edit Produk: "${escapeHtml(item.title)}"`;
+  if (submitBtn) submitBtn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Perubahan Produk`;
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+
+  // Scroll to form smoothly
+  document.getElementById('shop-product-form')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEditProduct() {
+  editingProductId = null;
+
+  const titleInput = document.getElementById('new-shop-title');
+  const priceInput = document.getElementById('new-shop-price');
+  const imageInput = document.getElementById('new-shop-image');
+  const descInput = document.getElementById('new-shop-desc');
+  const formHeader = document.getElementById('shop-form-header');
+  const submitBtn = document.getElementById('shop-submit-btn');
+  const cancelBtn = document.getElementById('shop-cancel-edit-btn');
+
+  if (titleInput) titleInput.value = '';
+  if (priceInput) priceInput.value = '';
+  if (imageInput) imageInput.value = '';
+  if (descInput) descInput.value = '';
+
+  if (formHeader) formHeader.innerHTML = `<i class="fa-solid fa-plus text-discord-blurple mr-2"></i> Tambah Produk Baru Ke Katalog`;
+  if (submitBtn) submitBtn.innerHTML = `<i class="fa-solid fa-cart-plus mr-1"></i> Tambah Ke Katalog Toko`;
+  if (cancelBtn) cancelBtn.classList.add('hidden');
 }
 
 async function addShopProduct() {
@@ -68,28 +131,35 @@ async function addShopProduct() {
   }
 
   try {
-    const res = await apiFetch(`/api/shop/items/${selectedGuildId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, priceRtk, category, imageUrl })
-    });
+    let res;
+    if (editingProductId) {
+      // UPDATE existing product
+      res = await apiFetch(`/api/shop/items/${editingProductId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guildId: selectedGuildId, title, description, priceRtk, category, imageUrl })
+      });
+    } else {
+      // CREATE new product
+      res = await apiFetch(`/api/shop/items/${selectedGuildId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, priceRtk, category, imageUrl })
+      });
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menambah produk toko.');
+      throw new Error(err.error || 'Gagal menyimpan produk toko.');
     }
 
-    showToast('Berhasil Ditambahkan', `Produk "${title}" telah ditambahkan ke katalog toko! 🛒`, 'success');
+    const actionText = editingProductId ? 'diperbarui' : 'ditambahkan ke katalog toko';
+    showToast('Berhasil Tersimpan', `Produk "${title}" telah berhasil ${actionText}! 🛒`, 'success');
     
-    // Clear inputs
-    if (titleInput) titleInput.value = '';
-    if (priceInput) priceInput.value = '';
-    if (imageInput) imageInput.value = '';
-    if (descInput) descInput.value = '';
-
+    cancelEditProduct();
     await loadShopProducts();
   } catch (error) {
-    showToast('Gagal Menambah Produk', error.message, 'error');
+    showToast('Gagal Menyimpan', error.message, 'error');
   }
 }
 
@@ -142,7 +212,7 @@ async function loadShopOrders() {
         <tr class="border-b border-white/5 hover:bg-white/2 transition-all">
           <td class="p-4 font-mono text-xs text-white font-bold">${escapeHtml(o.orderId)}</td>
           <td class="p-4 text-xs text-white">${escapeHtml(o.username)}</td>
-          <td class="p-4 text-xs text-amber-400 font-bold font-outfit">${escapeHtml(o.itemTitle)} (${o.priceRtk} RTK)</td>
+          <td class="p-4 text-xs text-amber-400 font-bold font-outfit">${escapeHtml(o.itemTitle)} (${o.priceRtk.toLocaleString('id-ID')} RTK)</td>
           <td class="p-4 text-xs text-indigo-300 font-mono bg-white/5 rounded-lg">${escapeHtml(o.targetInput)}</td>
           <td class="p-4">${statusBadge}</td>
           <td class="p-4">
