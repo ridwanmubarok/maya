@@ -217,50 +217,33 @@ export function startDashboard(client: MayaClient) {
     } = req.body;
 
     try {
+      const updateData: any = {};
+      if (welcomeChannelId !== undefined) updateData.welcomeChannelId = welcomeChannelId || null;
+      if (moderationLogChannelId !== undefined) updateData.moderationLogChannelId = moderationLogChannelId || null;
+      if (welcomeTitle !== undefined) updateData.welcomeTitle = welcomeTitle;
+      if (welcomeMessage !== undefined) updateData.welcomeMessage = welcomeMessage;
+      if (welcomeImage !== undefined) updateData.welcomeImage = welcomeImage;
+      if (welcomeThumbnail !== undefined) updateData.welcomeThumbnail = Boolean(welcomeThumbnail);
+      if (aiPersonality !== undefined) updateData.aiPersonality = aiPersonality;
+      if (bannedWords !== undefined) updateData.bannedWords = bannedWords;
+      if (maxStrikes !== undefined) updateData.maxStrikes = Number(maxStrikes);
+      if (muteDuration !== undefined) updateData.muteDuration = Number(muteDuration);
+      if (dailyRiddleChannelId !== undefined) updateData.dailyRiddleChannelId = dailyRiddleChannelId || null;
+      if (dailyRiddleEnabled !== undefined) updateData.dailyRiddleEnabled = Boolean(dailyRiddleEnabled);
+      if (dailyRiddlePostHour !== undefined) updateData.dailyRiddlePostHour = Number(dailyRiddlePostHour);
+      if (dailyLeaderboardPostHour !== undefined) updateData.dailyLeaderboardPostHour = Number(dailyLeaderboardPostHour);
+      if (menfessChannelId !== undefined) updateData.menfessChannelId = menfessChannelId || null;
+      if (menfessEnabled !== undefined) updateData.menfessEnabled = Boolean(menfessEnabled);
+      if (voiceRewardEnabled !== undefined) updateData.voiceRewardEnabled = Boolean(voiceRewardEnabled);
+      if (voiceRewardIntervalMin !== undefined) updateData.voiceRewardIntervalMin = Number(voiceRewardIntervalMin);
+      if (voiceRewardAmount !== undefined) updateData.voiceRewardAmount = Number(voiceRewardAmount);
+
       const updatedConfig = await prisma.guildConfig.upsert({
         where: { guildId },
-        update: {
-          welcomeChannelId: welcomeChannelId || null,
-          moderationLogChannelId: moderationLogChannelId || null,
-          welcomeTitle: welcomeTitle !== undefined ? welcomeTitle : "👋 Selamat Datang!",
-          welcomeMessage: welcomeMessage !== undefined ? welcomeMessage : "",
-          welcomeImage: welcomeImage !== undefined ? welcomeImage : "",
-          welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true,
-          aiPersonality: aiPersonality !== undefined ? aiPersonality : "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
-          bannedWords: bannedWords !== undefined ? bannedWords : "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
-          maxStrikes: maxStrikes !== undefined ? Number(maxStrikes) : 3,
-          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10,
-          dailyRiddleChannelId: dailyRiddleChannelId || null,
-          dailyRiddleEnabled: dailyRiddleEnabled !== undefined ? Boolean(dailyRiddleEnabled) : true,
-          dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
-          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21,
-          menfessChannelId: menfessChannelId || null,
-          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true,
-          voiceRewardEnabled: voiceRewardEnabled !== undefined ? Boolean(voiceRewardEnabled) : true,
-          voiceRewardIntervalMin: voiceRewardIntervalMin !== undefined ? Number(voiceRewardIntervalMin) : 10,
-          voiceRewardAmount: voiceRewardAmount !== undefined ? Number(voiceRewardAmount) : 5
-        },
+        update: updateData,
         create: {
           guildId,
-          welcomeChannelId: welcomeChannelId || null,
-          moderationLogChannelId: moderationLogChannelId || null,
-          welcomeTitle: welcomeTitle || "👋 Selamat Datang!",
-          welcomeMessage: welcomeMessage || "",
-          welcomeImage: welcomeImage || "",
-          welcomeThumbnail: welcomeThumbnail !== undefined ? welcomeThumbnail : true,
-          aiPersonality: aiPersonality || "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
-          bannedWords: bannedWords || "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
-          maxStrikes: maxStrikes !== undefined ? Number(maxStrikes) : 3,
-          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10,
-          dailyRiddleChannelId: dailyRiddleChannelId || null,
-          dailyRiddleEnabled: dailyRiddleEnabled !== undefined ? Boolean(dailyRiddleEnabled) : true,
-          dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
-          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21,
-          menfessChannelId: menfessChannelId || null,
-          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true,
-          voiceRewardEnabled: voiceRewardEnabled !== undefined ? Boolean(voiceRewardEnabled) : true,
-          voiceRewardIntervalMin: voiceRewardIntervalMin !== undefined ? Number(voiceRewardIntervalMin) : 10,
-          voiceRewardAmount: voiceRewardAmount !== undefined ? Number(voiceRewardAmount) : 5
+          ...updateData
         }
       });
 
