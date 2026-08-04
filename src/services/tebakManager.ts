@@ -11,6 +11,7 @@ import {
   ModalSubmitInteraction,
   Message,
   MessageFlags,
+  ChatInputCommandInteraction,
 } from "discord.js";
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
@@ -32,7 +33,9 @@ export interface ActiveSession {
   messageId?: string;
   question: TebakQuestion;
   startTime: number;
-  timer: NodeJS.Timeout;
+  timer?: NodeJS.Timeout;
+  isDaily: boolean;
+  answeredUserIds?: Set<string>;
 }
 
 const QUESTION_BANK: TebakQuestion[] = [
@@ -80,10 +83,16 @@ export class TebakManager {
   }
 
   /**
-   * Start a new riddle session in channel
+   * Start Instant Riddle Session
    */
-  public async startRiddleSession(channel: TextChannel, guildId: string): Promise<boolean> {
+  public async startRiddleSession(interaction: ChatInputCommandInteraction): Promise<boolean> {
+    const channel = interaction.channel;
+    if (!channel) return false;
+
     if (this.isChannelActive(channel.id)) {
+      await interaction.editReply({
+        content: "Sesi tebak-tebakan masih berlangsung di channel ini! Selesaikan pertanyaan yang ada terlebih dahulu.",
+      });
       return false;
     }
 
@@ -101,7 +110,7 @@ export class TebakManager {
         `Klik tombol **Jawab Tebak-Tebakan** di bawah ini untuk mengisi jawaban kamu!\nBatas waktu: **45 detik**.`
       )
       .setColor("#2563EB")
-      .setFooter({ text: "Maya AI Trivia Engine • Klik tombol di bawah untuk menjawab!" })
+      .setFooter({ text: "Maya AI Trivia Engine • Mode Instant" })
       .setTimestamp();
 
     const answerButton = new ButtonBuilder()
@@ -111,12 +120,65 @@ export class TebakManager {
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(answerButton);
 
-    const message = await channel.send({ embeds: [embed], components: [row] });
+    const message = await interaction.editReply({ embeds: [embed], components: [row] });
 
-    // Set 45s timeout
     const timer = setTimeout(async () => {
-      await this.handleTimeout(sessionId, channel, message);
+      await this.handleTimeout(sessionId, channel as any, message);
     }, 45000);
+
+    const session: ActiveSession = {
+      sessionId,
+      guildId: interaction.guildId!,
+      channelId: channel.id,
+      messageId: message.id,
+      question,
+      startTime: Date.now(),
+      timer,
+      isDaily: false,
+    };
+
+    this.activeSessions.set(sessionId, session);
+    return true;
+  }
+
+  /**
+   * Start Daily Riddle Session (@everyone Broadcast)
+   */
+  public async startDailyRiddleSession(channel: TextChannel, guildId: string): Promise<boolean> {
+    if (this.isChannelActive(channel.id)) {
+      return false;
+    }
+
+    const sessionId = `daily-${Date.now()}`;
+    let question = await this.generateAiTebakQuestion();
+    if (!question) {
+      question = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📢 TEBAK-TEBAKAN HARIAN MAYA AI (${question.category})`)
+      .setDescription(
+        `**Pertanyaan Hari Ini**:\n> ${question.question}\n\n` +
+        `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul & out of the box!"}\n\n` +
+        `Setiap anggota server dapat menjawab 1x hari ini untuk mengumpulkan **Poin Harian**!\n` +
+        `Klik tombol **Jawab Tebak-Tebakan Harian** di bawah ini!`
+      )
+      .setColor("#9333EA") // Purple Indigo
+      .setFooter({ text: "Maya Daily Trivia Engine • Broadcast Harian Server" })
+      .setTimestamp();
+
+    const answerButton = new ButtonBuilder()
+      .setCustomId(`tebak_answer:${sessionId}`)
+      .setLabel("Jawab Tebak-Tebakan Harian")
+      .setStyle(ButtonStyle.Success);
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(answerButton);
+
+    const message = await channel.send({
+      content: "@everyone @here **Tebak-Tebakan Harian Maya AI telah rilis!** Ayo jawab dan kumpulkan poin harian kamu!",
+      embeds: [embed],
+      components: [row],
+    });
 
     const session: ActiveSession = {
       sessionId,
@@ -125,7 +187,8 @@ export class TebakManager {
       messageId: message.id,
       question,
       startTime: Date.now(),
-      timer,
+      isDaily: true,
+      answeredUserIds: new Set<string>(),
     };
 
     this.activeSessions.set(sessionId, session);
@@ -145,9 +208,18 @@ export class TebakManager {
       return;
     }
 
+    // For daily riddles, check if user already answered today
+    if (session.isDaily && session.answeredUserIds?.has(interaction.user.id)) {
+      await interaction.reply({
+        content: "Kamu sudah berhasil menjawab Tebak-Tebakan Harian hari ini! Kembali lagi besok untuk tantangan berikutnya.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
     const modal = new ModalBuilder()
       .setCustomId(`modal_tebak:${sessionId}`)
-      .setTitle("Jawab Tebak-Tebakan");
+      .setTitle(session.isDaily ? "Jawab Tebak-Tebakan Harian" : "Jawab Tebak-Tebakan");
 
     const answerInput = new TextInputBuilder()
       .setCustomId("jawaban_user")
@@ -182,58 +254,72 @@ export class TebakManager {
     );
 
     if (isCorrect) {
-      // Clear session & timer
-      clearTimeout(session.timer);
-      this.activeSessions.delete(sessionId);
+      if (session.isDaily) {
+        // Daily Mode: Multi-user participation!
+        session.answeredUserIds?.add(interaction.user.id);
 
-      // Add 10 points to DB
-      const newScore = await this.addScore(
-        session.guildId,
-        interaction.user.id,
-        interaction.user.displayName || interaction.user.username,
-        10
-      );
+        const newDailyScore = await this.addDailyScore(
+          session.guildId,
+          interaction.user.id,
+          interaction.user.displayName || interaction.user.username,
+          10
+        );
 
-      // Update original riddle message (disable button & show winner)
-      if (session.messageId && interaction.channel) {
-        try {
-          const channel = interaction.channel as TextChannel;
-          const msg = await channel.messages.fetch(session.messageId);
-          if (msg) {
-            const winnerEmbed = new EmbedBuilder()
-              .setTitle(`Tebak-Tebakan Selesai! (Dijawab Benar)`)
-              .setDescription(
-                `**Pertanyaan**:\n> ${session.question.question}\n\n` +
-                `Pemenang: <@${interaction.user.id}> (+10 Poin)\n` +
-                `Jawaban Benar: **${session.question.answer}**\n` +
-                `Total Skor <@${interaction.user.id}>: **${newScore} Poin**`
-              )
-              .setColor("#10B981")
-              .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak leaderboard untuk lihat peringkat" })
-              .setTimestamp();
+        await interaction.reply({
+          content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, **+10 Poin Harian** telah ditambahkan ke profil kamu. Total Poin Harian Kamu: **${newDailyScore} Poin**.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      } else {
+        // Instant Mode: Single winner closes session
+        if (session.timer) clearTimeout(session.timer);
+        this.activeSessions.delete(sessionId);
 
-            const disabledButton = new ButtonBuilder()
-              .setCustomId(`disabled_${sessionId}`)
-              .setLabel("Tebak-Tebakan Selesai")
-              .setStyle(ButtonStyle.Secondary)
-              .setDisabled(true);
+        const newScore = await this.addScore(
+          session.guildId,
+          interaction.user.id,
+          interaction.user.displayName || interaction.user.username,
+          10
+        );
 
-            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
-            await msg.edit({ embeds: [winnerEmbed], components: [row] });
-          }
-        } catch (e: any) {
-          if (e?.code !== 10008) {
-            logger.error("Error updating message on correct answer:", e);
+        if (session.messageId && interaction.channel) {
+          try {
+            const channel = interaction.channel as TextChannel;
+            const msg = await channel.messages.fetch(session.messageId);
+            if (msg) {
+              const winnerEmbed = new EmbedBuilder()
+                .setTitle(`Tebak-Tebakan Selesai! (Dijawab Benar)`)
+                .setDescription(
+                  `**Pertanyaan**:\n> ${session.question.question}\n\n` +
+                  `Pemenang: <@${interaction.user.id}> (+10 Poin)\n` +
+                  `Jawaban Benar: **${session.question.answer}**\n` +
+                  `Total Skor <@${interaction.user.id}>: **${newScore} Poin**`
+                )
+                .setColor("#10B981")
+                .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak leaderboard untuk lihat peringkat" })
+                .setTimestamp();
+
+              const disabledButton = new ButtonBuilder()
+                .setCustomId(`disabled_${sessionId}`)
+                .setLabel("Tebak-Tebakan Selesai")
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(true);
+
+              const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
+              await msg.edit({ embeds: [winnerEmbed], components: [row] });
+            }
+          } catch (e: any) {
+            if (e?.code !== 10008) {
+              logger.error("Error updating message on correct answer:", e);
+            }
           }
         }
-      }
 
-      await interaction.reply({
-        content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, +10 Poin telah ditambahkan ke profil kamu.`,
-        flags: MessageFlags.Ephemeral,
-      });
+        await interaction.reply({
+          content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, +10 Poin telah ditambahkan ke profil kamu.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     } else {
-      // Incorrect answer: Keep session open for others/retries
       await interaction.reply({
         content: `Jawaban kamu "${userAnswer}" belum tepat. Silakan coba tebak lagi!`,
         flags: MessageFlags.Ephemeral,
@@ -242,7 +328,7 @@ export class TebakManager {
   }
 
   /**
-   * Handle Timeout (45s expired)
+   * Handle Timeout for Instant mode
    */
   private async handleTimeout(sessionId: string, channel: TextChannel, message: Message) {
     const session = this.activeSessions.get(sessionId);
@@ -324,33 +410,23 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
   }
 
   /**
-   * Add score to user in Prisma DB
+   * Add total score in DB
    */
   public async addScore(guildId: string, userId: string, username: string, points: number): Promise<number> {
     try {
       const existing = await prisma.triviaScore.findUnique({
-        where: {
-          guildId_userId: { guildId, userId },
-        },
+        where: { guildId_userId: { guildId, userId } },
       });
 
       if (existing) {
         const updated = await prisma.triviaScore.update({
           where: { id: existing.id },
-          data: {
-            score: existing.score + points,
-            username,
-          },
+          data: { score: existing.score + points, username },
         });
         return updated.score;
       } else {
         const created = await prisma.triviaScore.create({
-          data: {
-            guildId,
-            userId,
-            username,
-            score: points,
-          },
+          data: { guildId, userId, username, score: points, dailyScore: points },
         });
         return created.score;
       }
@@ -361,7 +437,50 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
   }
 
   /**
-   * Get Top 10 Leaderboard
+   * Add daily score in DB
+   */
+  public async addDailyScore(guildId: string, userId: string, username: string, points: number): Promise<number> {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const existing = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId, userId } },
+      });
+
+      if (existing) {
+        const isNewDay = existing.lastDailyDate !== todayStr;
+        const newDaily = isNewDay ? points : existing.dailyScore + points;
+
+        const updated = await prisma.triviaScore.update({
+          where: { id: existing.id },
+          data: {
+            score: existing.score + points,
+            dailyScore: newDaily,
+            lastDailyDate: todayStr,
+            username,
+          },
+        });
+        return updated.dailyScore;
+      } else {
+        const created = await prisma.triviaScore.create({
+          data: {
+            guildId,
+            userId,
+            username,
+            score: points,
+            dailyScore: points,
+            lastDailyDate: todayStr,
+          },
+        });
+        return created.dailyScore;
+      }
+    } catch (error) {
+      logger.error("TebakManager: Error adding daily score to DB:", error);
+      return points;
+    }
+  }
+
+  /**
+   * Get Top 10 All-Time Leaderboard
    */
   public async getLeaderboard(guildId: string): Promise<{ userId: string; username: string; score: number }[]> {
     try {
@@ -371,13 +490,28 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
         take: 10,
       });
 
-      return scores.map((s) => ({
-        userId: s.userId,
-        username: s.username,
-        score: s.score,
-      }));
+      return scores.map((s) => ({ userId: s.userId, username: s.username, score: s.score }));
     } catch (error) {
       logger.error("TebakManager: Error getting leaderboard:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get Top 10 Daily Leaderboard
+   */
+  public async getDailyLeaderboard(guildId: string): Promise<{ userId: string; username: string; dailyScore: number }[]> {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const scores = await prisma.triviaScore.findMany({
+        where: { guildId, lastDailyDate: todayStr, dailyScore: { gt: 0 } },
+        orderBy: { dailyScore: "desc" },
+        take: 10,
+      });
+
+      return scores.map((s) => ({ userId: s.userId, username: s.username, dailyScore: s.dailyScore }));
+    } catch (error) {
+      logger.error("TebakManager: Error getting daily leaderboard:", error);
       return [];
     }
   }

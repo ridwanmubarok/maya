@@ -367,6 +367,10 @@ async function selectGuild(guildId) {
 
     if (aiPersonalityInput) aiPersonalityInput.value = config.aiPersonality || '';
 
+    if (typeof loadDailyRiddleConfig === 'function') {
+      loadDailyRiddleConfig(config, channels);
+    }
+
     // Fetch server roles and await before showing tab (prevents stale roles on guild switch)
     try {
       const rolesRes = await apiFetch(`/api/roles/${guildId}`);

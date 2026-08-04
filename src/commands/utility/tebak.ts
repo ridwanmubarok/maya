@@ -1,20 +1,35 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, TextChannel } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, TextChannel, MessageFlags } from "discord.js";
 import { Command } from "../../types";
 import { tebakManager } from "../../services/tebakManager";
 
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("tebak")
-    .setDescription("Game Tebak-Tebakan & Papan Peringkat (Leaderboard)")
+    .setDescription("Game Tebak-Tebakan Harian & Papan Peringkat (Leaderboard)")
     .addSubcommand((sub) =>
       sub
         .setName("main")
-        .setDescription("Mulai sesi game tebak-tebakan baru di channel ini")
+        .setDescription("Mulai sesi tebak-tebakan mode instant di channel ini")
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("daily")
+        .setDescription("Mulai Tebak-Tebakan Harian (@everyone Broadcast) di channel ini")
     )
     .addSubcommand((sub) =>
       sub
         .setName("leaderboard")
         .setDescription("Tampilkan papan peringkat skor tebak-tebakan server")
+        .addStringOption((opt) =>
+          opt
+            .setName("tipe")
+            .setDescription("Pilih kategori peringkat")
+            .setRequired(false)
+            .addChoices(
+              { name: "Klasemen Harian", value: "harian" },
+              { name: "Klasemen Sepanjang Masa", value: "sepanjang_masa" }
+            )
+        )
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -24,71 +39,101 @@ const command: Command = {
     if (!guildId) {
       await interaction.reply({
         content: "Perintah ini hanya dapat dijalankan di dalam server Discord.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     if (subcommand === "main") {
-      const channel = interaction.channel;
-      if (!channel || !(channel instanceof TextChannel)) {
+      await interaction.deferReply();
+      await tebakManager.startRiddleSession(interaction);
+    } else if (subcommand === "daily") {
+      const channel = interaction.channel as TextChannel;
+      if (!channel || !("send" in channel)) {
         await interaction.reply({
           content: "Perintah ini hanya dapat dijalankan di channel teks server.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
 
-      if (tebakManager.isChannelActive(channel.id)) {
-        await interaction.reply({
-          content: "Sesi tebak-tebakan masih berlangsung di channel ini! Jawab pertanyaan yang ada terlebih dahulu.",
-          ephemeral: true,
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const success = await tebakManager.startDailyRiddleSession(channel, guildId);
+
+      if (success) {
+        await interaction.editReply({
+          content: "Tebak-Tebakan Harian berhasil dipublikasikan dan disiarkan ke seluruh member!",
         });
-        return;
+      } else {
+        await interaction.editReply({
+          content: "Sesi tebak-tebakan masih aktif di channel ini. Selesaikan sesi yang ada terlebih dahulu.",
+        });
       }
-
-      await interaction.reply({
-        content: "Memulai sesi game tebak-tebakan...",
-        ephemeral: true,
-      });
-
-      await tebakManager.startRiddleSession(channel, guildId);
     } else if (subcommand === "leaderboard") {
       await interaction.deferReply();
 
-      const leaderboard = await tebakManager.getLeaderboard(guildId);
+      const tipe = interaction.options.getString("tipe") || "sepanjang_masa";
+      const isDaily = tipe === "harian";
 
-      if (!leaderboard || leaderboard.length === 0) {
-        await interaction.editReply({
-          content: "Belum ada skor tebak-tebakan di server ini. Jalankan `/tebak main` untuk menjadi yang pertama mendapatkan poin!",
+      if (isDaily) {
+        const leaderboard = await tebakManager.getDailyLeaderboard(guildId);
+
+        if (!leaderboard || leaderboard.length === 0) {
+          await interaction.editReply({
+            content: "Belum ada skor Tebak-Tebakan Harian hari ini. Jalankan `/tebak daily` untuk memulai aktivitas!",
+          });
+          return;
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle(`Papan Peringkat Harian • ${interaction.guild?.name || "Server"}`)
+          .setDescription("Daftar 10 besar anggota server dengan skor **Poin Harian** tertinggi hari ini:")
+          .setColor("#9333EA")
+          .setFooter({
+            text: `Maya Daily Trivia Leaderboard • Diperbarui Real-Time`,
+            iconURL: interaction.client.user?.displayAvatarURL(),
+          })
+          .setTimestamp();
+
+        let text = "";
+        leaderboard.forEach((entry, index) => {
+          const rank = index + 1;
+          const rankPrefix = rank === 1 ? "1 (Juara 1)" : rank === 2 ? "2 (Juara 2)" : rank === 3 ? "3 (Juara 3)" : `${rank}`;
+          text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.dailyScore} Poin Harian**\n`;
         });
-        return;
+
+        embed.addFields({ name: "Peringkat Hari Ini", value: text });
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        const leaderboard = await tebakManager.getLeaderboard(guildId);
+
+        if (!leaderboard || leaderboard.length === 0) {
+          await interaction.editReply({
+            content: "Belum ada skor tebak-tebakan di server ini. Jalankan `/tebak main` atau `/tebak daily`!",
+          });
+          return;
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle(`Papan Peringkat Sepanjang Masa • ${interaction.guild?.name || "Server"}`)
+          .setDescription("Daftar 10 besar anggota server dengan skor akumulasi tertinggi:")
+          .setColor("#2563EB")
+          .setFooter({
+            text: `Maya All-Time Trivia Leaderboard • Diperbarui Real-Time`,
+            iconURL: interaction.client.user?.displayAvatarURL(),
+          })
+          .setTimestamp();
+
+        let text = "";
+        leaderboard.forEach((entry, index) => {
+          const rank = index + 1;
+          const rankPrefix = rank === 1 ? "1 (Juara 1)" : rank === 2 ? "2 (Juara 2)" : rank === 3 ? "3 (Juara 3)" : `${rank}`;
+          text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.score} Total Poin**\n`;
+        });
+
+        embed.addFields({ name: "Peringkat Akumulasi", value: text });
+        await interaction.editReply({ embeds: [embed] });
       }
-
-      const embed = new EmbedBuilder()
-        .setTitle(`Papan Peringkat Tebak-Tebakan • ${interaction.guild?.name || "Server"}`)
-        .setDescription("Daftar 10 besar anggota server dengan skor tebak-tebakan tertinggi:")
-        .setColor("#2563EB")
-        .setFooter({
-          text: `Maya Trivia Leaderboard • Diperbarui Real-Time`,
-          iconURL: interaction.client.user?.displayAvatarURL(),
-        })
-        .setTimestamp();
-
-      let leaderboardText = "";
-      leaderboard.forEach((entry, index) => {
-        const rank = index + 1;
-        const rankPrefix = rank === 1 ? "1 (Juara 1)" : rank === 2 ? "2 (Juara 2)" : rank === 3 ? "3 (Juara 3)" : `${rank}`;
-        leaderboardText += `**${rankPrefix}**. <@${entry.userId}> — **${entry.score} Poin**\n`;
-      });
-
-      embed.addFields({
-        name: "Peringkat",
-        value: leaderboardText,
-        inline: false,
-      });
-
-      await interaction.editReply({ embeds: [embed] });
     }
   },
 };

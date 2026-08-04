@@ -163,7 +163,11 @@ export function startDashboard(client: MayaClient) {
       aiPersonality,
       bannedWords,
       maxStrikes,
-      muteDuration
+      muteDuration,
+      dailyRiddleChannelId,
+      dailyRiddleEnabled,
+      dailyRiddlePostHour,
+      dailyLeaderboardPostHour
     } = req.body;
 
     try {
@@ -179,7 +183,11 @@ export function startDashboard(client: MayaClient) {
           aiPersonality: aiPersonality !== undefined ? aiPersonality : "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
           bannedWords: bannedWords !== undefined ? bannedWords : "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
           maxStrikes: maxStrikes !== undefined ? Number(maxStrikes) : 3,
-          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10
+          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10,
+          dailyRiddleChannelId: dailyRiddleChannelId || null,
+          dailyRiddleEnabled: dailyRiddleEnabled !== undefined ? Boolean(dailyRiddleEnabled) : true,
+          dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
+          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21
         },
         create: {
           guildId,
@@ -192,7 +200,11 @@ export function startDashboard(client: MayaClient) {
           aiPersonality: aiPersonality || "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
           bannedWords: bannedWords || "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
           maxStrikes: maxStrikes !== undefined ? Number(maxStrikes) : 3,
-          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10
+          muteDuration: muteDuration !== undefined ? Number(muteDuration) : 10,
+          dailyRiddleChannelId: dailyRiddleChannelId || null,
+          dailyRiddleEnabled: dailyRiddleEnabled !== undefined ? Boolean(dailyRiddleEnabled) : true,
+          dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
+          dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21
         }
       });
 

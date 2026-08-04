@@ -20,6 +20,10 @@ model GuildConfig {
   bannedWords            String   @default("anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan")
   maxStrikes             Int      @default(3)
   muteDuration           Int      @default(10)
+  dailyRiddleChannelId   String?
+  dailyRiddleEnabled     Boolean  @default(true)
+  dailyRiddlePostHour    Int      @default(9)
+  dailyLeaderboardPostHour Int    @default(21)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -85,14 +89,17 @@ model ReactionRoleOption {
 }
 
 model TriviaScore {
-  id        Int      @id @default(autoincrement())
-  guildId   String
-  userId    String
-  username  String
-  score     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  guildId       String
+  userId        String
+  username      String
+  score         Int      @default(0)
+  dailyScore    Int      @default(0)
+  lastDailyDate String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, score])
+  @@index([guildId, dailyScore])
 }
