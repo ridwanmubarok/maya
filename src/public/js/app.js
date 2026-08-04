@@ -375,6 +375,10 @@ async function selectGuild(guildId) {
       loadMenfessConfig(config, channels);
     }
 
+    if (typeof loadEconomyConfig === 'function') {
+      loadEconomyConfig(config);
+    }
+
     // Fetch server roles and await before showing tab (prevents stale roles on guild switch)
     try {
       const rolesRes = await apiFetch(`/api/roles/${guildId}`);
@@ -411,7 +415,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'menfess') {
+    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'menfess' || tabId === 'analytics' || tabId === 'economy') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');
@@ -435,5 +439,9 @@ function switchTab(tabId) {
     loadReactionRoles();
   } else if (tabId === 'ai') {
     loadAiHistory();
+  } else if (tabId === 'analytics') {
+    if (typeof loadAnalytics === 'function') loadAnalytics();
+  } else if (tabId === 'economy') {
+    if (typeof loadEconomyBalances === 'function') loadEconomyBalances();
   }
 }

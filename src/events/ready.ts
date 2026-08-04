@@ -2,6 +2,7 @@ import { Events, REST, Routes } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { initDailyRiddleScheduler } from "../services/dailyRiddleScheduler";
+import { initVoiceRewardTicker } from "../services/voiceRewardManager";
 
 const event: BotEvent = {
   name: Events.ClientReady,
@@ -9,8 +10,9 @@ const event: BotEvent = {
   async execute(client: MayaClient) {
     logger.info(`Bot berhasil login sebagai ${client.user?.tag}!`);
 
-    // Initialize automatic daily riddle background scheduler
+    // Initialize automatic daily riddle background scheduler & voice reward ticker
     initDailyRiddleScheduler(client);
+    initVoiceRewardTicker(client);
 
     const commandData = client.commands.map(cmd => cmd.data.toJSON());
     const token = process.env.DISCORD_TOKEN;

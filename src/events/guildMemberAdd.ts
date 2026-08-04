@@ -3,11 +3,15 @@ import { BotEvent } from "../types";
 import { prisma } from "../services/database";
 import { createEmbed } from "../utils/embeds";
 import { logger } from "../utils/logger";
+import { trackAnalyticsEvent } from "../services/analyticsTracker";
 
 const event: BotEvent = {
   name: Events.GuildMemberAdd,
   async execute(member: GuildMember) {
     const { guild } = member;
+
+    // Track analytics event for member join
+    trackAnalyticsEvent(guild.id, "MEMBER_JOIN").catch(() => {});
 
     try {
       // Automatically assign the "Rotasi" role if it exists

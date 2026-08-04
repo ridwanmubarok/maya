@@ -266,7 +266,7 @@ export class TebakManager {
         );
 
         await interaction.reply({
-          content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, **+10 Poin Harian** telah ditambahkan ke profil kamu. Total Poin Harian Kamu: **${newDailyScore} Poin**.`,
+          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+10 🪙 Rogatekno Cash** telah ditambahkan ke dompet kamu!\nTotal Harian Kamu: **${newDailyScore} 🪙 Rogatekno Cash**.`,
           flags: MessageFlags.Ephemeral,
         });
       } else {
@@ -290,9 +290,9 @@ export class TebakManager {
                 .setTitle(`Tebak-Tebakan Selesai! (Dijawab Benar)`)
                 .setDescription(
                   `**Pertanyaan**:\n> ${session.question.question}\n\n` +
-                  `Pemenang: <@${interaction.user.id}> (+10 Poin)\n` +
+                  `Pemenang: <@${interaction.user.id}> (+10 🪙 Rogatekno Cash)\n` +
                   `Jawaban Benar: **${session.question.answer}**\n` +
-                  `Total Skor <@${interaction.user.id}>: **${newScore} Poin**`
+                  `Total Saldo <@${interaction.user.id}>: **${newScore} 🪙 Rogatekno Cash**`
                 )
                 .setColor("#10B981")
                 .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak leaderboard untuk lihat peringkat" })
@@ -315,7 +315,7 @@ export class TebakManager {
         }
 
         await interaction.reply({
-          content: `Jawaban kamu **${session.question.answer}** BENAR! Selamat, +10 Poin telah ditambahkan ke profil kamu.`,
+          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+10 🪙 Rogatekno Cash** telah ditambahkan ke dompet kamu!`,
           flags: MessageFlags.Ephemeral,
         });
       }

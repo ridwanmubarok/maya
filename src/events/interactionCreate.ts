@@ -5,6 +5,7 @@ import { createEmbed } from "../utils/embeds";
 import { handleMabarJoin, handleMabarLeave } from "../services/mabarManager";
 import { tebakManager } from "../services/tebakManager";
 import { submitMenfess } from "../services/menfessService";
+import { trackAnalyticsEvent } from "../services/analyticsTracker";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -132,7 +133,7 @@ const event: BotEvent = {
         }
 
         const successEmbed = createEmbed.success(
-          "💌 Menfess Berhasil Diposting!",
+          "🕊️ Menfess Berhasil Diposting!",
           `Pesan anonim kamu telah lolos sensor AI dan berhasil diposting ke <#${result.channelId}> dengan kode **#${result.code}**.`
         );
 
@@ -170,6 +171,9 @@ const event: BotEvent = {
 
     try {
       logger.debug(`Menjalankan command: ${interaction.commandName} oleh ${interaction.user.tag}`);
+      if (interaction.guildId) {
+        trackAnalyticsEvent(interaction.guildId, "COMMAND_EXEC", interaction.commandName).catch(() => {});
+      }
       await command.execute(interaction);
     } catch (error) {
       logger.error(`Error saat menjalankan command /${interaction.commandName}:`, error);

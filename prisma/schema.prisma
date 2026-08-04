@@ -26,6 +26,9 @@ model GuildConfig {
   dailyLeaderboardPostHour Int    @default(21)
   menfessChannelId       String?
   menfessEnabled         Boolean  @default(true)
+  voiceRewardEnabled     Boolean  @default(true)
+  voiceRewardIntervalMin Int      @default(10)
+  voiceRewardAmount      Int      @default(5)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -119,4 +122,17 @@ model MenfessLog {
 
   @@index([guildId, code])
 }
+
+model AnalyticsLog {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  eventType String
+  eventName String?
+  hour      Int
+  createdAt DateTime @default(now())
+
+  @@index([guildId, eventType])
+  @@index([guildId, createdAt])
+}
+
 

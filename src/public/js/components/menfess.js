@@ -38,7 +38,7 @@ async function saveMenfessConfig() {
       throw new Error(err.error || 'Gagal menyimpan pengaturan Menfess.');
     }
 
-    showToast('Berhasil Disimpan', 'Pengaturan AI Menfess berhasil disimpan! 💌', 'success');
+    showToast('Berhasil Disimpan', 'Pengaturan AI Menfess berhasil disimpan! 🕊️', 'success');
   } catch (error) {
     showToast('Gagal Menyimpan', error.message, 'error');
   }

@@ -125,11 +125,11 @@ export async function submitMenfess(
     const code = await generateMenfessCode();
 
     const embed = new EmbedBuilder()
-      .setTitle(`💌 Menfess Anonim #${code}`)
+      .setTitle(`🕊️ Menfess Anonim #${code}`)
       .setColor("#EC4899") // Pink Aesthetic
       .setDescription(content)
       .setTimestamp()
-      .setFooter({ text: "Dikirim secara anonim • Disaring oleh NVIDIA AI Maya" });
+      .setFooter({ text: "Dikirim secara anonim" });
 
     // Tambahkan info balasan jika membalas Menfess lain
     if (replyToCode) {

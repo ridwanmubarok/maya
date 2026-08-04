@@ -4,6 +4,7 @@ import { prisma } from "../services/database";
 import { createEmbed } from "../utils/embeds";
 import { logModeration } from "../utils/moderationLogger";
 import { logger } from "../utils/logger";
+import { trackAnalyticsEvent } from "../services/analyticsTracker";
 
 const event: BotEvent = {
   name: Events.MessageCreate,
@@ -13,6 +14,8 @@ const event: BotEvent = {
 
     try {
       const guildId = message.guild.id;
+      // Track analytics event for message sent
+      trackAnalyticsEvent(guildId, "MESSAGE_SENT").catch(() => {});
       // Fetch server configuration
       const config = await prisma.guildConfig.findUnique({
         where: { guildId }

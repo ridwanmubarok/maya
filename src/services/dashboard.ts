@@ -7,6 +7,7 @@ import { prisma } from "./database";
 import { logger } from "../utils/logger";
 import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { createMabarEmbed, createMabarButtons } from "./mabarManager";
+import { getGuildAnalytics } from "./analyticsService";
 
 const app = express();
 app.use(express.json());
@@ -150,6 +151,46 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Fetch Server Analytics for a specific guild (Requires Auth)
+  app.get("/api/analytics/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const data = await getGuildAnalytics(guildId);
+      res.json({ success: true, analytics: data });
+    } catch (error: any) {
+      logger.error(`Error fetching analytics for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal memuat statistik server." });
+    }
+  });
+
+  // Fetch Economy Balances & Leaderboard (Requires Auth)
+  app.get("/api/economy/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const topBalances = await prisma.triviaScore.findMany({
+        where: { guildId },
+        orderBy: { score: "desc" },
+        take: 15
+      });
+
+      const totalStats = await prisma.triviaScore.aggregate({
+        where: { guildId },
+        _sum: { score: true },
+        _count: { id: true }
+      });
+
+      res.json({
+        success: true,
+        balances: topBalances,
+        totalCirculating: totalStats._sum.score || 0,
+        totalWallets: totalStats._count.id || 0
+      });
+    } catch (error: any) {
+      logger.error(`Error fetching economy data for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal memuat data ekonomi server." });
+    }
+  });
+
   // Save/Update configuration for a specific guild (Requires Auth)
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
@@ -169,7 +210,10 @@ export function startDashboard(client: MayaClient) {
       dailyRiddlePostHour,
       dailyLeaderboardPostHour,
       menfessChannelId,
-      menfessEnabled
+      menfessEnabled,
+      voiceRewardEnabled,
+      voiceRewardIntervalMin,
+      voiceRewardAmount
     } = req.body;
 
     try {
@@ -191,7 +235,10 @@ export function startDashboard(client: MayaClient) {
           dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
           dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21,
           menfessChannelId: menfessChannelId || null,
-          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true
+          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true,
+          voiceRewardEnabled: voiceRewardEnabled !== undefined ? Boolean(voiceRewardEnabled) : true,
+          voiceRewardIntervalMin: voiceRewardIntervalMin !== undefined ? Number(voiceRewardIntervalMin) : 10,
+          voiceRewardAmount: voiceRewardAmount !== undefined ? Number(voiceRewardAmount) : 5
         },
         create: {
           guildId,
@@ -210,7 +257,10 @@ export function startDashboard(client: MayaClient) {
           dailyRiddlePostHour: dailyRiddlePostHour !== undefined ? Number(dailyRiddlePostHour) : 9,
           dailyLeaderboardPostHour: dailyLeaderboardPostHour !== undefined ? Number(dailyLeaderboardPostHour) : 21,
           menfessChannelId: menfessChannelId || null,
-          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true
+          menfessEnabled: menfessEnabled !== undefined ? Boolean(menfessEnabled) : true,
+          voiceRewardEnabled: voiceRewardEnabled !== undefined ? Boolean(voiceRewardEnabled) : true,
+          voiceRewardIntervalMin: voiceRewardIntervalMin !== undefined ? Number(voiceRewardIntervalMin) : 10,
+          voiceRewardAmount: voiceRewardAmount !== undefined ? Number(voiceRewardAmount) : 5
         }
       });
 

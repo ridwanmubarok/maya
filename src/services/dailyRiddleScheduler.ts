@@ -5,6 +5,10 @@ import { logger } from "../utils/logger";
 
 let dailySchedulerInitialized = false;
 
+// Memory tracker to prevent duplicate broadcasts on the same date per guild
+const lastRiddlePostMap = new Map<string, string>();
+const lastLeaderboardPostMap = new Map<string, string>();
+
 /**
  * Initialize Automatic Daily Riddle Scheduler & Evening Leaderboard Broadcast
  */
@@ -12,18 +16,33 @@ export function initDailyRiddleScheduler(client: Client) {
   if (dailySchedulerInitialized) return;
   dailySchedulerInitialized = true;
 
-  logger.info("DailyRiddleScheduler: Initialized automatic daily riddle background timer.");
+  logger.info("DailyRiddleScheduler: Initialized automatic daily riddle background timer (WIB Timezone).");
 
-  // Check every hour for scheduled daily triggers per guild configuration
+  // Run initial check immediately on startup
+  processScheduledBroadcasts(client).catch((err) =>
+    logger.error("DailyRiddleScheduler: Initial startup check error:", err)
+  );
+
+  // Check every 1 minute for exact time precision
   setInterval(async () => {
-    const now = new Date();
-    const currentHour = now.getHours(); // 0 - 23
-
-    await processScheduledBroadcasts(client, currentHour);
-  }, 3600000); // 1 hour interval
+    await processScheduledBroadcasts(client);
+  }, 60000);
 }
 
-async function processScheduledBroadcasts(client: Client, currentHour: number) {
+/**
+ * Get current WIB (UTC+7) hour and date string (YYYY-MM-DD)
+ */
+function getWibDateTime() {
+  const now = new Date();
+  // WIB is UTC+7
+  const wibTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  const wibHour = wibTime.getUTCHours();
+  const dateStr = wibTime.toISOString().split("T")[0]; // "YYYY-MM-DD"
+  return { wibHour, dateStr };
+}
+
+async function processScheduledBroadcasts(client: Client) {
+  const { wibHour, dateStr } = getWibDateTime();
   const guilds = client.guilds.cache;
 
   for (const [guildId, guild] of guilds) {
@@ -36,13 +55,17 @@ async function processScheduledBroadcasts(client: Client, currentHour: number) {
       const riddlePostHour = config?.dailyRiddlePostHour ?? 9;
       const leaderboardPostHour = config?.dailyLeaderboardPostHour ?? 21;
 
-      // Check if it's time to post Daily Riddle
-      if (currentHour === riddlePostHour) {
+      // 1. Check if it's time to post Daily Riddle (WIB) and not posted today yet
+      if (wibHour === riddlePostHour && lastRiddlePostMap.get(guildId) !== dateStr) {
+        lastRiddlePostMap.set(guildId, dateStr);
+        logger.info(`DailyRiddleScheduler: Triggering daily riddle for ${guild.name} at ${wibHour}:00 WIB`);
         await broadcastDailyRiddlesForGuild(guild, config?.dailyRiddleChannelId || undefined);
       }
 
-      // Check if it's time to post Evening Daily Leaderboard
-      if (currentHour === leaderboardPostHour) {
+      // 2. Check if it's time to post Evening Daily Leaderboard (WIB) and not posted today yet
+      if (wibHour === leaderboardPostHour && lastLeaderboardPostMap.get(guildId) !== dateStr) {
+        lastLeaderboardPostMap.set(guildId, dateStr);
+        logger.info(`DailyRiddleScheduler: Triggering daily leaderboard for ${guild.name} at ${wibHour}:00 WIB`);
         await broadcastDailyLeaderboardsForGuild(guild, config?.dailyRiddleChannelId || undefined);
       }
     } catch (e) {
@@ -72,6 +95,8 @@ export async function broadcastDailyRiddlesForGuild(guild: any, configuredChanne
 
     if (targetChannel && "send" in targetChannel) {
       await tebakManager.startDailyRiddleSession(targetChannel, guild.id);
+    } else {
+      logger.warn(`DailyRiddleScheduler: Channel target daily riddle tidak ditemukan di ${guild.name}`);
     }
   } catch (e) {
     logger.error(`DailyRiddleScheduler: Error broadcasting riddle to guild ${guild.name}:`, e);
@@ -111,7 +136,7 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
       let text = "";
       leaderboard.forEach((entry, index) => {
         const rank = index + 1;
-        const rankPrefix = rank === 1 ? "1 (Juara 1 Hari Ini)" : rank === 2 ? "2 (Juara 2 Hari Ini)" : rank === 3 ? "3 (Juara 3 Hari Ini)" : `${rank}`;
+        const rankPrefix = rank === 1 ? "🥇 (Juara 1 Hari Ini)" : rank === 2 ? "🥈 (Juara 2 Hari Ini)" : rank === 3 ? "🥉 (Juara 3 Hari Ini)" : `${rank}`;
         text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.dailyScore} Poin Harian**\n`;
       });
 

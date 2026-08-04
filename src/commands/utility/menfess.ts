@@ -42,7 +42,7 @@ const command: Command = {
     if (!pesan) {
       const modal = new ModalBuilder()
         .setCustomId(`modal_menfess:${replyTo || "none"}`)
-        .setTitle("💌 Kirim Menfess Anonim");
+        .setTitle("🕊️ Kirim Menfess Anonim");
 
       const contentInput = new TextInputBuilder()
         .setCustomId("input_menfess_content")
@@ -91,7 +91,7 @@ const command: Command = {
     }
 
     const successEmbed = createEmbed.success(
-      "💌 Menfess Berhasil Diposting!",
+      "🕊️ Menfess Berhasil Diposting!",
       `Pesan anonim kamu telah lolos sensor AI dan berhasil diposting ke <#${result.channelId}> dengan kode **#${result.code}**.`
     );
 
