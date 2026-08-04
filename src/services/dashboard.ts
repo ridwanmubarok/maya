@@ -8,6 +8,14 @@ import { logger } from "../utils/logger";
 import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { createMabarEmbed, createMabarButtons } from "./mabarManager";
 import { getGuildAnalytics } from "./analyticsService";
+import { 
+  getGuildShopItems, 
+  createShopItem, 
+  deleteShopItem, 
+  getGuildOrders, 
+  approveShopOrder, 
+  rejectShopOrder 
+} from "./shopService";
 
 const app = express();
 app.use(express.json());
@@ -188,6 +196,88 @@ export function startDashboard(client: MayaClient) {
     } catch (error: any) {
       logger.error(`Error fetching economy data for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal memuat data ekonomi server." });
+    }
+  });
+
+  // --- SHOP MANAGEMENT ENDPOINTS ---
+
+  // Ambil daftar produk toko aktif
+  app.get("/api/shop/items/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const items = await getGuildShopItems(guildId);
+      res.json({ success: true, items });
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal mengambil daftar produk toko." });
+    }
+  });
+
+  // Tambah produk toko baru
+  app.post("/api/shop/items/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { title, description, priceRtk, category, imageUrl } = req.body;
+
+    if (!title || !priceRtk) {
+      return res.status(400).json({ error: "Judul produk dan Harga RTK wajib diisi." });
+    }
+
+    try {
+      const newItem = await createShopItem({
+        guildId,
+        title,
+        description: description || "",
+        priceRtk: Number(priceRtk),
+        category: category || "GAME",
+        imageUrl: imageUrl || null
+      });
+      res.json({ success: true, item: newItem });
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal menambahkan produk toko baru." });
+    }
+  });
+
+  // Hapus produk toko
+  app.delete("/api/shop/items/:id", authMiddleware, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const guildId = req.query.guildId as string;
+    try {
+      await deleteShopItem(Number(id), guildId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal menghapus produk toko." });
+    }
+  });
+
+  // Ambil daftar pesanan member
+  app.get("/api/shop/orders/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const orders = await getGuildOrders(guildId);
+      res.json({ success: true, orders });
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal mengambil daftar pesanan toko." });
+    }
+  });
+
+  // Setujui pesanan (COMPLETED)
+  app.post("/api/shop/orders/approve", authMiddleware, async (req: Request, res: Response) => {
+    const { orderId, notes } = req.body;
+    try {
+      const order = await approveShopOrder(client, orderId, notes);
+      res.json({ success: true, order });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Gagal menyetujui pesanan." });
+    }
+  });
+
+  // Tolak pesanan (REFUNDED)
+  app.post("/api/shop/orders/reject", authMiddleware, async (req: Request, res: Response) => {
+    const { orderId, reason } = req.body;
+    try {
+      const order = await rejectShopOrder(client, orderId, reason);
+      res.json({ success: true, order });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Gagal menolak pesanan." });
     }
   });
 

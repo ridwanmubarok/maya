@@ -6,6 +6,7 @@ import { handleMabarJoin, handleMabarLeave } from "../services/mabarManager";
 import { tebakManager } from "../services/tebakManager";
 import { submitMenfess } from "../services/menfessService";
 import { trackAnalyticsEvent } from "../services/analyticsTracker";
+import { processShopPurchase } from "../services/shopService";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -91,9 +92,72 @@ const event: BotEvent = {
       }
     }
 
+    // Handle String Select Menu Interactions
+    if (interaction.isStringSelectMenu() && interaction.customId === "shop_select_item") {
+      const itemId = interaction.values[0];
+      const modal = new ModalBuilder()
+        .setCustomId(`modal_shop_checkout:${itemId}`)
+        .setTitle("🛒 Form Pembelian Toko Server");
+
+      const input = new TextInputBuilder()
+        .setCustomId("shop_target_input")
+        .setLabel("Data Target / ID Game / Contact")
+        .setPlaceholder("Contoh: ID Game (Zone ID) / Nickname Role / No HP DANA")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMaxLength(200);
+
+      const row = new ActionRowBuilder<TextInputBuilder>().addComponents(input);
+      modal.addComponents(row);
+
+      await interaction.showModal(modal);
+      return;
+    }
+
     // Handle Modal Submissions
     if (interaction.isModalSubmit()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("modal_shop_checkout:")) {
+        const itemId = parseInt(customId.split(":")[1], 10);
+        const targetInput = interaction.fields.getTextInputValue("shop_target_input").trim();
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        if (!interaction.guildId) {
+          await interaction.editReply({ content: "Perintah ini hanya dapat dijalankan di server." });
+          return;
+        }
+
+        const res = await processShopPurchase(
+          interaction.guildId,
+          interaction.user.id,
+          interaction.user.displayName || interaction.user.username,
+          itemId,
+          targetInput
+        );
+
+        if (!res.success) {
+          const errEmbed = createEmbed.error("Pembelian Gagal", res.reason || "Terjadi kesalahan.");
+          await interaction.editReply({ embeds: [errEmbed] });
+          return;
+        }
+
+        const orderEmbed = createEmbed.success(
+          "🎉 Pembelian Toko Berhasil Dipesan!",
+          `Pesanan kamu telah diterima dan terpotong otomatis dari dompet RTK kamu!\n\n` +
+          `📦 **Produk**: ${res.itemTitle}\n` +
+          `💰 **Harga**: **${res.priceRtk} RTK**\n` +
+          `🏷️ **Kode TRX**: \`${res.orderId}\`\n` +
+          `📝 **Data Target**: \`${targetInput}\`\n` +
+          `👛 **Sisa Saldo Kamu**: **${res.remainingBalance} RTK**\n\n` +
+          `*Admin akan segera memproses pesanan kamu dan notifikasi akan dikirim via DM!*`
+        );
+
+        await interaction.editReply({ embeds: [orderEmbed] });
+        return;
+      }
+
       if (customId.startsWith("modal_tebak:")) {
         const sessionId = customId.split(":")[1];
         await tebakManager.handleModalSubmit(interaction, sessionId);

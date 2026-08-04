@@ -135,4 +135,35 @@ model AnalyticsLog {
   @@index([guildId, createdAt])
 }
 
+model ShopItem {
+  id          Int      @id @default(autoincrement())
+  guildId     String
+  title       String
+  description String
+  priceRtk    Int
+  category    String   @default("GAME")
+  imageUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([guildId, active])
+}
+
+model ShopOrder {
+  id          Int      @id @default(autoincrement())
+  orderId     String   @unique
+  guildId     String
+  userId      String
+  username    String
+  itemTitle   String
+  priceRtk    Int
+  targetInput String
+  status      String   @default("PENDING")
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([guildId, status])
+}
+
+
 
