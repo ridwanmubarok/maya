@@ -34,8 +34,13 @@ function populateHourDropdowns(riddlePostHour, leaderboardPostHour) {
 
 function loadDailyRiddleConfig(config, channels) {
   const enabledCheckbox = document.getElementById('daily-riddle-enabled');
+  const rewardInput = document.getElementById('daily-riddle-reward-amount');
+
   if (enabledCheckbox) {
     enabledCheckbox.checked = config.dailyRiddleEnabled !== false;
+  }
+  if (rewardInput) {
+    rewardInput.value = config.dailyRiddleRewardAmount ?? 10;
   }
 
   populateDailyRiddleChannels(channels, config.dailyRiddleChannelId);
@@ -49,12 +54,14 @@ async function saveDailyRiddleConfig() {
   const channelSelect = document.getElementById('daily-riddle-channel');
   const riddlePostSelect = document.getElementById('daily-riddle-post-hour');
   const leaderboardPostSelect = document.getElementById('daily-leaderboard-post-hour');
+  const rewardInput = document.getElementById('daily-riddle-reward-amount');
 
   const payload = {
     dailyRiddleEnabled: enabledCheckbox ? enabledCheckbox.checked : true,
     dailyRiddleChannelId: channelSelect ? channelSelect.value || null : null,
     dailyRiddlePostHour: riddlePostSelect ? parseInt(riddlePostSelect.value, 10) : 9,
     dailyLeaderboardPostHour: leaderboardPostSelect ? parseInt(leaderboardPostSelect.value, 10) : 21,
+    dailyRiddleRewardAmount: rewardInput ? parseInt(rewardInput.value || '10', 10) : 10,
   };
 
   try {
@@ -71,5 +78,28 @@ async function saveDailyRiddleConfig() {
     }
   } catch (error) {
     showToast('Gagal Menyimpan', 'Terjadi kesalahan koneksi.', 'error');
+  }
+}
+
+async function testDailyRiddleBroadcast() {
+  if (!selectedGuildId) {
+    showToast('Pilih Server', 'Silakan pilih server terlebih dahulu.', 'error');
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}/test-daily-riddle`, {
+      method: 'POST'
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast('Broadcast Dikirim', data.message || 'Tebak-Tebakan Harian berhasil dikirim ke channel!', 'success');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast('Gagal Broadcast', err.error || 'Gagal memicu tebakan harian.', 'error');
+    }
+  } catch (error) {
+    showToast('Error', error.message || 'Terjadi kesalahan koneksi.', 'error');
   }
 }

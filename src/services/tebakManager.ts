@@ -36,38 +36,36 @@ export interface ActiveSession {
   timer?: NodeJS.Timeout;
   isDaily: boolean;
   answeredUserIds?: Set<string>;
+  userAttempts?: Map<string, number>;
 }
 
 const QUESTION_BANK: TebakQuestion[] = [
-  {
-    id: "q1",
-    category: "Tebak-Tebakan Kekinian",
-    question: "Kenapa HP Android kalau lagi charging tidak bisa diajak jalan-jalan?",
-    answer: "Kabelan",
-    acceptableAnswers: ["kabelan", "karena kabelan", "ke kabelan"],
-    clue: "Plesetan kata kesebelasan...",
-  },
-  {
-    id: "q2",
-    category: "Teka-Teki Lucu",
-    question: "Pintu apa yang tidak bisa didorong oleh 10 orang kuat sekalipun?",
-    answer: "Pintu Geser",
-    acceptableAnswers: ["pintu geser", "geser", "sliding door"],
-    clue: "Bukan didorong, tapi...",
-  },
-  {
-    id: "q3",
-    category: "Asah Otak Kocak",
-    question: "Makin diisi makin ringan, apakah itu?",
-    answer: "Balon",
-    acceptableAnswers: ["balon", "balon gas"],
-    clue: "Diisi gas/udara ringan.",
-  },
+  { id: "q1", category: "Tebak-Tebakan Kekinian", question: "Kenapa HP Android kalau lagi charging tidak bisa diajak jalan-jalan?", answer: "Kabelan", acceptableAnswers: ["kabelan", "karena kabelan", "ke kabelan"], clue: "Plesetan kata kesebelasan..." },
+  { id: "q2", category: "Teka-Teki Lucu", question: "Pintu apa yang tidak bisa didorong oleh 10 orang kuat sekalipun?", answer: "Pintu Geser", acceptableAnswers: ["pintu geser", "geser", "sliding door"], clue: "Bukan didorong, tapi..." },
+  { id: "q3", category: "Asah Otak Kocak", question: "Makin diisi makin ringan, apakah itu?", answer: "Balon", acceptableAnswers: ["balon", "balon gas"], clue: "Diisi gas/udara ringan." },
+  { id: "q4", category: "Plesetan Gaool", question: "Buah apa yang kalau dimakan bikin orang jadi jutawan?", answer: "Buah Pikiran", acceptableAnswers: ["buah pikiran", "pikiran"], clue: "Ide cemerlang menghasilkan bisnis jutaan..." },
+  { id: "q5", category: "Tebak-Tebakan Gaul", question: "Mobil apa yang paling panjang di dunia?", answer: "Mobil Antrean", acceptableAnswers: ["mobil antrean", "antrean", "antri"], clue: "Bisa berderet sampai berjam-jam..." },
+  { id: "q6", category: "Teka-Teki Santai", question: "Lampu apa yang kalau dipecahkan justru keluar orangnya?", answer: "Lampu Tetangga", acceptableAnswers: ["lampu tetangga", "tetangga"], clue: "Tetangganya pasti keluar marah-marah!" },
+  { id: "q7", category: "Plesetan Kopi", question: "Kopi apa yang bikin orang capek?", answer: "Kopian", acceptableAnswers: ["kopian", "ngopi sambil lari"], clue: "Plesetan dari kegiatan memfotokopi rute berulang kali..." },
+  { id: "q8", category: "Tebak-Tebakan Hewan", question: "Gajah apa yang belalainya pendek?", answer: "Gajah Pesek", acceptableAnswers: ["gajah pesek", "pesek"], clue: "Beda nasib sama gajah normal..." },
+  { id: "q9", category: "Asah Otak", question: "Benda apa yang punya banyak mata tapi tidak bisa melihat?", answer: "Dadu", acceptableAnswers: ["dadu", "dadu kocok"], clue: "Titik-titik di sisinya disebut mata dadu." },
+  { id: "q10", category: "Teka-Teki Lucu", question: "Penyanyi luar negeri yang suka belanja di pasar tradisional?", answer: "Justin Beli-ber", acceptableAnswers: ["justin beliber", "justin bieber", "beliber"], clue: "Justin Bieber versi emak-emak..." },
+  { id: "q11", category: "Plesetan Makanan", question: "Nasi apa yang paling menakutkan di dunia?", answer: "Nasib", acceptableAnswers: ["nasib", "nasib buruk"], clue: "Bikin kepikiran terus..." },
+  { id: "q12", category: "Tebak-Tebakan Gaul", question: "Kenapa mata pencaharian itu disebut pencaharian?", answer: "Karena Terang", acceptableAnswers: ["karena terang", "terang", "pencahayaan"], clue: "Kalau gelap jadi penutup..." },
+  { id: "q13", category: "Teka-Teki Santai", question: "Telor apa yang kalau diinjak tidak pecah?", answer: "Telor Tato", acceptableAnswers: ["telor tato", "tato"], clue: "Karena digambar di kulit preman!" },
+  { id: "q14", category: "Tebak-Tebakan Hewan", question: "Kucing apa yang paling ditakuti oleh tikus?", answer: "Kucing Beneran", acceptableAnswers: ["kucing beneran", "kucing asli", "kucing"], clue: "Bukan kucing gambar atau mainan." },
+  { id: "q15", category: "Asah Otak Kocak", question: "Benda apa yang selalu di depan mata tapi tidak bisa dilihat?", answer: "Bulu Mata", acceptableAnswers: ["bulu mata", "alis"], clue: "Coba tatap tanpa cermin..." },
+  { id: "q16", category: "Tebak-Tebakan Gaul", question: "Orang apa yang kalau berenang rambutnya tidak basah?", answer: "Orang Botak", acceptableAnswers: ["orang botak", "botak"], clue: "Karena tidak punya rambut..." },
+  { id: "q17", category: "Plesetan Musik", question: "Band apa yang paling tidak suka hujan?", answer: "Slank", acceptableAnswers: ["slank", "selang"], clue: "Plesetan dari selang air..." },
+  { id: "q18", category: "Teka-Teki Lucu", question: "Kenapa saat lampu merah kendaraan harus berhenti?", answer: "Karena Direm", acceptableAnswers: ["karena direm", "direm", "rem"], clue: "Kalau tidak direm ya nabrak!" },
+  { id: "q19", category: "Tebak-Tebakan AI", question: "Sayur apa yang jago bela diri?", answer: "Bayam Choke", acceptableAnswers: ["bayam choke", "bayam", "kangkung kungfu"], clue: "Plesetan dari martial art..." },
+  { id: "q20", category: "Asah Otak", question: "Benda apa yang kalau dipotong malah makin tinggi?", answer: "Celana Panjang", acceptableAnswers: ["celana panjang", "celana"], clue: "Dipotong bagian bawahnya jadi celana pendek/tinggi..." }
 ];
 
 export class TebakManager {
   private static instance: TebakManager;
   private activeSessions: Map<string, ActiveSession> = new Map(); // key: sessionId
+  private askedQuestionHistory: Set<string> = new Set();
 
   private constructor() {}
 
@@ -80,6 +78,26 @@ export class TebakManager {
 
   public isChannelActive(channelId: string): boolean {
     return Array.from(this.activeSessions.values()).some((s) => s.channelId === channelId);
+  }
+
+  public clearChannelSession(channelId: string) {
+    for (const [sessionId, session] of this.activeSessions.entries()) {
+      if (session.channelId === channelId) {
+        if (session.timer) clearTimeout(session.timer);
+        this.activeSessions.delete(sessionId);
+      }
+    }
+  }
+
+  private async getUniqueQuestion(): Promise<TebakQuestion> {
+    let question = await this.generateAiTebakQuestion();
+    if (!question) {
+      const unused = QUESTION_BANK.filter((q) => !this.askedQuestionHistory.has(q.question.toLowerCase()));
+      const pool = unused.length > 0 ? unused : QUESTION_BANK;
+      question = pool[Math.floor(Math.random() * pool.length)];
+    }
+    this.askedQuestionHistory.add(question.question.toLowerCase());
+    return question;
   }
 
   /**
@@ -97,25 +115,23 @@ export class TebakManager {
     }
 
     const sessionId = `tbk-${Date.now()}`;
-    let question = await this.generateAiTebakQuestion();
-    if (!question) {
-      question = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
-    }
+    const question = await this.getUniqueQuestion();
 
     const embed = new EmbedBuilder()
-      .setTitle(`Game Tebak-Tebakan (${question.category})`)
+      .setTitle(`🧩 TEBAK-TEBAKAN MAYA AI (${question.category})`)
       .setDescription(
         `**Pertanyaan**:\n> ${question.question}\n\n` +
-        `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul!"}\n\n` +
-        `Klik tombol **Jawab Tebak-Tebakan** di bawah ini untuk mengisi jawaban kamu!\nBatas waktu: **45 detik**.`
+        `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul & out of the box!"}\n\n` +
+        `Waktu menjawab: **45 detik**. Setiap member memiliki **3x kesempatan** untuk menjawab!\n` +
+        `Klik tombol **Jawab Tebak-Tebakan** di bawah ini!`
       )
-      .setColor("#2563EB")
-      .setFooter({ text: "Maya AI Trivia Engine • Mode Instant" })
+      .setColor("#3B82F6")
+      .setFooter({ text: "Maya Trivia Engine • Tekan tombol untuk menjawab" })
       .setTimestamp();
 
     const answerButton = new ButtonBuilder()
       .setCustomId(`tebak_answer:${sessionId}`)
-      .setLabel("Jawab Tebak-Tebakan")
+      .setLabel("💬 Jawab Tebak-Tebakan")
       .setStyle(ButtonStyle.Primary);
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(answerButton);
@@ -135,6 +151,8 @@ export class TebakManager {
       startTime: Date.now(),
       timer,
       isDaily: false,
+      answeredUserIds: new Set<string>(),
+      userAttempts: new Map<string, number>(),
     };
 
     this.activeSessions.set(sessionId, session);
@@ -146,21 +164,18 @@ export class TebakManager {
    */
   public async startDailyRiddleSession(channel: TextChannel, guildId: string): Promise<boolean> {
     if (this.isChannelActive(channel.id)) {
-      return false;
+      this.clearChannelSession(channel.id);
     }
 
     const sessionId = `daily-${Date.now()}`;
-    let question = await this.generateAiTebakQuestion();
-    if (!question) {
-      question = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
-    }
+    const question = await this.getUniqueQuestion();
 
     const embed = new EmbedBuilder()
       .setTitle(`📢 TEBAK-TEBAKAN HARIAN MAYA AI (${question.category})`)
       .setDescription(
         `**Pertanyaan Hari Ini**:\n> ${question.question}\n\n` +
         `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul & out of the box!"}\n\n` +
-        `Setiap anggota server dapat menjawab 1x hari ini untuk mengumpulkan **Poin Harian**!\n` +
+        `Setiap anggota server memiliki **3x kesempatan** untuk menjawab tebakan hari ini & mendapatkan koin RTK!\n` +
         `Klik tombol **Jawab Tebak-Tebakan Harian** di bawah ini!`
       )
       .setColor("#9333EA") // Purple Indigo
@@ -189,6 +204,7 @@ export class TebakManager {
       startTime: Date.now(),
       isDaily: true,
       answeredUserIds: new Set<string>(),
+      userAttempts: new Map<string, number>(),
     };
 
     this.activeSessions.set(sessionId, session);
@@ -208,22 +224,35 @@ export class TebakManager {
       return;
     }
 
-    // For daily riddles, check if user already answered today
-    if (session.isDaily && session.answeredUserIds?.has(interaction.user.id)) {
+    // 1. Check if user already answered correctly
+    if (session.answeredUserIds?.has(interaction.user.id)) {
       await interaction.reply({
-        content: "Kamu sudah berhasil menjawab Tebak-Tebakan Harian hari ini! Kembali lagi besok untuk tantangan berikutnya.",
+        content: session.isDaily
+          ? "Kamu sudah berhasil menjawab Tebak-Tebakan Harian hari ini! 🎉 Kembali lagi besok untuk tantangan berikutnya."
+          : "Kamu sudah berhasil menjawab tebak-tebakan ini! 🎉",
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
+    // 2. Check if user used all 3 attempts
+    const currentAttempts = session.userAttempts?.get(interaction.user.id) ?? 0;
+    if (currentAttempts >= 3) {
+      await interaction.reply({
+        content: "Kesempatan kamu untuk menjawab tebakan ini sudah habis (**3/3**). Coba lagi di tebakan berikutnya!",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    const remaining = 3 - currentAttempts;
     const modal = new ModalBuilder()
       .setCustomId(`modal_tebak:${sessionId}`)
-      .setTitle(session.isDaily ? "Jawab Tebak-Tebakan Harian" : "Jawab Tebak-Tebakan");
+      .setTitle(session.isDaily ? `Jawab Tebakan Harian (Sisa: ${remaining}/3)` : `Jawab Tebakan (Sisa: ${remaining}/3)`);
 
     const answerInput = new TextInputBuilder()
       .setCustomId("jawaban_user")
-      .setLabel("Jawaban Kamu")
+      .setLabel(`Jawaban Kamu (Kesempatan ${currentAttempts + 1}/3)`)
       .setPlaceholder("Ketik jawaban kamu di sini...")
       .setStyle(TextInputStyle.Short)
       .setRequired(true)
@@ -248,25 +277,56 @@ export class TebakManager {
       return;
     }
 
+    // 1. Check if user already answered correctly
+    if (session.answeredUserIds?.has(interaction.user.id)) {
+      await interaction.reply({
+        content: session.isDaily
+          ? "Kamu sudah berhasil menjawab Tebak-Tebakan Harian hari ini! 🎉 Kembali lagi besok untuk tantangan berikutnya."
+          : "Kamu sudah berhasil menjawab tebak-tebakan ini! 🎉",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    // 2. Check attempts limit
+    const currentAttempts = session.userAttempts?.get(interaction.user.id) ?? 0;
+    if (currentAttempts >= 3) {
+      await interaction.reply({
+        content: "Kesempatan kamu untuk menjawab tebakan ini sudah habis (**3/3**). Coba lagi di tebakan berikutnya!",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
     const userAnswer = interaction.fields.getTextInputValue("jawaban_user").trim().toLowerCase();
     const isCorrect = session.question.acceptableAnswers.some(
       (ans) => ans.toLowerCase() === userAnswer || userAnswer.includes(ans.toLowerCase())
     );
 
     if (isCorrect) {
+      if (!session.answeredUserIds) session.answeredUserIds = new Set<string>();
+      session.answeredUserIds.add(interaction.user.id);
+
+      // Get configured reward points from DB for this guild
+      let rewardPoints = 10;
+      try {
+        const config = await prisma.guildConfig.findUnique({ where: { guildId: session.guildId } });
+        if (config && config.dailyRiddleRewardAmount) {
+          rewardPoints = config.dailyRiddleRewardAmount;
+        }
+      } catch (_) {}
+
       if (session.isDaily) {
         // Daily Mode: Multi-user participation!
-        session.answeredUserIds?.add(interaction.user.id);
-
         const newDailyScore = await this.addDailyScore(
           session.guildId,
           interaction.user.id,
           interaction.user.displayName || interaction.user.username,
-          10
+          rewardPoints
         );
 
         await interaction.reply({
-          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+10 RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!\nTotal Harian Kamu: **${newDailyScore} RTK**.`,
+          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+${rewardPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!\nTotal Harian Kamu: **${newDailyScore} RTK**.`,
           flags: MessageFlags.Ephemeral,
         });
       } else {
@@ -278,7 +338,7 @@ export class TebakManager {
           session.guildId,
           interaction.user.id,
           interaction.user.displayName || interaction.user.username,
-          10
+          rewardPoints
         );
 
         if (session.messageId && interaction.channel) {
@@ -290,7 +350,7 @@ export class TebakManager {
                 .setTitle(`Tebak-Tebakan Selesai! (Dijawab Benar)`)
                 .setDescription(
                   `**Pertanyaan**:\n> ${session.question.question}\n\n` +
-                  `Pemenang: <@${interaction.user.id}> (+10 RTK)\n` +
+                  `Pemenang: <@${interaction.user.id}> (+${rewardPoints} RTK)\n` +
                   `Jawaban Benar: **${session.question.answer}**\n` +
                   `Total Saldo <@${interaction.user.id}>: **${newScore} RTK**`
                 )
@@ -315,15 +375,29 @@ export class TebakManager {
         }
 
         await interaction.reply({
-          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+10 RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!`,
+          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+${rewardPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!`,
           flags: MessageFlags.Ephemeral,
         });
       }
     } else {
-      await interaction.reply({
-        content: `Jawaban kamu "${userAnswer}" belum tepat. Silakan coba tebak lagi!`,
-        flags: MessageFlags.Ephemeral,
-      });
+      const newAttempts = currentAttempts + 1;
+      if (!session.userAttempts) {
+        session.userAttempts = new Map<string, number>();
+      }
+      session.userAttempts.set(interaction.user.id, newAttempts);
+
+      const remaining = 3 - newAttempts;
+      if (remaining > 0) {
+        await interaction.reply({
+          content: `Jawaban kamu "**${userAnswer}**" SALAH! ❌\n(Kesempatan tersisa: **${remaining}/3** attempt)`,
+          flags: MessageFlags.Ephemeral,
+        });
+      } else {
+        await interaction.reply({
+          content: `Jawaban kamu "**${userAnswer}**" SALAH! ❌\nKesempatan kamu untuk menjawab tebakan ini telah habis (**3/3**). Coba lagi di tebakan berikutnya!`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     }
   }
 

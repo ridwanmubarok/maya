@@ -30,14 +30,24 @@ export function initDailyRiddleScheduler(client: Client) {
 }
 
 /**
- * Get current WIB (UTC+7) hour and date string (YYYY-MM-DD)
+ * Get current WIB (UTC+7) hour and date string (YYYY-MM-DD) natively
  */
 function getWibDateTime() {
   const now = new Date();
-  // WIB is UTC+7
-  const wibTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-  const wibHour = wibTime.getUTCHours();
-  const dateStr = wibTime.toISOString().split("T")[0]; // "YYYY-MM-DD"
+  const wibHour = parseInt(
+    new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false }).format(now),
+    10
+  );
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  const dateStr = `${year}-${month}-${day}`;
   return { wibHour, dateStr };
 }
 
@@ -77,7 +87,7 @@ async function processScheduledBroadcasts(client: Client) {
 /**
  * Broadcast Daily Riddle to a specific guild
  */
-export async function broadcastDailyRiddlesForGuild(guild: any, configuredChannelId?: string) {
+export async function broadcastDailyRiddlesForGuild(guild: any, configuredChannelId?: string, force: boolean = false): Promise<boolean> {
   try {
     let targetChannel: TextChannel | null = null;
 
@@ -86,20 +96,28 @@ export async function broadcastDailyRiddlesForGuild(guild: any, configuredChanne
     }
 
     if (!targetChannel) {
-      targetChannel =
-        guild.systemChannel ||
-        (guild.channels.cache.find(
-          (c: any) => c.isTextBased() && (c.name.includes("general") || c.name.includes("chat") || c.name.includes("main") || c.name.includes("tebak"))
-        ) as TextChannel);
+      try {
+        const fetchedChannels = await guild.channels.fetch();
+        targetChannel = (fetchedChannels.find(
+          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("tebak") || c.name.includes("general") || c.name.includes("chat") || c.name.includes("main"))
+        ) || guild.systemChannel) as TextChannel;
+      } catch (_) {
+        targetChannel = guild.systemChannel as TextChannel;
+      }
     }
 
     if (targetChannel && "send" in targetChannel) {
-      await tebakManager.startDailyRiddleSession(targetChannel, guild.id);
+      if (force) {
+        tebakManager.clearChannelSession(targetChannel.id);
+      }
+      return await tebakManager.startDailyRiddleSession(targetChannel, guild.id);
     } else {
       logger.warn(`DailyRiddleScheduler: Channel target daily riddle tidak ditemukan di ${guild.name}`);
+      return false;
     }
   } catch (e) {
     logger.error(`DailyRiddleScheduler: Error broadcasting riddle to guild ${guild.name}:`, e);
+    return false;
   }
 }
 

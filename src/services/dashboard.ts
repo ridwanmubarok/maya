@@ -17,6 +17,7 @@ import {
   approveShopOrder, 
   rejectShopOrder 
 } from "./shopService";
+import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
 
 const app = express();
 app.use(express.json());
@@ -305,6 +306,28 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Trigger Tes Broadcast Tebak-Tebakan Harian Langsung dari Web Dashboard
+  app.post("/api/configs/:guildId/test-daily-riddle", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+      return res.status(404).json({ error: "Server tidak ditemukan atau bot tidak aktif di server tersebut." });
+    }
+
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      const success = await broadcastDailyRiddlesForGuild(guild, config?.dailyRiddleChannelId || undefined, true);
+      if (success) {
+        res.json({ success: true, message: "Broadcast Tebak-Tebakan Harian berhasil dikirim ke server!" });
+      } else {
+        res.status(500).json({ error: "Gagal mengirim broadcast. Pastikan channel target terpasang dan bot memiliki izin kirim pesan." });
+      }
+    } catch (error: any) {
+      logger.error(`Error testing daily riddle for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan saat memicu broadcast tebakan." });
+    }
+  });
+
   // Save/Update configuration for a specific guild (Requires Auth)
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
@@ -323,6 +346,7 @@ export function startDashboard(client: MayaClient) {
       dailyRiddleEnabled,
       dailyRiddlePostHour,
       dailyLeaderboardPostHour,
+      dailyRiddleRewardAmount,
       menfessChannelId,
       menfessEnabled,
       voiceRewardEnabled,
@@ -346,6 +370,7 @@ export function startDashboard(client: MayaClient) {
       if (dailyRiddleEnabled !== undefined) updateData.dailyRiddleEnabled = Boolean(dailyRiddleEnabled);
       if (dailyRiddlePostHour !== undefined) updateData.dailyRiddlePostHour = Number(dailyRiddlePostHour);
       if (dailyLeaderboardPostHour !== undefined) updateData.dailyLeaderboardPostHour = Number(dailyLeaderboardPostHour);
+      if (dailyRiddleRewardAmount !== undefined) updateData.dailyRiddleRewardAmount = Number(dailyRiddleRewardAmount);
       if (menfessChannelId !== undefined) updateData.menfessChannelId = menfessChannelId || null;
       if (menfessEnabled !== undefined) updateData.menfessEnabled = Boolean(menfessEnabled);
       if (voiceRewardEnabled !== undefined) updateData.voiceRewardEnabled = Boolean(voiceRewardEnabled);
