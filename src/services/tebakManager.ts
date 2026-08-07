@@ -438,14 +438,30 @@ export class TebakManager {
   }
 
   /**
-   * Generate dynamic AI riddle
+   * Generate dynamic AI riddle using NVIDIA AI with random themes & history tracking
    */
   private async generateAiTebakQuestion(): Promise<TebakQuestion | null> {
+    const themes = [
+      "Plesetan Nama Artis & Tokoh Dunia",
+      "Plesetan Makanan & Minuman Kekinian",
+      "Tebak-Tebakan Teknologi & HP",
+      "Teka-Teki Logika Out of the Box",
+      "Plesetan Hewan & Alam",
+      "Tebak-Tebakan Gaul Gen-Z & Tongkrongan",
+      "Plesetan Judul Lagu & Film Populer",
+      "Tebak-Tebakan Kehidupan Sehari-hari",
+    ];
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+    const historyList = Array.from(this.askedQuestionHistory).slice(-20).join("; ");
+
     const prompt = `
-Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia yang SANGAT LUCU, KEKINIAN (Gen-Z / Gaul / Plesetan Cerdas), dan TIDAK GARING!
+Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia bertema "${randomTheme}" yang SANGAT LUCU, KEKINIAN (Gen-Z / Gaul / Plesetan Cerdas), dan TIDAK GARING!
+PENTING: Pertanyaan HARUS BARU & UNIK! JANGAN gunakan tebakan yang pernah dipakai baru-baru ini berikut:
+[${historyList || "Belum ada"}]
+
 Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
 {
-  "category": "Tebak-Tebakan Kekinian",
+  "category": "${randomTheme}",
   "question": "Pertanyaan tebak-tebakan lucu di sini...",
   "answer": "Jawaban utama singkat",
   "acceptableAnswers": ["jawaban utama", "kata kunci singkat"],
@@ -469,7 +485,7 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
 
           return {
             id: `ai-q-${Date.now()}`,
-            category: data.category || "Tebak-Tebakan AI Kekinian",
+            category: data.category || randomTheme,
             question: data.question,
             answer: data.answer,
             acceptableAnswers: acceptable,
@@ -478,7 +494,7 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
         }
       }
     } catch (error) {
-      logger.error("TebakManager: Error generating AI riddle:", error);
+      logger.error("TebakManager: Error generating AI riddle via NVIDIA:", error);
     }
     return null;
   }
