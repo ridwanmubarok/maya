@@ -1,4 +1,4 @@
-import { ActionRowBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { createEmbed } from "../utils/embeds";
@@ -7,6 +7,8 @@ import { tebakManager } from "../services/tebakManager";
 import { submitMenfess } from "../services/menfessService";
 import { trackAnalyticsEvent } from "../services/analyticsTracker";
 import { processShopPurchase } from "../services/shopService";
+import { translateWithNvidia } from "../services/translationService";
+import { translationCache } from "../commands/utility/translateMsg";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -88,6 +90,65 @@ const event: BotEvent = {
           logger.error(`Error toggling reaction role ${role.name}:`, err);
           await interaction.editReply({ content: `Bot tidak memiliki izin untuk mengelola role **${role.name}**.` });
         }
+        return;
+      }
+
+      if (customId.startsWith("trans_lang:")) {
+        const parts = customId.split(":");
+        const targetLang = parts[1] as "EN" | "JA" | "ZH";
+        const msgId = parts[2];
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const cachedContent = translationCache.get(msgId);
+        if (!cachedContent) {
+          await interaction.editReply({
+            content: "Teks pesan telah kadaluwarsa dari memori. Silakan coba klik kanan pesan kembali.",
+          });
+          return;
+        }
+
+        const result = await translateWithNvidia(cachedContent, targetLang, "Santai");
+        if (!result) {
+          await interaction.editReply({
+            content: "Gagal menerjemahkan teks menggunakan NVIDIA AI Engine. Silakan coba lagi.",
+          });
+          return;
+        }
+
+        const colorMap = {
+          EN: "#3B82F6",
+          JA: "#EF4444",
+          ZH: "#F59E0B",
+        };
+
+        const embed = new EmbedBuilder()
+          .setTitle(`🌐 MAYA AI TRANSLATOR • ${result.flag} ${result.langName}`)
+          .setColor(colorMap[targetLang] as any)
+          .setDescription(
+            `**🌐 Teks Asli**:\n> ${result.originalText}\n\n` +
+            `**🎯 Hasil Terjemahan (${result.flag})**:\n\`\`\`\n${result.translatedText}\n\`\`\``
+          )
+          .setFooter({ text: `Maya AI Universal Translator • Gaya: ${result.style}` })
+          .setTimestamp();
+
+        if (result.pronunciation) {
+          embed.addFields({
+            name: targetLang === "JA" ? "🗣️ Cara Baca (Romaji)" : "🗣️ Cara Baca (Pinyin)",
+            value: `\`${result.pronunciation}\``,
+            inline: false,
+          });
+        }
+
+        if (result.notes) {
+          embed.addFields({
+            name: "💡 Nuansa & Catatan Bahasa",
+            value: result.notes,
+            inline: false,
+          });
+        }
+
+        await interaction.editReply({ embeds: [embed] });
         return;
       }
     }

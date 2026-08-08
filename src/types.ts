@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder, Client, Collection } 
 
 export interface Command {
   data: SlashCommandBuilder | any;
-  execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+  execute: (interaction: any) => Promise<void>;
   autocomplete?: (interaction: any) => Promise<void>;
 }
 
