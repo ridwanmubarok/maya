@@ -64,18 +64,18 @@ const command: Command = {
     };
 
     const embed = new EmbedBuilder()
-      .setTitle(`🌐 MAYA AI TRANSLATOR • ${result.flag} ${result.langName}`)
+      .setTitle(`Maya AI Translator • ${result.flag} ${result.langName}`)
       .setColor(colorMap[targetLang] as any)
       .setDescription(
-        `**🌐 Teks Asli**:\n> ${result.originalText}\n\n` +
-        `**🎯 Hasil Terjemahan (${result.flag})**:\n\`\`\`\n${result.translatedText}\n\`\`\``
+        `**Teks Asli**:\n> ${result.originalText}\n\n` +
+        `**Terjemahan**:\n\`\`\`\n${result.translatedText}\n\`\`\``
       )
       .setFooter({ text: `Maya AI Universal Translator • Gaya: ${result.style}` })
       .setTimestamp();
 
     if (result.pronunciation) {
       embed.addFields({
-        name: targetLang === "JA" ? "🗣️ Cara Baca (Romaji)" : "🗣️ Cara Baca (Pinyin)",
+        name: targetLang === "JA" ? "Cara Baca (Romaji)" : "Cara Baca (Pinyin)",
         value: `\`${result.pronunciation}\``,
         inline: false,
       });
@@ -83,7 +83,7 @@ const command: Command = {
 
     if (result.notes) {
       embed.addFields({
-        name: "💡 Nuansa & Catatan Bahasa",
+        name: "Catatan Bahasa",
         value: result.notes,
         inline: false,
       });
