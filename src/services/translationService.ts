@@ -29,16 +29,26 @@ export async function translateWithNvidia(
   const info = langNames[targetLang] || langNames.EN;
 
   const systemPrompt =
-    "Anda adalah Pakar Penerjemah Bahasa Universal & Budaya berpengalaman. Jawab HANYA dalam format JSON valid tanpa sapaan, tanpa percakapan, dan tanpa markdown pembungkus di luar JSON.";
+    "Anda adalah Pakar Penerjemah Bahasa Universal & Budaya berpengalaman. Tugas utama Anda adalah menerjemahkan ke dalam bahasa sehari-hari/lisan (spoken language) yang alami, santai, dan populer digunakan oleh penutur asli dalam percakapan nyata. Jawab HANYA dalam format JSON valid tanpa sapaan, tanpa percakapan, dan tanpa markdown pembungkus di luar JSON.";
+
+  const styleDescription = targetLang === "ZH"
+    ? "Bahasa Mandarin Lisan Sehari-hari (口语 - Kǒuyǔ) yang ALAMI, POPULER DIPAKAI SEHARI-HARI/CHATTING, DAN TIDAK KAKU. Hindari terjemahan kaku ala buku teks/dokumen resmi!"
+    : `gaya bahasa **${style}**`;
 
   const prompt = `
-Terjemahkan teks berikut dari Bahasa Indonesia ke dalam **${info.name}** dengan gaya bahasa **${style}**.
+Terjemahkan teks berikut dari Bahasa Indonesia ke dalam **${info.name}** dengan ${styleDescription}.
 
 Teks Asli: "${text}"
 
-PETUNJUK OUTPUT JSON WAJIB:
-1. "translatedText": Tuliskan HASIL TERJEMAHAN UTAMA dalam huruf/karakter ${info.name}. (Contoh: "Good morning!" untuk EN, "おはようございます" untuk JA, "大家好，早上好" untuk ZH Mandarin). JANGAN PERNAH MENISIKAN STRING KOSONG ""!
-2. "pronunciation": Jika target JA isi Romaji cara baca, jika target ZH isi Pinyin nada baca, jika target EN isi null.
+ATURAN KHUSUS UTAMA OUTPUT JSON:
+1. "translatedText": WAJIB TULISAN/AKSARA ASLI NATIVE BAHASA TARGET!
+   - Jika target JA: WAJIB karakter Jepang Asli (Kanji / Hiragana / Katakana), CONTOH: "おはよう、みんな！". DILARANG HURUF LATIN/ROMAJI DI SINI!
+   - Jika target ZH: WAJIB karakter Mandarin Hanzi Asli yang ALAMI, POPULER DIPAKAI SEHARI-HARI/CHATTING (口语), CONTOH: "大家早！" atau "早安！" atau "谢谢啦". DILARANG BAHASA BUKU/FORMAL KAKU!
+   - Jika target EN: Bahasa Inggris natural. CONTOH: "Good morning everyone!"
+2. "pronunciation":
+   - Jika target JA: Cara baca Romaji Latin (CONTOH: "Ohayou minna!").
+   - Jika target ZH: Pinyin nada baca Latin (CONTOH: "Dàjiā zǎo!").
+   - Jika target EN: null.
 3. "notes": Catatan singkat nuansa bahasa atau pilihan kata (opsional).
 
 Format JSON wajib:
