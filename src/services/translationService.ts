@@ -28,43 +28,54 @@ export async function translateWithNvidia(
 
   const info = langNames[targetLang] || langNames.EN;
 
+  const systemPrompt =
+    "Anda adalah Pakar Penerjemah Bahasa Universal & Budaya berpengalaman. Jawab HANYA dalam format JSON valid tanpa sapaan, tanpa percakapan, dan tanpa markdown pembungkus di luar JSON.";
+
   const prompt = `
-Anda adalah Pakar Penerjemah Bahasa Universal & Budaya berpengalaman.
-Tugas Anda: Terjemahkan teks berikut ke dalam **${info.name}** dengan gaya bahasa **${style}**.
+Terjemahkan teks berikut dari Bahasa Indonesia ke dalam **${info.name}** dengan gaya bahasa **${style}**.
 
 Teks Asli: "${text}"
 
-Ketentuan:
-1. Jika target adalah Bahasa Jepang (JA), sertakan "pronunciation" berupa Romaji (cara baca).
-2. Jika target adalah Bahasa Mandarin (ZH), sertakan "pronunciation" berupa Pinyin dengan nada baca.
-3. Terjemahan harus alami, akurat, dan sesuai nuansa budaya target.
-4. Jawab HANYA dalam format JSON persis seperti berikut tanpa teks atau markdown tambahan di luar JSON:
+PETUNJUK OUTPUT JSON WAJIB:
+1. "translatedText": Tuliskan HASIL TERJEMAHAN UTAMA dalam huruf/karakter ${info.name}. (Contoh: "Good morning!" untuk EN, "おはようございます" untuk JA, "大家好，早上好" untuk ZH Mandarin). JANGAN PERNAH MENISIKAN STRING KOSONG ""!
+2. "pronunciation": Jika target JA isi Romaji cara baca, jika target ZH isi Pinyin nada baca, jika target EN isi null.
+3. "notes": Catatan singkat nuansa bahasa atau pilihan kata (opsional).
 
+Format JSON wajib:
 {
-  "translatedText": "Hasil terjemahan di sini...",
-  "pronunciation": "Cara baca Romaji atau Pinyin di sini (isi null jika target EN)...",
-  "notes": "Catatan singkat nuansa bahasa/pilihan kata..."
+  "translatedText": "...",
+  "pronunciation": "...",
+  "notes": "..."
 }
 `.trim();
 
   try {
-    const raw = await askNvidia(prompt);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const raw = await askNvidia(prompt, systemPrompt);
+    const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const data = JSON.parse(jsonMatch[0]);
-      if (data.translatedText) {
+      let translated = (data.translatedText || data.translation || data.hanzi || data.chinese || data.result || "").trim();
+      
+      // Fallback if AI put translation in pronunciation
+      if (!translated && data.pronunciation) {
+        translated = data.pronunciation.trim();
+      }
+
+      if (translated.length > 0) {
         return {
           originalText: text,
-          translatedText: data.translatedText,
+          translatedText: translated,
           targetLang,
           langName: info.name,
           flag: info.flag,
-          pronunciation: data.pronunciation || undefined,
+          pronunciation: data.pronunciation && data.pronunciation !== translated ? data.pronunciation : undefined,
           style,
           notes: data.notes || undefined,
         };
       }
     }
+    logger.warn(`TranslationService: Could not extract valid translatedText from NVIDIA response: ${raw}`);
   } catch (error) {
     logger.error(`TranslationService: Error translating text to ${targetLang}:`, error);
   }
