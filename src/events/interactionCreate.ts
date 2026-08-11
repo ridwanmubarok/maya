@@ -1,4 +1,4 @@
-import { ActionRowBuilder, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { createEmbed } from "../utils/embeds";
@@ -9,6 +9,8 @@ import { trackAnalyticsEvent } from "../services/analyticsTracker";
 import { processShopPurchase } from "../services/shopService";
 import { translateWithNvidia } from "../services/translationService";
 import { translationCache } from "../commands/utility/translateMsg";
+import { generateFreeImage } from "../services/imageGenService";
+import { imaginePromptCache } from "../commands/utility/imagine";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -149,6 +151,45 @@ const event: BotEvent = {
         }
 
         await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      if (customId.startsWith("imagine_regen:")) {
+        const cacheKey = customId.split(":")[1];
+        const cached = imaginePromptCache.get(cacheKey);
+
+        if (!cached) {
+          await interaction.reply({
+            content: "Sesi regenerasi gambar telah kadaluwarsa. Silakan ketik perintah /imagine kembali.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        await interaction.deferUpdate();
+
+        const result = await generateFreeImage(cached.prompt, cached.style);
+        if (!result) return;
+
+        const embed = new EmbedBuilder()
+          .setTitle(`Maya AI Image Generator • ${cached.style}`)
+          .setColor("#3B82F6")
+          .setDescription(
+            `**Prompt**:\n> ${cached.prompt}\n\n` +
+            `**AI Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
+          )
+          .setImage(result.imageUrl)
+          .setFooter({ text: `Engine: FLUX.1 HD • Seed: ${result.seed}` })
+          .setTimestamp();
+
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`imagine_regen:${cacheKey}`)
+            .setLabel("🔄 Buat Ulang")
+            .setStyle(ButtonStyle.Primary)
+        );
+
+        await interaction.editReply({ embeds: [embed], components: [row] });
         return;
       }
     }
