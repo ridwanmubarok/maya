@@ -47,16 +47,17 @@ export async function generateFreeImage(
 ): Promise<ImageGenResult | null> {
   try {
     const seed = customSeed || Math.floor(Math.random() * 10000000);
-    const enhancedPrompt = await enhancePromptWithNvidia(userPrompt, style);
+    const baseEnhanced = await enhancePromptWithNvidia(userPrompt, style);
+    const enhancedPrompt = `${baseEnhanced}, masterpiece, sharp focus, 8k resolution, crisp details`;
 
     // Truncate prompt safely if needed to ensure encoded URL is always well below Discord limit (2048 chars)
-    const safePrompt = enhancedPrompt.length > 200 ? enhancedPrompt.slice(0, 200) : enhancedPrompt;
+    const safePrompt = enhancedPrompt.length > 220 ? enhancedPrompt.slice(0, 220) : enhancedPrompt;
     const encodedPrompt = encodeURIComponent(safePrompt);
-    let imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`;
+    let imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1280&height=1280&seed=${seed}&nologo=true&enhance=true`;
 
     if (imageUrl.length > 1800) {
-      const truncatedEncoded = encodeURIComponent(safePrompt.slice(0, 100));
-      imageUrl = `https://image.pollinations.ai/prompt/${truncatedEncoded}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`;
+      const truncatedEncoded = encodeURIComponent(safePrompt.slice(0, 120));
+      imageUrl = `https://image.pollinations.ai/prompt/${truncatedEncoded}?model=flux&width=1280&height=1280&seed=${seed}&nologo=true&enhance=true`;
     }
 
     return {

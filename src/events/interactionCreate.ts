@@ -186,7 +186,11 @@ const event: BotEvent = {
           new ButtonBuilder()
             .setCustomId(`imagine_regen:${cacheKey}`)
             .setLabel("🔄 Buat Ulang")
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setURL(result.imageUrl)
+            .setLabel("🔍 Buka Gambar HD (Full Res)")
+            .setStyle(ButtonStyle.Link)
         );
 
         await interaction.editReply({ embeds: [embed], components: [row] });
