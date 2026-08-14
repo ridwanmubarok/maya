@@ -32,12 +32,19 @@ const command: Command = {
         .setName("maks_pemain")
         .setDescription("Batas maksimal jumlah pemain yang bisa bergabung")
         .setRequired(false)
+    )
+    .addStringOption(opt =>
+      opt
+        .setName("link_game")
+        .setDescription("URL / Link game (contoh: Roblox VIP server, Room link, Discord Voice)")
+        .setRequired(false)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     const game = interaction.options.getString("game", true);
     const playTime = interaction.options.getString("waktu", true);
     const description = interaction.options.getString("deskripsi", true);
     const maxPlayers = interaction.options.getInteger("maks_pemain");
+    const gameUrl = interaction.options.getString("link_game");
 
     await interaction.deferReply({ ephemeral: true });
 
@@ -51,7 +58,6 @@ const command: Command = {
       }
 
       // Generate a temporary ID for mabar session so we can attach it to buttons customId
-      // We will create the DB row first with a placeholder messageId, send the message, and then update it!
       const tempSession = await prisma.gameSession.create({
         data: {
           guildId: interaction.guildId!,
@@ -61,6 +67,7 @@ const command: Command = {
           description,
           playTime,
           maxPlayers,
+          gameUrl,
           creatorId: interaction.user.id,
           participants: [interaction.user.id] // Creator is joined by default
         }
@@ -73,11 +80,12 @@ const command: Command = {
         description,
         playTime,
         maxPlayers,
+        gameUrl,
         creatorId: interaction.user.id,
         participants: [interaction.user.id]
       });
 
-      const buttons = createMabarButtons(tempSession.id);
+      const buttons = createMabarButtons(tempSession.id, gameUrl);
 
       const msg = await (channel as TextChannel).send({
         embeds: [embed],

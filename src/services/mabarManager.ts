@@ -8,6 +8,7 @@ export interface MabarSessionData {
   description: string;
   playTime: string;
   maxPlayers: number | null;
+  gameUrl?: string | null;
   creatorId: string;
   participants: string[];
 }
@@ -24,23 +25,35 @@ export function createMabarEmbed(session: MabarSessionData): EmbedBuilder {
     ? session.participants.map((id, index) => `${index + 1}. <@${id}>`).join("\n")
     : "*Belum ada yang bergabung. Jadilah yang pertama!*";
 
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setTitle(`Jadwal Mabar: ${session.game.toUpperCase()}`)
     .setDescription(session.description)
     .setColor(0x5865F2) // Discord Blurple
     .addFields(
       { name: "Waktu Bermain", value: `**${session.playTime}**`, inline: true },
-      { name: "Slot Pemain", value: `**${slotsInfo}**`, inline: true },
-      { name: "Daftar Peserta", value: participantList }
-    )
-    .setFooter({ text: `Dibuat oleh user ID: ${session.creatorId}` })
-    .setTimestamp();
+      { name: "Slot Pemain", value: `**${slotsInfo}**`, inline: true }
+    );
+
+  if (session.gameUrl) {
+    embed.addFields({
+      name: "🔗 Link Game / VIP Server",
+      value: `[**Klik untuk Main / Join Game**](${session.gameUrl})`,
+      inline: false,
+    });
+  }
+
+  embed.addFields({ name: "Daftar Peserta", value: participantList });
+  embed.setFooter({ text: `Dibuat oleh user ID: ${session.creatorId}` }).setTimestamp();
+
+  return embed;
 }
 
 /**
- * Generate Join and Leave buttons
+ * Generate Join, Leave, and optional Link buttons
  */
-export function createMabarButtons(sessionId: string): ActionRowBuilder<ButtonBuilder> {
+export function createMabarButtons(sessionId: string, gameUrl?: string | null): ActionRowBuilder<ButtonBuilder> {
+  const row = new ActionRowBuilder<ButtonBuilder>();
+
   const joinButton = new ButtonBuilder()
     .setCustomId(`mabar_join:${sessionId}`)
     .setLabel("Gabung Mabar")
@@ -51,7 +64,17 @@ export function createMabarButtons(sessionId: string): ActionRowBuilder<ButtonBu
     .setLabel("Keluar Mabar")
     .setStyle(ButtonStyle.Secondary);
 
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(joinButton, leaveButton);
+  row.addComponents(joinButton, leaveButton);
+
+  if (gameUrl) {
+    const playButton = new ButtonBuilder()
+      .setURL(gameUrl)
+      .setLabel("🎮 Main Sekarang")
+      .setStyle(ButtonStyle.Link);
+    row.addComponents(playButton);
+  }
+
+  return row;
 }
 
 /**
@@ -95,7 +118,7 @@ export async function handleMabarJoin(
           const msg = await channel.messages.fetch(session.messageId);
           if (msg) {
             const embed = createMabarEmbed(updatedSession);
-            const buttons = createMabarButtons(sessionId);
+            const buttons = createMabarButtons(sessionId, session.gameUrl);
             await msg.edit({ embeds: [embed], components: [buttons] });
           }
         } catch (err) {
@@ -148,7 +171,7 @@ export async function handleMabarLeave(
           const msg = await channel.messages.fetch(session.messageId);
           if (msg) {
             const embed = createMabarEmbed(updatedSession);
-            const buttons = createMabarButtons(sessionId);
+            const buttons = createMabarButtons(sessionId, session.gameUrl);
             await msg.edit({ embeds: [embed], components: [buttons] });
           }
         } catch (err) {

@@ -55,6 +55,7 @@ model GameSession {
   description  String
   playTime     String
   maxPlayers   Int?
+  gameUrl      String?
   creatorId    String
   participants String[]
   createdAt    DateTime @default(now())

@@ -757,7 +757,7 @@ export function startDashboard(client: MayaClient) {
   // Create a new mabar schedule from dashboard (Requires Auth)
   app.post("/api/mabar/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
-    const { channelId, game, description, playTime, maxPlayers } = req.body;
+    const { channelId, game, description, playTime, maxPlayers, gameUrl } = req.body;
 
     if (!channelId || !game || !playTime || !description) {
       return res.status(400).json({ error: "Channel, Game, Waktu, dan Deskripsi wajib diisi." });
@@ -788,6 +788,7 @@ export function startDashboard(client: MayaClient) {
           description,
           playTime,
           maxPlayers: maxPlayers ? Number(maxPlayers) : null,
+          gameUrl: gameUrl || null,
           creatorId: "Dashboard Admin",
           participants: [] // Empty list to start or with dummy
         }
@@ -800,11 +801,12 @@ export function startDashboard(client: MayaClient) {
         description,
         playTime,
         maxPlayers: maxPlayers ? Number(maxPlayers) : null,
+        gameUrl: gameUrl || null,
         creatorId: "Dashboard Admin",
         participants: []
       });
 
-      const buttons = createMabarButtons(tempSession.id);
+      const buttons = createMabarButtons(tempSession.id, gameUrl || null);
 
       // Send message to Discord
       const msg = await textChannel.send({

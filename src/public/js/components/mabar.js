@@ -47,6 +47,7 @@ async function loadMabar() {
 
 async function createMabar() {
   const createBtn = document.getElementById('create-mabar-btn');
+  const mabarUrlInput = document.getElementById('mabar-url');
   const originalHtml = createBtn ? createBtn.innerHTML : '';
 
   if (!mabarChannelSelect.value) {
@@ -68,7 +69,8 @@ async function createMabar() {
     game: mabarGameInput.value,
     playTime: mabarTimeInput.value,
     maxPlayers: mabarSlotsInput.value ? Number(mabarSlotsInput.value) : null,
-    description: mabarDescriptionInput.value
+    description: mabarDescriptionInput.value,
+    gameUrl: mabarUrlInput && mabarUrlInput.value.trim() ? mabarUrlInput.value.trim() : null,
   };
 
   try {
@@ -83,6 +85,7 @@ async function createMabar() {
       mabarTimeInput.value = '';
       mabarSlotsInput.value = '';
       mabarDescriptionInput.value = '';
+      if (mabarUrlInput) mabarUrlInput.value = '';
       loadMabar();
     } else {
       const errData = await response.json().catch(() => ({}));
