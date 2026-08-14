@@ -36,7 +36,7 @@ export function createMabarEmbed(session: MabarSessionData): EmbedBuilder {
 
   if (session.gameUrl) {
     embed.addFields({
-      name: "🔗 Link Game / VIP Server",
+      name: "🔗 Link Game",
       value: `[**Klik untuk Main / Join Game**](${session.gameUrl})`,
       inline: false,
     });

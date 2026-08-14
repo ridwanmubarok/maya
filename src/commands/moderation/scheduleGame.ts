@@ -36,7 +36,7 @@ const command: Command = {
     .addStringOption(opt =>
       opt
         .setName("link_game")
-        .setDescription("URL / Link game (contoh: Roblox VIP server, Room link, Discord Voice)")
+        .setDescription("URL / Link game (contoh: Roblox, Steam, Room link)")
         .setRequired(false)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
