@@ -25,6 +25,7 @@ model GuildConfig {
   dailyRiddlePostHour    Int      @default(9)
   dailyLeaderboardPostHour Int    @default(21)
   dailyRiddleRewardAmount  Int    @default(10)
+  dailyRiddleCloseRewardAmount Int @default(5)
   menfessChannelId       String?
   menfessEnabled         Boolean  @default(true)
   voiceRewardEnabled     Boolean  @default(true)

@@ -992,20 +992,24 @@
               </select>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="flex flex-col gap-2">
-                <label for="daily-riddle-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Broadcast Soal Harian</label>
+                <label for="daily-riddle-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Broadcast Soal</label>
                 <select id="daily-riddle-post-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
                 </select>
               </div>
               <div class="flex flex-col gap-2">
-                <label for="daily-leaderboard-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Broadcast Leaderboard Harian</label>
+                <label for="daily-leaderboard-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Broadcast Leaderboard</label>
                 <select id="daily-leaderboard-post-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
                 </select>
               </div>
               <div class="flex flex-col gap-2">
-                <label for="daily-riddle-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Hadiah RTK Per Jawaban Benar</label>
+                <label for="daily-riddle-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Hadiah RTK (Benar Tepat)</label>
                 <input type="number" id="daily-riddle-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="10" min="1" max="1000">
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="daily-riddle-close-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Hadiah RTK (Mendekati)</label>
+                <input type="number" id="daily-riddle-close-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="5" min="1" max="1000">
               </div>
             </div>
 
@@ -1016,6 +1020,53 @@
               <button onclick="testDailyRiddleBroadcast()" class="px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-paper-plane"></i> Tes Broadcast Sekarang
               </button>
+            </div>
+
+            <!-- LIVE BACKOFFICE MONITORING PANEL -->
+            <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-outfit text-base font-bold text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Backoffice: Status Soal Berlangsung & Jawaban Member
+                  </h4>
+                  <p class="text-xs text-gray-400">Pantau soal tebak-tebakan harian yang sedang aktif dan riwayat jawaban member secara real-time</p>
+                </div>
+                <button onclick="loadActiveRiddleLive()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-gray-300 hover:bg-white/10 transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+              </div>
+
+              <!-- Card Soal Berlangsung -->
+              <div id="live-riddle-card" class="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2">
+                <div class="text-xs text-gray-400 italic">Memuat status tebakan aktif...</div>
+              </div>
+
+              <!-- Tabel Live History Jawaban Member -->
+              <div class="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                <div class="px-4 py-3 border-b border-white/10 font-semibold text-xs text-gray-300 flex justify-between items-center">
+                  <span>Daftar Jawaban Member</span>
+                  <span id="live-riddle-count" class="text-[10px] bg-discord-blurple/20 text-discord-blurple px-2 py-0.5 rounded-full font-mono">0 Jawaban</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs">
+                    <thead class="bg-white/5 text-gray-400 text-[11px] uppercase tracking-wider">
+                      <tr>
+                        <th class="px-4 py-2.5">Member</th>
+                        <th class="px-4 py-2.5">Jawaban Diinput</th>
+                        <th class="px-4 py-2.5">Evaluasi AI</th>
+                        <th class="px-4 py-2.5">Kesempatan</th>
+                        <th class="px-4 py-2.5">Waktu</th>
+                      </tr>
+                    </thead>
+                    <tbody id="live-riddle-tbody" class="divide-y divide-white/5 text-gray-300">
+                      <tr>
+                        <td colspan="5" class="px-4 py-6 text-center text-gray-500 italic">Belum ada jawaban member pada sesi ini.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
 

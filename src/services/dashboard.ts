@@ -18,6 +18,7 @@ import {
   rejectShopOrder 
 } from "./shopService";
 import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
+import { tebakManager } from "./tebakManager";
 
 const app = express();
 app.use(express.json());
@@ -328,6 +329,18 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Ambil data status tebakan aktif & history jawaban member (Backoffice Dashboard)
+  app.get("/api/configs/:guildId/active-riddle", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const activeData = tebakManager.getActiveRiddleSession(guildId);
+      res.json({ success: true, ...activeData });
+    } catch (error: any) {
+      logger.error(`Error fetching active riddle session for ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil data tebakan aktif." });
+    }
+  });
+
   // Save/Update configuration for a specific guild (Requires Auth)
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
@@ -347,6 +360,7 @@ export function startDashboard(client: MayaClient) {
       dailyRiddlePostHour,
       dailyLeaderboardPostHour,
       dailyRiddleRewardAmount,
+      dailyRiddleCloseRewardAmount,
       menfessChannelId,
       menfessEnabled,
       voiceRewardEnabled,
@@ -371,6 +385,7 @@ export function startDashboard(client: MayaClient) {
       if (dailyRiddlePostHour !== undefined) updateData.dailyRiddlePostHour = Number(dailyRiddlePostHour);
       if (dailyLeaderboardPostHour !== undefined) updateData.dailyLeaderboardPostHour = Number(dailyLeaderboardPostHour);
       if (dailyRiddleRewardAmount !== undefined) updateData.dailyRiddleRewardAmount = Number(dailyRiddleRewardAmount);
+      if (dailyRiddleCloseRewardAmount !== undefined) updateData.dailyRiddleCloseRewardAmount = Number(dailyRiddleCloseRewardAmount);
       if (menfessChannelId !== undefined) updateData.menfessChannelId = menfessChannelId || null;
       if (menfessEnabled !== undefined) updateData.menfessEnabled = Boolean(menfessEnabled);
       if (voiceRewardEnabled !== undefined) updateData.voiceRewardEnabled = Boolean(voiceRewardEnabled);

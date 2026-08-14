@@ -26,6 +26,17 @@ export interface TebakQuestion {
   clue?: string;
 }
 
+export interface UserAnswerLog {
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  userAnswer: string;
+  evalStatus: "BENAR" | "MENDEKATI" | "SALAH";
+  attemptNumber: number;
+  aiReason?: string;
+  timestamp: string;
+}
+
 export interface ActiveSession {
   sessionId: string;
   guildId: string;
@@ -37,6 +48,7 @@ export interface ActiveSession {
   isDaily: boolean;
   answeredUserIds?: Set<string>;
   userAttempts?: Map<string, number>;
+  logs?: UserAnswerLog[];
 }
 
 const QUESTION_BANK: TebakQuestion[] = [
@@ -265,6 +277,97 @@ export class TebakManager {
   }
 
   /**
+   * Evaluate answer using NVIDIA AI (Supports Exact, Close/Fuzzy, and Wrong answers)
+   */
+  private async evaluateAnswerWithAi(
+    question: TebakQuestion,
+    userAnswer: string
+  ): Promise<{ isAccepted: boolean; evalStatus: "BENAR" | "MENDEKATI" | "SALAH"; reason: string }> {
+    const cleanUser = userAnswer.trim().toLowerCase();
+    const cleanAnswer = question.answer.trim().toLowerCase();
+
+    // Quick exact / keyword check
+    if (
+      cleanUser === cleanAnswer ||
+      question.acceptableAnswers.some((a) => a.toLowerCase() === cleanUser || cleanUser.includes(a.toLowerCase()))
+    ) {
+      return { isAccepted: true, evalStatus: "BENAR", reason: "Jawaban tepat sesuai kunci jawaban." };
+    }
+
+    // Call NVIDIA AI for Fuzzy / Semantic Similarity Evaluation
+    const systemPrompt =
+      "Anda adalah juri kuis tebak-tebakan Bahasa Indonesia yang cerdas. Tugas Anda adalah menilai apakah jawaban peserta BENAR (tepat/sinonim jelas), MENDEKATI (hampir tepat/plesetan mirip/ide pokok sama), atau SALAH (berbeda jauh). Jawab HANYA JSON valid.";
+
+    const prompt = `
+Pertanyaan Kuis: "${question.question}"
+Jawaban Kunci: "${question.answer}"
+Kata Kunci Lain Yang Diterima: ${JSON.stringify(question.acceptableAnswers)}
+
+Jawaban Diinput Peserta: "${userAnswer}"
+
+Tugas Evaluasi:
+- "BENAR": jika persis/sinonim jelas.
+- "MENDEKATI": jika hampir tepat, typo ringan, plesetan mirip, atau bermaksud sama.
+- "SALAH": jika berbeda jauh.
+
+Format JSON wajib:
+{
+  "status": "BENAR" / "MENDEKATI" / "SALAH",
+  "reason": "Alasan singkat 1 kalimat..."
+}
+`.trim();
+
+    try {
+      const raw = await askNvidia(prompt, systemPrompt);
+      const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        const status: "BENAR" | "MENDEKATI" | "SALAH" =
+          data.status === "BENAR" || data.status === "MENDEKATI" ? data.status : "SALAH";
+        const isAccepted = status === "BENAR" || status === "MENDEKATI";
+
+        return {
+          isAccepted,
+          evalStatus: status,
+          reason: data.reason || (isAccepted ? "Jawaban mendekati kebenaran." : "Jawaban belum tepat."),
+        };
+      }
+    } catch (e) {
+      logger.error("TebakManager: Error evaluating answer with AI:", e);
+    }
+
+    // Fallback word overlap check if AI fails
+    const isClose = cleanUser.includes(cleanAnswer) || cleanAnswer.includes(cleanUser);
+    if (isClose) {
+      return { isAccepted: true, evalStatus: "MENDEKATI", reason: "Jawaban mengandung kata kunci yang mirip." };
+    }
+
+    return { isAccepted: false, evalStatus: "SALAH", reason: "Jawaban belum tepat." };
+  }
+
+  /**
+   * Get Active Riddle Session & Live User Answer Logs for Web Dashboard Backoffice
+   */
+  public getActiveRiddleSession(guildId: string) {
+    for (const session of this.activeSessions.values()) {
+      if (session.guildId === guildId) {
+        return {
+          active: true,
+          sessionId: session.sessionId,
+          question: session.question,
+          isDaily: session.isDaily,
+          startTime: session.startTime,
+          answeredUserCount: session.answeredUserIds?.size || 0,
+          totalAttemptsCount: session.userAttempts?.size || 0,
+          logs: session.logs || [],
+        };
+      }
+    }
+    return { active: false, question: null, logs: [] };
+  }
+
+  /**
    * Handle Modal Submit -> Check Answer
    */
   public async handleModalSubmit(interaction: ModalSubmitInteraction, sessionId: string) {
@@ -298,23 +401,46 @@ export class TebakManager {
       return;
     }
 
-    const userAnswer = interaction.fields.getTextInputValue("jawaban_user").trim().toLowerCase();
-    const isCorrect = session.question.acceptableAnswers.some(
-      (ans) => ans.toLowerCase() === userAnswer || userAnswer.includes(ans.toLowerCase())
-    );
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    if (isCorrect) {
+    const userAnswerRaw = interaction.fields.getTextInputValue("jawaban_user").trim();
+    const newAttempts = currentAttempts + 1;
+    if (!session.userAttempts) session.userAttempts = new Map<string, number>();
+    session.userAttempts.set(interaction.user.id, newAttempts);
+
+    // AI Fuzzy / Semantic Evaluation
+    const evalResult = await this.evaluateAnswerWithAi(session.question, userAnswerRaw);
+
+    // Record log for Web Dashboard Backoffice
+    if (!session.logs) session.logs = [];
+    const userAvatar = interaction.user.displayAvatarURL({ extension: "png", size: 128 });
+    session.logs.unshift({
+      userId: interaction.user.id,
+      username: interaction.user.displayName || interaction.user.username,
+      avatarUrl: userAvatar,
+      userAnswer: userAnswerRaw,
+      evalStatus: evalResult.evalStatus,
+      attemptNumber: newAttempts,
+      aiReason: evalResult.reason,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (evalResult.isAccepted) {
       if (!session.answeredUserIds) session.answeredUserIds = new Set<string>();
       session.answeredUserIds.add(interaction.user.id);
 
-      // Get configured reward points from DB for this guild
-      let rewardPoints = 10;
+      // Get configured reward points from DB for exact vs close answers
+      let exactReward = 10;
+      let closeReward = 5;
       try {
         const config = await prisma.guildConfig.findUnique({ where: { guildId: session.guildId } });
-        if (config && config.dailyRiddleRewardAmount) {
-          rewardPoints = config.dailyRiddleRewardAmount;
+        if (config) {
+          if (config.dailyRiddleRewardAmount) exactReward = config.dailyRiddleRewardAmount;
+          if (config.dailyRiddleCloseRewardAmount) closeReward = config.dailyRiddleCloseRewardAmount;
         }
       } catch (_) {}
+
+      const earnedPoints = evalResult.evalStatus === "BENAR" ? exactReward : closeReward;
 
       if (session.isDaily) {
         // Daily Mode: Multi-user participation!
@@ -322,12 +448,12 @@ export class TebakManager {
           session.guildId,
           interaction.user.id,
           interaction.user.displayName || interaction.user.username,
-          rewardPoints
+          earnedPoints
         );
 
-        await interaction.reply({
-          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+${rewardPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!\nTotal Harian Kamu: **${newDailyScore} RTK**.`,
-          flags: MessageFlags.Ephemeral,
+        const statusTitle = evalResult.evalStatus === "BENAR" ? "BENAR! 🎉" : "MENDEKATI BENAR! 🎯";
+        await interaction.editReply({
+          content: `Jawaban kamu "**${userAnswerRaw}**" ${statusTitle}\n*(Kunci Jawaban: **${session.question.answer}**)*\n\nSelamat, **+${earnedPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!\nTotal Harian Kamu: **${newDailyScore} RTK**.`,
         });
       } else {
         // Instant Mode: Single winner closes session
@@ -338,7 +464,7 @@ export class TebakManager {
           session.guildId,
           interaction.user.id,
           interaction.user.displayName || interaction.user.username,
-          rewardPoints
+          earnedPoints
         );
 
         if (session.messageId && interaction.channel) {
@@ -346,15 +472,16 @@ export class TebakManager {
             const channel = interaction.channel as TextChannel;
             const msg = await channel.messages.fetch(session.messageId);
             if (msg) {
+              const statusTitle = evalResult.evalStatus === "BENAR" ? "Dijawab Benar" : "Dijawab Mendekati Benar";
               const winnerEmbed = new EmbedBuilder()
-                .setTitle(`Tebak-Tebakan Selesai! (Dijawab Benar)`)
+                .setTitle(`Tebak-Tebakan Selesai! (${statusTitle})`)
                 .setDescription(
                   `**Pertanyaan**:\n> ${session.question.question}\n\n` +
-                  `Pemenang: <@${interaction.user.id}> (+${rewardPoints} RTK)\n` +
-                  `Jawaban Benar: **${session.question.answer}**\n` +
+                  `Pemenang: <@${interaction.user.id}> (+${earnedPoints} RTK)\n` +
+                  `Jawaban Kunci: **${session.question.answer}**\n` +
                   `Total Saldo <@${interaction.user.id}>: **${newScore} RTK**`
                 )
-                .setColor("#10B981")
+                .setColor(evalResult.evalStatus === "BENAR" ? "#10B981" : "#F59E0B")
                 .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak leaderboard untuk lihat peringkat" })
                 .setTimestamp();
 
@@ -374,28 +501,20 @@ export class TebakManager {
           }
         }
 
-        await interaction.reply({
-          content: `Jawaban kamu **${session.question.answer}** BENAR! 🎉 Selamat, **+${rewardPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!`,
-          flags: MessageFlags.Ephemeral,
+        const statusTitle = evalResult.evalStatus === "BENAR" ? "BENAR! 🎉" : "MENDEKATI BENAR! 🎯";
+        await interaction.editReply({
+          content: `Jawaban kamu "**${userAnswerRaw}**" ${statusTitle}\nSelamat, **+${earnedPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!`,
         });
       }
     } else {
-      const newAttempts = currentAttempts + 1;
-      if (!session.userAttempts) {
-        session.userAttempts = new Map<string, number>();
-      }
-      session.userAttempts.set(interaction.user.id, newAttempts);
-
       const remaining = 3 - newAttempts;
       if (remaining > 0) {
-        await interaction.reply({
-          content: `Jawaban kamu "**${userAnswer}**" SALAH! ❌\n(Kesempatan tersisa: **${remaining}/3** attempt)`,
-          flags: MessageFlags.Ephemeral,
+        await interaction.editReply({
+          content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\n(Kesempatan tersisa: **${remaining}/3** attempt)`,
         });
       } else {
-        await interaction.reply({
-          content: `Jawaban kamu "**${userAnswer}**" SALAH! ❌\nKesempatan kamu untuk menjawab tebakan ini telah habis (**3/3**). Coba lagi di tebakan berikutnya!`,
-          flags: MessageFlags.Ephemeral,
+        await interaction.editReply({
+          content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\nKesempatan kamu untuk menjawab tebakan ini telah habis (**3/3**). Coba lagi di tebakan berikutnya!`,
         });
       }
     }
