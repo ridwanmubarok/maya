@@ -163,7 +163,7 @@
                 <i class="fa-solid fa-puzzle-piece w-4 text-center"></i> Tebak-Tebakan Harian
               </button>
               <button onclick="switchTab('daily-poll')" id="tab-btn-daily-poll" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-square-poll-vertical w-4 text-center"></i> Daily AI Polls &amp; Debat
+                <i class="fa-solid fa-square-poll-vertical w-4 text-center"></i> Maya Poll
               </button>
               <button onclick="switchTab('menfess')" id="tab-btn-menfess" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-dove w-4 text-center"></i> AI Menfess
@@ -1078,19 +1078,19 @@
             </div>
           </div>
 
-          <!-- TAB content: DAILY AI POLLS & DEBAT (Self-contained) -->
+          <!-- TAB content: MAYA POLL (Self-contained) -->
           <div id="tab-content-daily-poll" class="tab-pane hidden space-y-6 max-w-2xl">
             <div class="flex justify-between items-center">
               <div>
-                <h3 class="font-outfit text-xl font-bold text-white">Daily AI Polls &amp; Debat Seru</h3>
-                <p class="text-xs text-gray-400">Konfigurasi polling otomatis harian dari Gemini AI beserta reward RTK Point untuk member</p>
+                <h3 class="font-outfit text-xl font-bold text-white">Maya Poll Harian</h3>
+                <p class="text-xs text-gray-400">Konfigurasi polling lucu harian otomatis dari Gemini AI beserta reward RTK Point untuk member</p>
               </div>
             </div>
 
             <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
               <div>
-                <h4 class="text-sm font-semibold text-white">Aktifkan Daily AI Polls &amp; Debat</h4>
-                <p class="text-xs text-gray-400">Secara otomatis membuat &amp; memposting polling debat seru harian setiap jam 10:00 WIB</p>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Maya Poll Harian</h4>
+                <p class="text-xs text-gray-400">Secara otomatis membuat &amp; memposting polling konyol harian setiap jam 10:00 WIB</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="daily-poll-enabled" class="sr-only peer" checked>
@@ -1120,10 +1120,10 @@
 
             <div class="flex flex-col sm:flex-row gap-3">
               <button onclick="saveDailyPollConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
-                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Poll
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Maya Poll
               </button>
               <button id="btn-test-daily-poll" onclick="testDailyPollBroadcast()" class="px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-bolt"></i> ⚡ Tes Broadcast Daily Poll
+                <i class="fa-solid fa-paper-plane"></i> Tes Broadcast Maya Poll
               </button>
             </div>
 
@@ -1131,7 +1131,7 @@
             <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
               <div class="flex justify-between items-center">
                 <div>
-                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Daily Poll Active</h4>
+                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Maya Poll Active</h4>
                   <p class="text-xs text-gray-400">Pantau secara langsung topik polling terbaru &amp; daftar member yang telah melakukan vote</p>
                 </div>
                 <span id="live-poll-count" class="text-xs font-mono bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 px-2.5 py-1 rounded-full font-bold">

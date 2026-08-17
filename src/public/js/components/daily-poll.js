@@ -1,4 +1,4 @@
-// Daily AI Polls & Debat Seru Configuration & Live Backoffice Component
+// Maya Poll Configuration & Live Backoffice Component
 
 let livePollInterval = null;
 
@@ -63,7 +63,7 @@ async function loadActivePollLive() {
     if (!data.active || !data.topic) {
       cardContainer.innerHTML = `
         <div class="flex items-center justify-between">
-          <div class="text-xs text-gray-400 italic">Belum ada polling AI harian yang diposting saat ini. Klik 'Tes Broadcast' untuk membuat polling baru.</div>
+          <div class="text-xs text-gray-400 italic">Belum ada Maya Poll yang diposting saat ini. Klik 'Tes Broadcast' untuk membuat poll lucu baru.</div>
           <span class="text-[10px] bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded font-mono uppercase">Status: Idle</span>
         </div>
       `;
@@ -106,7 +106,7 @@ async function loadActivePollLive() {
     cardContainer.innerHTML = `
       <div class="flex flex-wrap justify-between items-start gap-2 border-b border-white/10 pb-3">
         <div>
-          <span class="text-[10px] font-bold bg-discord-blurple/20 text-discord-blurple px-2.5 py-0.5 rounded uppercase tracking-wider">DAILY AI POLL • ${escapeHtml(data.dateStr || '')}</span>
+          <span class="text-[10px] font-bold bg-discord-blurple/20 text-discord-blurple px-2.5 py-0.5 rounded uppercase tracking-wider">MAYA POLL • ${escapeHtml(data.dateStr || '')}</span>
           <h4 class="font-outfit font-bold text-white text-base mt-1">${escapeHtml(data.topic)}</h4>
           <p class="text-xs text-gray-400 italic">${escapeHtml(data.description || '')}</p>
         </div>
@@ -129,7 +129,7 @@ async function loadActivePollLive() {
     if (votes.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada partisipasi vote member pada polling ini.</td>
+          <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada partisipasi vote member pada poll ini.</td>
         </tr>
       `;
       return;
@@ -193,7 +193,7 @@ async function saveDailyPollConfig() {
     });
 
     if (response.ok) {
-      showToast('Berhasil Disimpan', 'Pengaturan Daily AI Polls & Reward RTK Point berhasil diperbarui.', 'success');
+      showToast('Berhasil Disimpan', 'Pengaturan Maya Poll & Reward RTK Point berhasil diperbarui.', 'success');
       loadActivePollLive();
     } else {
       showToast('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan pengaturan poll.', 'error');
@@ -212,7 +212,7 @@ async function testDailyPollBroadcast() {
   const btn = document.getElementById('btn-test-daily-poll');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memunculkan Poll AI...`;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memunculkan Maya Poll...`;
   }
 
   try {
@@ -222,18 +222,18 @@ async function testDailyPollBroadcast() {
 
     if (res.ok) {
       const data = await res.json();
-      showToast('Broadcast Poll Dikirim', data.message || 'Daily AI Poll berhasil dikirim ke channel!', 'success');
+      showToast('Broadcast Poll Dikirim', data.message || 'Maya Poll berhasil dikirim ke channel!', 'success');
       setTimeout(loadActivePollLive, 1000);
     } else {
       const err = await res.json().catch(() => ({}));
-      showToast('Gagal Broadcast Poll', err.error || 'Gagal memicu daily poll.', 'error');
+      showToast('Gagal Broadcast Poll', err.error || 'Gagal memicu Maya poll.', 'error');
     }
   } catch (err) {
     showToast('Error', err.message || 'Terjadi kesalahan jaringan saat memicu broadcast poll.', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<i class="fa-solid fa-bolt"></i> ⚡ Tes Broadcast Daily Poll`;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Tes Broadcast Maya Poll`;
     }
   }
 }

@@ -12,35 +12,42 @@ interface PollTopicData {
   optionD?: string;
 }
 
-const TOPIC_CATEGORIES = [
-  "Kuliner & Makanan Indonesia (misal: bubur, mie instan, bakso, es teh)",
-  "Gaya Hidup & Kebiasaan Sehari-hari (misal: jam tidur, mandi air hangat, tipe belajar)",
-  "Gaming & Pop Culture (misal: mobile game vs PC, anime, genre musik, film)",
-  "Dilema Seru & Pengalaman Lucu (misal: hp lowbat vs dompet ketinggalan, introvert vs ekstrover)",
-  "Teknologi & Media Sosial (misal: Instagram vs TikTok, dark mode vs light mode)"
+const FUNNY_TOPIC_CATEGORIES = [
+  "Kelakuan Lucu & Absurd Sehari-hari (misal: kebangun jam 3 pagi, salah ketik pesan ke bos/dosen, lupa matiin mic pas zoom)",
+  "Kebiasaan Makan & Jajanan Kocak (misal: makan mie instan pake nasi, tim kuah bakso banjir bumbu, makan gorengan sama bensin)",
+  "Tipe Orang & Kepribadian Lucu (misal: tipe orang pas denger lagu galau, reaksi pas ketemu mantan di mall, gaya tidur)",
+  "Dilema Konyol Ringan (misal: kebelet boker pas macet total vs kebelet pas lagi ujian, hp lowbat 1% vs kehabisan kuota)",
+  "Nostalgia & Kejadian Konyol (misal: mitos waktu kecil, alasan telat datang janjian yang paling gak masuk akal)"
 ];
 
 /**
- * Generate a fun, engaging, and random debate topic using Gemini / NVIDIA AI
+ * Generate a funny, lighthearted, and random poll topic using Gemini / NVIDIA AI
  */
 export async function generateAIPollTopic(): Promise<PollTopicData> {
-  const categorySeed = TOPIC_CATEGORIES[Math.floor(Math.random() * TOPIC_CATEGORIES.length)];
+  const categorySeed = FUNNY_TOPIC_CATEGORIES[Math.floor(Math.random() * FUNNY_TOPIC_CATEGORIES.length)];
 
-  const prompt = `Buatkan 1 topik polling debat harian yang baru, seru, acak/random, dan kontroversial ala Gen-Z Indonesia dengan fokus kategori: "${categorySeed}".
-Berikan 2 sampai 4 pilihan jawaban yang sangat menarik dengan emoji di setiap pilihan.
+  const prompt = `Buatkan 1 topik polling HANYA UNTUK LUCU-LUCUAN dan menghibur khas anak muda Indonesia dengan fokus kategori: "${categorySeed}".
 
-PENTING: Output HARUS dalam format JSON murni tanpa markdown/codeblock dengan kunci berikut:
+SYARAT PENTING:
+1. PERTANYAAN HARUS LUCU, KONYOL, ATAU ABSURD (bukan pertanyaan serius atau debat berat).
+2. DILARANG menggunakan terlalu banyak emoji keyboard! Maksimal 1 emoji sederhana di tiap pilihan jawaban jika diperlukan. Jangan lebay.
+3. Berikan 2 sampai 4 pilihan jawaban yang kocak dan relatable.
+
+Output HARUS dalam format JSON murni tanpa markdown/codeblock dengan format berikut:
 {
-  "topic": "Judul Topik Debat",
-  "description": "Deskripsi singkat yang memicu perdebatan di kolom komentar",
-  "optionA": "Emoji + Pilihan A",
-  "optionB": "Emoji + Pilihan B",
-  "optionC": "Emoji + Pilihan C (Opsional, tinggalkan kosong jika hanya 2 pilihan)",
-  "optionD": "Emoji + Pilihan D (Opsional, tinggalkan kosong jika hanya 2 atau 3 pilihan)"
+  "topic": "Judul Pertanyaan Lucu",
+  "description": "Deskripsi singkat konyol yang memicu tawa di kolom komentar",
+  "optionA": "Pilihan A",
+  "optionB": "Pilihan B",
+  "optionC": "Pilihan C (Opsional)",
+  "optionD": "Pilihan D (Opsional)"
 }`;
 
   try {
-    const rawAiResponse = await askNvidia(prompt, "Kamu adalah Maya, AI pembuat polling kuis harian yang sangat seru, kreatif, dan selalu mempunyai ide-ide obrolan baru yang fresh.");
+    const rawAiResponse = await askNvidia(
+      prompt,
+      "Kamu adalah Maya, AI teman yang humoris, kocak, dan selalu punya pertanyaan lucu untuk menghibur member server Discord."
+    );
     
     // Clean response from markdown codeblocks if present
     const cleaned = rawAiResponse
@@ -53,7 +60,7 @@ PENTING: Output HARUS dalam format JSON murni tanpa markdown/codeblock dengan ku
     if (parsed.topic && parsed.optionA && parsed.optionB) {
       return {
         topic: parsed.topic,
-        description: parsed.description || "Tentukan pilihanmu sekarang dan klaim reward RTK Point!",
+        description: parsed.description || "Pilih jawaban konyolmu sekarang dan ambil reward RTK Point!",
         optionA: parsed.optionA,
         optionB: parsed.optionB,
         optionC: parsed.optionC || undefined,
@@ -64,38 +71,39 @@ PENTING: Output HARUS dalam format JSON murni tanpa markdown/codeblock dengan ku
     logger.error("Error generating AI Poll Topic, using fallback:", err);
   }
 
-  // Fallback preset topics if AI call fails
+  // Fallback preset funny topics if AI call fails
   const fallbacks: PollTopicData[] = [
     {
-      topic: "🔥 Debat Abadi: Bubur Ayam",
-      description: "Mana cara makan bubur ayam yang paling bermartabat menurut kalian?",
-      optionA: "🥣 Diaduk (Rasa menyatu sempurna)",
-      optionB: "🍲 Tidak Diaduk (Estetik & rapi)",
-      optionC: "🥤 Diminum pake sedotan (Anti mainstream)",
-      optionD: "❌ Nggak suka bubur ayam"
+      topic: "Reaksi Pertama Pas Ketemu Mantan di Mall",
+      description: "Pilih tindakan paling realistis saat kamu tak sengaja tatap mata sama mantan!",
+      optionA: "Pura-pura telepon padahal HP mati",
+      optionB: "Langsung ngumpet di balik baju manekin",
+      optionC: "Sapa ramah sambil pamer pacar imajiner",
+      optionD: "Putar balik dan lari sprint 100 meter"
     },
     {
-      topic: "🎮 Gamer Sejati: Main PC vs Console vs Mobile",
-      description: "Platform mana yang paling fleksibel & asik buat mabar bareng teman?",
-      optionA: "💻 PC Master Race",
-      optionB: "🎮 Console (PS/Xbox/Switch)",
-      optionC: "📱 Mobile Gamer (Praktis di mana aja)",
-      optionD: "🛋️ Cuma penonton streamer"
+      topic: "Tipe Kamu Kalau Kebangun Jam 3 Pagi",
+      description: "Apa hal pertama yang refleks kamu lakukan di kasur saat terbangun?",
+      optionA: "Cek HP liat ada chat masuk atau enggak",
+      optionB: "Pergi ke dapur nyari sisa lauk makan siang",
+      optionC: "Melamun mikirin penyesalan 5 tahun lalu",
+      optionD: "Tarik selimut lagi lanjut tidur nyenyak"
     },
     {
-      topic: "☕ Kopi Pagi vs Teh Pagi",
-      description: "Apa minuman wajib pembuka hari kalian biar nggak ngantuk?",
-      optionA: "☕ Kopi Hitam / Latte",
-      optionB: "🍵 Teh Manis Warm/Es",
-      optionC: "🥛 Milk / Matcha",
-      optionD: "💧 Air Putih aja sehat"
+      topic: "Alasan Paling Lucu Pas Telat Datang Janjian",
+      description: "Alasan mana yang paling sering kamu pakai buat ngeles dari teman?",
+      optionA: "Baru jalan (Padahal baru bangun tidur)",
+      optionB: "Macet parah (Padahal masih di kasur)",
+      optionC: "Ban motor kempes secara misterius",
+      optionD: "Jujur aja ketiduran daripada bohong"
     },
     {
-      topic: "🌙 Mode Tampilan: Dark Mode vs Light Mode",
-      description: "Tema tampilan mana yang terpasang di semua aplikasi & HP kalian?",
-      optionA: "🌙 Dark Mode (Hemat baterai & adem di mata)",
-      optionB: "☀️ Light Mode (Cerah & jelas di luar ruangan)",
-      optionC: "🔄 Otomatis ikuti jadwal matahari"
+      topic: "Dilema Konyol di Tempat Umum",
+      description: "Mana kejadian yang paling bikin kamu pengen menghilang dari bumi?",
+      optionA: "Salah sapa orang asing dari belakang",
+      optionB: "Perut bunyi nyaring pas ruangan hening",
+      optionC: "Sandat pintu toko tarik padahal dorong",
+      optionD: "Kepleset halus pas lagi gaya estetik"
     }
   ];
 
@@ -112,7 +120,7 @@ function createProgressBar(percentage: number, length: number = 10): string {
 }
 
 /**
- * Build Discord Embed and Buttons for a Daily Poll
+ * Build Discord Embed and Buttons for a Maya Poll
  */
 export function buildPollEmbedAndComponents(
   topic: string,
@@ -140,7 +148,7 @@ export function buildPollEmbedAndComponents(
   }
 
   const embed = new EmbedBuilder()
-    .setTitle(`📊 DAILY AI POLL & DEBAT SERU • MAYA`)
+    .setTitle(`📊 MAYA POLL`)
     .setColor("#5865F2")
     .setDescription(
       `### ${topic}\n*${description}*\n\n` +
@@ -148,7 +156,7 @@ export function buildPollEmbedAndComponents(
       `🎁 **Reward Vote**: **+${rewardAmount} RTK Point** per partisipasi!\n` +
       `👥 **Total Partisipan**: **${totalVotes} Member**`
     )
-    .setFooter({ text: "Maya Daily Poll Engine • Klik tombol di bawah untuk memberikan suaramu!" })
+    .setFooter({ text: "Maya Poll • Klik tombol di bawah untuk memberikan suaramu!" })
     .setTimestamp();
 
   const row = new ActionRowBuilder<ButtonBuilder>();
@@ -170,7 +178,7 @@ export function buildPollEmbedAndComponents(
 }
 
 /**
- * Start and post a Daily Poll for a specific guild
+ * Start and post a Maya Poll for a specific guild
  */
 export async function startDailyPollForGuild(guild: any, configuredChannelId?: string): Promise<boolean> {
   try {
@@ -184,7 +192,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
       try {
         const fetchedChannels = await guild.channels.fetch();
         targetChannel = (fetchedChannels.find(
-          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("poll") || c.name.includes("debat") || c.name.includes("general") || c.name.includes("chat") || c.name.includes("main"))
+          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("poll") || c.name.includes("general") || c.name.includes("chat") || c.name.includes("main"))
         ) || guild.systemChannel) as TextChannel;
       } catch (_) {
         targetChannel = guild.systemChannel as TextChannel;
@@ -192,7 +200,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
     }
 
     if (!targetChannel || !("send" in targetChannel)) {
-      logger.warn(`DailyPollManager: Target channel daily poll tidak ditemukan di ${guild.name}`);
+      logger.warn(`DailyPollManager: Target channel Maya Poll tidak ditemukan di ${guild.name}`);
       return false;
     }
 
@@ -212,7 +220,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0];
 
-    // Create placeholder DB record to generate pollId
+    // Create DB record
     const pollRecord = await prisma.dailyPoll.create({
       data: {
         guildId: guild.id,
@@ -238,7 +246,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
     );
 
     const sentMessage = await targetChannel.send({
-      content: "📢 @everyone **DAILY AI POLL & DEBAT SERU HARI INI TELAH DIBUKA!** 🎉\n*Tentukan pilihanmu dan dapatkan RTK Point gratis!*",
+      content: "📢 @everyone **MAYA POLL HARI INI TELAH DIBUKA!** 🎉\n*Pilih jawaban konyolmu dan dapatkan RTK Point gratis!*",
       embeds: [embed],
       components: [row]
     });
@@ -249,7 +257,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
       data: { messageId: sentMessage.id }
     });
 
-    logger.info(`DailyPollManager: Berhasil memposting Daily Poll ke ${guild.name} (#${targetChannel.name})`);
+    logger.info(`DailyPollManager: Berhasil memposting Maya Poll ke ${guild.name} (#${targetChannel.name})`);
     return true;
   } catch (err) {
     logger.error(`DailyPollManager: Error starting poll for guild ${guild.name}:`, err);
@@ -258,7 +266,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
 }
 
 /**
- * Handle Member Button Click on Daily Poll
+ * Handle Member Button Click on Maya Poll
  */
 export async function handlePollVoteInteraction(interaction: ButtonInteraction, pollId: string, optionKey: string) {
   try {

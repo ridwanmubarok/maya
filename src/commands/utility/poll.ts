@@ -7,17 +7,17 @@ import { startDailyPollForGuild } from "../../services/dailyPollManager";
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("poll")
-    .setDescription("Kelola & Trigger Daily AI Polls & Debat Seru Maya")
+    .setDescription("Kelola & Trigger Maya Poll Harian")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sub =>
       sub
         .setName("create")
-        .setDescription("Trigger & buat Daily AI Poll baru secara langsung")
+        .setDescription("Trigger & buat Maya Poll konyol baru secara langsung")
     )
     .addSubcommand(sub =>
       sub
         .setName("channel")
-        .setDescription("Atur channel target tempat Daily AI Polls diposting")
+        .setDescription("Atur channel target tempat Maya Poll diposting")
         .addChannelOption(opt =>
           opt
             .setName("target")
@@ -42,7 +42,7 @@ const command: Command = {
 
       const embed = createEmbed.success(
         "Konfigurasi Channel Poll Berhasil",
-        `Channel Daily AI Polls & Debat Seru telah diatur ke ${channel}.`
+        `Channel target Maya Poll telah berhasil diatur ke ${channel}.`
       );
 
       await interaction.reply({ embeds: [embed] });
@@ -57,14 +57,14 @@ const command: Command = {
 
       if (success) {
         const embed = createEmbed.success(
-          "🎉 Daily AI Poll Berhasil Dibuat!",
-          "Polling AI Debat Seru terbaru telah berhasil diposting ke channel!"
+          "Maya Poll Berhasil Dibuat!",
+          "Maya Poll lucu terbaru telah berhasil diposting ke channel!"
         );
         await interaction.editReply({ embeds: [embed] });
       } else {
         const embed = createEmbed.error(
           "Gagal Membuat Poll",
-          "Terjadi kesalahan saat memproses pembuatan Daily AI Poll. Pastikan bot memiliki izin di channel target."
+          "Terjadi kesalahan saat memproses pembuatan Maya Poll. Pastikan bot memiliki izin di channel target."
         );
         await interaction.editReply({ embeds: [embed] });
       }
