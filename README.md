@@ -7,7 +7,7 @@ Maya adalah bot Discord modular yang dibangun menggunakan **TypeScript**, **disc
 ## 🌟 Fitur Utama
 1. **🛡️ Moderasi & Automod (Pencegahan Kata Kasar)**:
    - Command moderasi: `/warn`, `/kick`, `/ban`, `/clear`.
-   - Konfigurasi channel sapaan via `/config welcome`.
+   - Konfigurasi server & channel sapaan dikelola dengan aman via **Web Dashboard**.
    - Sistem Automod: Deteksi otomatis kata-kata kasar dengan penambahan strike warning ke database PostgreSQL. User yang mencapai 3 strike akan otomatis di-timeout selama 10 menit.
 2. **🎵 Pemutar Musik Premium**:
    - Command musik: `/play`, `/skip`, `/queue`, `/stop`.
@@ -87,7 +87,7 @@ Anda membutuhkan **Node.js v20+**, **FFmpeg** terinstal di OS Anda, dan database
 
 ## ⚙️ Cara Menguji Bot di Discord
 1. Undang bot ke server Anda menggunakan tautan OAuth2 yang dibuat di langkah persiapan.
-2. Gunakan `/config welcome #nama-channel` untuk menguji fitur welcome message.
+2. Buka Web Dashboard untuk mengonfigurasi channel welcome, automod, dan fitur lainnya secara aman.
 3. Coba ketik kata kasar (misal: `anjing` atau `goblok`) untuk menguji Automod. Bot akan menghapus pesan Anda dan mencatat strike.
 4. Masuk ke Voice Channel lalu jalankan `/play <judul lagu / link youtube>` untuk memutar musik.
 5. Gunakan `/ask <pertanyaan>` untuk berinteraksi dengan Gemini AI.
@@ -100,7 +100,7 @@ src/
  ├── bot.ts                # Entry point utama bot
  ├── types.ts              # Definisi type TypeScript
  ├── commands/             
- │    ├── moderation/      # /kick, /ban, /clear, /warn, /config
+ │    ├── moderation/      # /kick, /ban, /clear, /warn
  │    ├── music/           # /play, /skip, /queue, /stop
  │    └── ai/              # /ask (Gemini AI)
  ├── events/               # ready, interactionCreate, guildMemberAdd, messageCreate (automod)

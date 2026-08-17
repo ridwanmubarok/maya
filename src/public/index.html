@@ -162,6 +162,9 @@
               <button onclick="switchTab('daily-riddle')" id="tab-btn-daily-riddle" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-puzzle-piece w-4 text-center"></i> Tebak-Tebakan Harian
               </button>
+              <button onclick="switchTab('daily-poll')" id="tab-btn-daily-poll" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-square-poll-vertical w-4 text-center"></i> Daily AI Polls &amp; Debat
+              </button>
               <button onclick="switchTab('menfess')" id="tab-btn-menfess" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-dove w-4 text-center"></i> AI Menfess
               </button>
@@ -1075,6 +1078,103 @@
             </div>
           </div>
 
+          <!-- TAB content: DAILY AI POLLS & DEBAT (Self-contained) -->
+          <div id="tab-content-daily-poll" class="tab-pane hidden space-y-6 max-w-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Daily AI Polls &amp; Debat Seru</h3>
+                <p class="text-xs text-gray-400">Konfigurasi polling otomatis harian dari Gemini AI beserta reward RTK Point untuk member</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Daily AI Polls &amp; Debat</h4>
+                <p class="text-xs text-gray-400">Secara otomatis membuat &amp; memposting polling debat seru harian setiap jam 10:00 WIB</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="daily-poll-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="daily-poll-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Poll</label>
+              <select id="daily-poll-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: Channel Utama / #general)</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="daily-poll-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Posting Polling (WIB)</label>
+                <select id="daily-poll-post-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                </select>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="daily-poll-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Reward RTK Point (Per Member Vote)</label>
+                <input type="number" id="daily-poll-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="5" min="0" max="1000">
+                <p class="text-[10px] text-gray-500">Nominal poin RTK yang didapatkan member saat memberikan suara pada polling</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button onclick="saveDailyPollConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Poll
+              </button>
+              <button id="btn-test-daily-poll" onclick="testDailyPollBroadcast()" class="px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bolt"></i> ⚡ Tes Broadcast Daily Poll
+              </button>
+            </div>
+
+            <!-- LIVE BACKOFFICE MONITORING PANEL FOR DAILY POLLS -->
+            <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Daily Poll Active</h4>
+                  <p class="text-xs text-gray-400">Pantau secara langsung topik polling terbaru &amp; daftar member yang telah melakukan vote</p>
+                </div>
+                <span id="live-poll-count" class="text-xs font-mono bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 px-2.5 py-1 rounded-full font-bold">
+                  0 Member Vote
+                </span>
+              </div>
+
+              <!-- Top Active Poll Summary Card -->
+              <div id="live-poll-card" class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <div class="text-xs text-gray-400 italic text-center py-2">Memuat status polling harian...</div>
+              </div>
+
+              <!-- Live Member Voting Table -->
+              <div class="glass-panel rounded-2xl overflow-hidden border border-white/5 space-y-2">
+                <div class="p-4 bg-white/2 border-b border-white/5 flex justify-between items-center">
+                  <h5 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-users text-discord-blurple"></i> Daftar Member Yang Polling (Live Votes Log)
+                  </h5>
+                  <button onclick="loadActivePollLive()" class="text-[10px] text-gray-400 hover:text-white transition-all underline">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh Log
+                  </button>
+                </div>
+                <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="border-b border-white/5 bg-white/5 text-gray-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <th class="px-4 py-2.5">#</th>
+                        <th class="px-4 py-2.5">Member (Username / ID)</th>
+                        <th class="px-4 py-2.5">Pilihan Vote</th>
+                        <th class="px-4 py-2.5">Waktu Vote</th>
+                      </tr>
+                    </thead>
+                    <tbody id="live-poll-tbody" class="divide-y divide-white/5 text-gray-300">
+                      <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada vote dari member.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- TAB content: MENFESS (Self-contained) -->
           <div id="tab-content-menfess" class="tab-pane hidden space-y-6 max-w-2xl">
             <div class="flex justify-between items-center">
@@ -1422,6 +1522,7 @@
   <script src="/js/components/reaction-roles.js"></script>
   <script src="/js/components/roles.js"></script>
   <script src="/js/components/daily-riddle.js"></script>
+  <script src="/js/components/daily-poll.js"></script>
   <script src="/js/components/menfess.js"></script>
   <script src="/js/components/analytics.js"></script>
   <script src="/js/components/economy.js"></script>

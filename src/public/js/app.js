@@ -371,6 +371,10 @@ async function selectGuild(guildId) {
       loadDailyRiddleConfig(config, channels);
     }
 
+    if (typeof loadDailyPollConfig === 'function') {
+      loadDailyPollConfig(config, channels);
+    }
+
     if (typeof loadMenfessConfig === 'function') {
       loadMenfessConfig(config, channels);
     }
@@ -415,7 +419,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'menfess' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
+    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'menfess' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');
@@ -439,6 +443,10 @@ function switchTab(tabId) {
     loadReactionRoles();
   } else if (tabId === 'ai') {
     loadAiHistory();
+  } else if (tabId === 'daily-riddle') {
+    if (typeof loadActiveRiddleLive === 'function') loadActiveRiddleLive();
+  } else if (tabId === 'daily-poll') {
+    if (typeof loadActivePollLive === 'function') loadActivePollLive();
   } else if (tabId === 'analytics') {
     if (typeof loadAnalytics === 'function') loadAnalytics();
   } else if (tabId === 'economy') {

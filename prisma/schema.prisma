@@ -26,6 +26,10 @@ model GuildConfig {
   dailyLeaderboardPostHour Int    @default(21)
   dailyRiddleRewardAmount  Int    @default(10)
   dailyRiddleCloseRewardAmount Int @default(5)
+  dailyPollChannelId     String?
+  dailyPollEnabled       Boolean  @default(true)
+  dailyPollPostHour      Int      @default(10)
+  dailyPollRewardAmount  Int      @default(5)
   menfessChannelId       String?
   menfessEnabled         Boolean  @default(true)
   voiceRewardEnabled     Boolean  @default(true)
@@ -168,5 +172,33 @@ model ShopOrder {
   @@index([guildId, status])
 }
 
+model DailyPoll {
+  id          String          @id @default(uuid())
+  guildId     String
+  channelId   String
+  messageId   String          @unique
+  topic       String
+  description String
+  optionA     String
+  optionB     String
+  optionC     String?
+  optionD     String?
+  dateStr     String
+  votes       DailyPollVote[]
+  createdAt   DateTime        @default(now())
 
+  @@index([guildId, dateStr])
+}
 
+model DailyPollVote {
+  id           Int       @id @default(autoincrement())
+  pollId       String
+  poll         DailyPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId       String
+  username     String
+  optionChosen String
+  createdAt    DateTime  @default(now())
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+}

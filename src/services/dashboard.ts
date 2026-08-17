@@ -18,6 +18,7 @@ import {
   rejectShopOrder 
 } from "./shopService";
 import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
+import { startDailyPollForGuild, getLatestPollData } from "./dailyPollManager";
 import { tebakManager } from "./tebakManager";
 
 const app = express();
@@ -329,6 +330,28 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Trigger Tes Broadcast Daily AI Polls Langsung dari Web Dashboard
+  app.post("/api/configs/:guildId/test-daily-poll", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+      return res.status(404).json({ error: "Server tidak ditemukan atau bot tidak aktif di server tersebut." });
+    }
+
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      const success = await startDailyPollForGuild(guild, config?.dailyPollChannelId || undefined);
+      if (success) {
+        res.json({ success: true, message: "Broadcast Daily AI Poll berhasil dikirim ke server!" });
+      } else {
+        res.status(500).json({ error: "Gagal mengirim broadcast poll. Pastikan channel target terpasang dan bot memiliki izin kirim pesan." });
+      }
+    } catch (error: any) {
+      logger.error(`Error testing daily poll for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan saat memicu broadcast poll." });
+    }
+  });
+
   // Ambil data status tebakan aktif & history jawaban member (Backoffice Dashboard)
   app.get("/api/configs/:guildId/active-riddle", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
@@ -338,6 +361,18 @@ export function startDashboard(client: MayaClient) {
     } catch (error: any) {
       logger.error(`Error fetching active riddle session for ${guildId}:`, error);
       res.status(500).json({ error: "Gagal mengambil data tebakan aktif." });
+    }
+  });
+
+  // Ambil data polling aktif & daftar partisipan member (Live Backoffice Dashboard)
+  app.get("/api/configs/:guildId/active-poll", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const pollData = await getLatestPollData(guildId);
+      res.json({ success: true, ...pollData });
+    } catch (error: any) {
+      logger.error(`Error fetching active poll data for ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil data polling aktif." });
     }
   });
 
@@ -361,6 +396,10 @@ export function startDashboard(client: MayaClient) {
       dailyLeaderboardPostHour,
       dailyRiddleRewardAmount,
       dailyRiddleCloseRewardAmount,
+      dailyPollChannelId,
+      dailyPollEnabled,
+      dailyPollPostHour,
+      dailyPollRewardAmount,
       menfessChannelId,
       menfessEnabled,
       voiceRewardEnabled,
@@ -386,6 +425,10 @@ export function startDashboard(client: MayaClient) {
       if (dailyLeaderboardPostHour !== undefined) updateData.dailyLeaderboardPostHour = Number(dailyLeaderboardPostHour);
       if (dailyRiddleRewardAmount !== undefined) updateData.dailyRiddleRewardAmount = Number(dailyRiddleRewardAmount);
       if (dailyRiddleCloseRewardAmount !== undefined) updateData.dailyRiddleCloseRewardAmount = Number(dailyRiddleCloseRewardAmount);
+      if (dailyPollChannelId !== undefined) updateData.dailyPollChannelId = dailyPollChannelId || null;
+      if (dailyPollEnabled !== undefined) updateData.dailyPollEnabled = Boolean(dailyPollEnabled);
+      if (dailyPollPostHour !== undefined) updateData.dailyPollPostHour = Number(dailyPollPostHour);
+      if (dailyPollRewardAmount !== undefined) updateData.dailyPollRewardAmount = Number(dailyPollRewardAmount);
       if (menfessChannelId !== undefined) updateData.menfessChannelId = menfessChannelId || null;
       if (menfessEnabled !== undefined) updateData.menfessEnabled = Boolean(menfessEnabled);
       if (voiceRewardEnabled !== undefined) updateData.voiceRewardEnabled = Boolean(voiceRewardEnabled);

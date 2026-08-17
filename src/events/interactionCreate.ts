@@ -11,6 +11,7 @@ import { translateWithNvidia } from "../services/translationService";
 import { translationCache } from "../commands/utility/translateMsg";
 import { generateFreeImage } from "../services/imageGenService";
 import { imaginePromptCache } from "../commands/utility/imagine";
+import { handlePollVoteInteraction } from "../services/dailyPollManager";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -38,6 +39,14 @@ const event: BotEvent = {
         modal.addComponents(row);
 
         await interaction.showModal(modal);
+        return;
+      }
+
+      if (customId.startsWith("poll_vote:")) {
+        const parts = customId.split(":");
+        const pollId = parts[1];
+        const optionKey = parts[2];
+        await handlePollVoteInteraction(interaction, pollId, optionKey);
         return;
       }
 
