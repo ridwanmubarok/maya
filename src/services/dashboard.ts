@@ -181,7 +181,10 @@ export function startDashboard(client: MayaClient) {
     try {
       const topBalances = await prisma.triviaScore.findMany({
         where: { guildId },
-        orderBy: { score: "desc" },
+        orderBy: [
+          { score: "desc" },
+          { updatedAt: "asc" }
+        ],
         take: 15
       });
 

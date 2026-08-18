@@ -695,7 +695,10 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
     try {
       const scores = await prisma.triviaScore.findMany({
         where: { guildId },
-        orderBy: { score: "desc" },
+        orderBy: [
+          { score: "desc" },
+          { updatedAt: "asc" }
+        ],
         take: 10,
       });
 
@@ -714,7 +717,10 @@ Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
       const todayStr = new Date().toISOString().split("T")[0];
       const scores = await prisma.triviaScore.findMany({
         where: { guildId, lastDailyDate: todayStr, dailyScore: { gt: 0 } },
-        orderBy: { dailyScore: "desc" },
+        orderBy: [
+          { dailyScore: "desc" },
+          { updatedAt: "asc" }
+        ],
         take: 10,
       });
 
