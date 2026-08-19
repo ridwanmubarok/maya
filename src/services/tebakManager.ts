@@ -426,21 +426,19 @@ Format JSON wajib:
     });
 
     if (evalResult.isAccepted) {
+      const isFirstDailyWinner = session.isDaily && (!session.answeredUserIds || session.answeredUserIds.size === 0);
+
       if (!session.answeredUserIds) session.answeredUserIds = new Set<string>();
       session.answeredUserIds.add(interaction.user.id);
 
-      // Get configured reward points from DB for exact vs close answers
-      let exactReward = 10;
-      let closeReward = 5;
-      try {
-        const config = await prisma.guildConfig.findUnique({ where: { guildId: session.guildId } });
-        if (config) {
-          if (config.dailyRiddleRewardAmount) exactReward = config.dailyRiddleRewardAmount;
-          if (config.dailyRiddleCloseRewardAmount) closeReward = config.dailyRiddleCloseRewardAmount;
-        }
-      } catch (_) {}
+      // Base reward points:
+      // 1. First correct answer in daily quiz: 150 points
+      // 2. Subsequent correct answer: 120 points
+      const baseReward = isFirstDailyWinner ? 150 : 120;
 
-      const earnedPoints = evalResult.evalStatus === "BENAR" ? exactReward : closeReward;
+      // Deduct 15 points per previous wrong attempt (if answered on 2nd or 3rd try)
+      const wrongAttemptDeduction = (newAttempts - 1) * 15;
+      const earnedPoints = Math.max(15, baseReward - wrongAttemptDeduction);
 
       if (session.isDaily) {
         // Daily Mode: Multi-user participation!
@@ -452,9 +450,18 @@ Format JSON wajib:
         );
 
         const statusTitle = evalResult.evalStatus === "BENAR" ? "BENAR! 🎉" : "MENDEKATI BENAR! 🎯";
-        await interaction.editReply({
-          content: `Jawaban kamu "**${userAnswerRaw}**" ${statusTitle}\n*(Kunci Jawaban: **${session.question.answer}**)*\n\nSelamat, **+${earnedPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu!\nTotal Harian Kamu: **${newDailyScore} RTK**.`,
-        });
+        const positionTitle = isFirstDailyWinner ? "🥇 (Juara 1 Tercepat Hari Ini!)" : "🎯";
+
+        let responseContent = `Jawaban kamu "**${userAnswerRaw}**" ${statusTitle}\n*(Kunci Jawaban: **${session.question.answer}**)*\n\n` +
+          `Selamat, **+${earnedPoints} RTK** (Rogatekno Koin) telah ditambahkan ke dompet kamu! ${positionTitle}\n`;
+
+        if (wrongAttemptDeduction > 0) {
+          responseContent += `*(Potongan -${wrongAttemptDeduction} RTK karena ${newAttempts - 1}x percobaan salah sebelumnya)*\n`;
+        }
+
+        responseContent += `Total Saldo Harian Kamu: **${newDailyScore} RTK**.`;
+
+        await interaction.editReply({ content: responseContent });
       } else {
         // Instant Mode: Single winner closes session
         if (session.timer) clearTimeout(session.timer);
@@ -510,12 +517,28 @@ Format JSON wajib:
       const remaining = 3 - newAttempts;
       if (remaining > 0) {
         await interaction.editReply({
-          content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\n(Kesempatan tersisa: **${remaining}/3** attempt)`,
+          content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\n(Kesempatan tersisa: **${remaining}/3** attempt - potongan -15 RTK jika jawaban berikutnya benar)`,
         });
       } else {
-        await interaction.editReply({
-          content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\nKesempatan kamu untuk menjawab tebakan ini telah habis (**3/3**). Coba lagi di tebakan berikutnya!`,
-        });
+        // Failed 3 times (salah semua 3x): Give 15 participation points!
+        if (session.isDaily) {
+          const newDailyScore = await this.addDailyScore(
+            session.guildId,
+            interaction.user.id,
+            interaction.user.displayName || interaction.user.username,
+            15
+          );
+
+          await interaction.editReply({
+            content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\n\n` +
+              `Kesempatan kamu untuk menjawab tebakan harian ini telah habis (**3/3**).\n` +
+              `🎁 Kamu tetap mendapatkan **+15 RTK Point** bonus partisipasi! Total Saldo Harian Kamu: **${newDailyScore} RTK**.`,
+          });
+        } else {
+          await interaction.editReply({
+            content: `Jawaban kamu "**${userAnswerRaw}**" SALAH! ❌ (${evalResult.reason})\nKesempatan kamu untuk menjawab tebakan ini telah habis (**3/3**). Coba lagi di tebakan berikutnya!`,
+          });
+        }
       }
     }
   }
