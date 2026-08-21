@@ -204,6 +204,26 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
       return false;
     }
 
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const year = parts.find((p) => p.type === "year")?.value;
+    const month = parts.find((p) => p.type === "month")?.value;
+    const day = parts.find((p) => p.type === "day")?.value;
+    const dateStr = `${year}-${month}-${day}`;
+
+    // Check if poll already exists for today
+    const existingPoll = await prisma.dailyPoll.findFirst({
+      where: { guildId: guild.id, dateStr }
+    });
+    if (existingPoll) {
+      logger.info(`DailyPollManager: Poll for today (${dateStr}) already exists in guild ${guild.name}, skipping duplicate creation.`);
+      return false;
+    }
+
     const config = await prisma.guildConfig.findUnique({ where: { guildId: guild.id } });
     const rewardAmount = config?.dailyPollRewardAmount ?? 5;
 
@@ -216,9 +236,6 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
     ];
     if (topicData.optionC) options.push({ key: "C", text: topicData.optionC });
     if (topicData.optionD) options.push({ key: "D", text: topicData.optionD });
-
-    const now = new Date();
-    const dateStr = now.toISOString().split("T")[0];
 
     // Create DB record
     const pollRecord = await prisma.dailyPoll.create({

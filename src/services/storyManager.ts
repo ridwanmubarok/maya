@@ -13,6 +13,22 @@ export interface StoryWordItem {
 }
 
 /**
+ * Get current date string in WIB timezone (YYYY-MM-DD)
+ */
+function getWibDateString(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Handle incoming messages in the story chain channel (1 kalimat per pesan)
  */
 export async function handleStoryWordMessage(message: Message) {
@@ -38,7 +54,7 @@ export async function handleStoryWordMessage(message: Message) {
     }
 
     const singleSentence = text;
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getWibDateString();
 
     // 2. Anti-consecutive-posting (User cannot write 2 sentences in a row consecutively)
     const lastWord = await prisma.dailyStoryWord.findFirst({
@@ -123,7 +139,7 @@ export async function announceStorySessionStart(guild: Guild, configuredChannelI
     if (!targetChannel || !("send" in targetChannel)) return false;
 
     const rewardAmount = config?.storyWordReward ?? 10;
-    const mvpRewardAmount = config?.storyMvpReward ?? 100;
+    const mvpRewardAmount = config?.storyMvpReward ?? 250;
 
     const embed = new EmbedBuilder()
       .setTitle("📖 MAYA STORY CHAIN HARI INI")
@@ -158,7 +174,17 @@ export async function announceStorySessionStart(guild: Guild, configuredChannelI
  */
 export async function compileDailyStoryForGuild(guild: Guild, configuredChannelId?: string): Promise<boolean> {
   try {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getWibDateString();
+
+    // Check if story for today is already compiled
+    const existingStory = await prisma.dailyStory.findFirst({
+      where: { guildId: guild.id, dateStr: todayStr }
+    });
+    if (existingStory) {
+      logger.info(`StoryManager: Story for today (${todayStr}) already compiled for guild ${guild.name}, skipping duplicate compilation.`);
+      return true;
+    }
+
     const words = await prisma.dailyStoryWord.findMany({
       where: { guildId: guild.id, dateStr: todayStr },
       orderBy: { id: "asc" }
@@ -183,7 +209,7 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
     }
 
     const rawWordStream = words.map(w => `[User ID: ${w.userId}, Name: ${w.username}] -> "${w.word}"`).join("\n");
-    const mvpReward = config?.storyMvpReward ?? 100;
+    const mvpReward = config?.storyMvpReward ?? 250;
 
     // AI Synthesis & Automatic MVP Selection
     const prompt = `Berikut adalah urutan kalimat-kalimat cerita yang ditulis oleh para member Discord hari ini secara berantai:
@@ -238,7 +264,7 @@ SYARAT PENTING:
       }
     } catch (_) {}
 
-    // Award +100 RTK Points to MVP
+    // Award +250 RTK Points to MVP
     if (mvpUserId && mvpReward > 0) {
       await prisma.triviaScore.upsert({
         where: { guildId_userId: { guildId: guild.id, userId: mvpUserId } },
@@ -312,7 +338,7 @@ SYARAT PENTING:
  */
 export async function getTodayStoryStatus(guildId: string) {
   try {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getWibDateString();
     const words = await prisma.dailyStoryWord.findMany({
       where: { guildId, dateStr: todayStr },
       orderBy: { id: "asc" }
