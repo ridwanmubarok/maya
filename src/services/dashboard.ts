@@ -111,6 +111,12 @@ export function startDashboard(client: MayaClient) {
           bannedWords: "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
           maxStrikes: 3,
           muteDuration: 10,
+          storyEnabled: true,
+          storyChannelId: null,
+          storyStartHour: 10,
+          storyPublishHour: 22,
+          storyWordReward: 10,
+          storyMvpReward: 100,
           createdAt: new Date(),
           updatedAt: new Date()
         };
