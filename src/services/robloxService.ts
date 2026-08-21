@@ -73,27 +73,34 @@ export async function handleIncomingRobloxPhoto(
       return { success: false, message: "Channel target Discord tidak valid atau bot tidak memiliki izin mengirim pesan." };
     }
 
-    const { playerName, playerUserId, caption, gameName, placeId, imageBase64, imageUrl } = payload;
+    const rawData = payload as any || {};
+    const playerName = rawData.playerName || rawData.player_name || rawData.username || rawData.name || rawData.player || "Roblox Player";
+    const playerUserId = rawData.playerUserId || rawData.player_user_id || rawData.userId || rawData.user_id || rawData.uid;
+    const caption = rawData.caption || rawData.message || rawData.text || rawData.description;
+    const gameName = rawData.gameName || rawData.game_name || rawData.placeName || rawData.experienceName;
+    const placeId = rawData.placeId || rawData.place_id || rawData.gameId;
 
-    if (!playerName) {
-      return { success: false, message: "Field 'playerName' wajib disertakan." };
-    }
+    // Resolve Image data from any common naming convention
+    const rawImage = rawData.imageBase64 || rawData.image_base64 || rawData.imageData || rawData.image_data || rawData.image || rawData.photo || rawData.photoData || rawData.base64 || rawData.data || rawData.imageUrl || rawData.image_url || rawData.url || rawData.photoUrl || rawData.photo_url;
 
-    if (!imageBase64 && !imageUrl) {
+    if (!rawImage || (typeof rawImage === "string" && rawImage.trim().length === 0)) {
+      logger.warn(`RobloxService: Missing image in payload. Received keys: [${Object.keys(rawData).join(", ")}]`);
       return { success: false, message: "Harus menyertakan salah satu dari 'imageBase64' atau 'imageUrl'." };
     }
 
     // 1. Process Image Upload to SeaweedFS S3
     let finalImageUrl: string = "";
-    if (imageBase64) {
+    const isUrl = typeof rawImage === "string" && (rawImage.startsWith("http://") || rawImage.startsWith("https://"));
+
+    if (isUrl) {
+      finalImageUrl = rawImage;
+    } else {
       try {
-        finalImageUrl = await uploadBase64ToS3(imageBase64, "roblox/photos", "png");
+        finalImageUrl = await uploadBase64ToS3(rawImage, "roblox/photos", "png");
       } catch (uploadErr) {
         logger.error("RobloxService: Failed to upload base64 image to SeaweedFS S3:", uploadErr);
         return { success: false, message: "Gagal mengunggah gambar ke penyimpanan S3." };
       }
-    } else if (imageUrl) {
-      finalImageUrl = imageUrl;
     }
 
     // 2. Fetch Player Avatar Thumbnail

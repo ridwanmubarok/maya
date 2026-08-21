@@ -439,11 +439,18 @@ export function startDashboard(client: MayaClient) {
 
   // Public Webhook Endpoint for Roblox In-Game Photo Snapshots (Uses x-api-key header)
   app.post("/api/roblox/photo", async (req: Request, res: Response) => {
+    let payload = req.body;
+    if (typeof payload === "string") {
+      try {
+        payload = JSON.parse(payload);
+      } catch (_) {}
+    }
+
     const apiKey = (req.headers["x-api-key"] as string) ||
                    (req.headers["authorization"] ? req.headers["authorization"].replace(/^Bearer\s+/i, "") : "") ||
-                   req.body?.apiKey;
+                   payload?.apiKey;
 
-    const result = await handleIncomingRobloxPhoto(client, apiKey, req.body);
+    const result = await handleIncomingRobloxPhoto(client, apiKey, payload);
     if (result.success) {
       res.json(result);
     } else {
