@@ -1401,9 +1401,14 @@
               <pre class="bg-black/60 border border-white/10 rounded-xl p-4 text-xs font-mono text-gray-300 overflow-x-auto max-h-64 leading-relaxed"><code id="roblox-luau-code">-- Memuat script integrasi Roblox...</code></pre>
             </div>
 
-            <button onclick="saveRobloxConfig()" class="w-full bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
-              <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Roblox
-            </button>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button onclick="saveRobloxConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Roblox
+              </button>
+              <button id="btn-test-roblox" onclick="testRobloxPhotoBroadcast()" class="px-5 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Tes Kirim Snapshot
+              </button>
+            </div>
 
             <!-- LIVE ROBLOX PHOTO GALLERY -->
             <div class="mt-8 space-y-4 pt-6 border-t border-white/10">

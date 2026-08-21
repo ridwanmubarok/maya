@@ -1,6 +1,7 @@
 // Roblox Photo Snap Configuration & Live Gallery Component
 
 let currentRobloxApiKey = '';
+let robloxGalleryInterval = null;
 
 function populateRobloxChannels(channels, selectedChannelId) {
   const select = document.getElementById('roblox-channel');
@@ -20,6 +21,9 @@ async function loadRobloxConfig(config, channels) {
 
   populateRobloxChannels(channels, config.robloxChannelId);
   await fetchRobloxData();
+
+  if (robloxGalleryInterval) clearInterval(robloxGalleryInterval);
+  robloxGalleryInterval = setInterval(fetchRobloxData, 10000);
 }
 
 async function fetchRobloxData() {
@@ -123,7 +127,7 @@ function renderRobloxGallery(photos) {
     gallery.innerHTML = `
       <div class="col-span-full py-12 text-center text-gray-500 italic bg-white/2 rounded-2xl border border-white/5">
         <i class="fa-solid fa-camera-retro text-3xl text-gray-600 mb-2 block"></i>
-        Belum ada foto yang dikirim dari game Roblox. Ambil foto di game Anda sekarang!
+        Belum ada foto yang dikirim dari game Roblox. Klik tombol 'Tes Kirim Foto' atau ambil foto di game Anda!
       </div>
     `;
     return;
@@ -138,22 +142,31 @@ function renderRobloxGallery(photos) {
     }) : '-';
 
     return `
-      <div class="glass-panel rounded-2xl overflow-hidden border border-white/10 group hover:border-discord-blurple/50 transition-all">
+      <div class="glass-panel rounded-2xl overflow-hidden border border-white/10 group hover:border-sky-500/50 transition-all shadow-lg flex flex-col">
         <div class="aspect-video w-full bg-black/40 overflow-hidden relative">
           <img src="${escapeHtml(p.imageUrl)}" alt="Roblox Snapshot" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-          <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center text-[10px] bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white">
+          <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center text-[10px] bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-white">
             <span class="font-semibold truncate max-w-[120px]">👤 ${escapeHtml(p.playerName)}</span>
             <span class="font-mono text-gray-300 text-[9px]">${timeStr}</span>
           </div>
         </div>
-        <div class="p-3 space-y-1 bg-discord-dark/80">
-          <div class="text-xs font-semibold text-white truncate">${escapeHtml(p.gameName || 'Roblox Experience')}</div>
-          <div class="text-[11px] text-gray-400 italic truncate">"${escapeHtml(p.caption || 'No caption')}"</div>
+        <div class="p-3.5 space-y-2 bg-discord-dark/80 flex-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-xs font-semibold text-white">
+              <span class="truncate">${escapeHtml(p.gameName || 'Roblox Experience')}</span>
+              ${p.playerUserId ? `<span class="text-[10px] text-gray-500 font-mono">UID: ${p.playerUserId}</span>` : ''}
+            </div>
+            <div class="text-[11px] text-gray-300 italic line-clamp-2 mt-1">"${escapeHtml(p.caption || 'Foto in-game Roblox')}"</div>
+          </div>
           <div class="pt-2 flex justify-between items-center border-t border-white/5 text-[10px]">
-            <a href="${escapeHtml(p.imageUrl)}" target="_blank" class="text-sky-400 hover:text-sky-300 flex items-center gap-1">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Foto HD
+            <a href="${escapeHtml(p.imageUrl)}" target="_blank" class="text-sky-400 hover:text-sky-300 flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka HD (S3)
             </a>
-            <span class="font-mono text-gray-500 text-[9px]">ID: ${p.id}</span>
+            ${p.placeId ? `
+              <a href="https://www.roblox.com/games/${p.placeId}" target="_blank" class="text-gray-400 hover:text-white flex items-center gap-1">
+                <i class="fa-solid fa-gamepad"></i> Place Link
+              </a>
+            ` : `<span class="font-mono text-gray-500 text-[9px]">ID: #${p.id}</span>`}
           </div>
         </div>
       </div>
@@ -188,6 +201,41 @@ async function saveRobloxConfig() {
     }
   } catch (error) {
     showToast('Gagal Menyimpan', 'Terjadi kesalahan koneksi.', 'error');
+  }
+}
+
+async function testRobloxPhotoBroadcast() {
+  if (!selectedGuildId) {
+    showToast('Pilih Server', 'Silakan pilih server terlebih dahulu.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-test-roblox');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Tes...`;
+  }
+
+  try {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}/test-roblox-photo`, {
+      method: 'POST'
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast('Tes Terkirim', data.message || 'Foto tes berhasil diposting ke channel Discord!', 'success');
+      setTimeout(fetchRobloxData, 1000);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast('Gagal Tes', err.message || err.error || 'Pastikan channel target sudah diatur dan disimpan.', 'error');
+    }
+  } catch (err) {
+    showToast('Error', err.message || 'Terjadi kesalahan jaringan.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Tes Kirim Snapshot`;
+    }
   }
 }
 

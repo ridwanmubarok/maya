@@ -489,6 +489,42 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Test Roblox Photo Broadcast from Dashboard (Requires Auth)
+  app.post("/api/configs/:guildId/test-roblox-photo", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      if (!config || !config.robloxApiKey) {
+        return res.status(400).json({ error: "API Key belum di-generate untuk server ini." });
+      }
+
+      const sampleImages = [
+        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1000&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1000&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1000&auto=format&fit=crop&q=80"
+      ];
+      const randomImg = sampleImages[Math.floor(Math.random() * sampleImages.length)];
+
+      const result = await handleIncomingRobloxPhoto(client, config.robloxApiKey, {
+        playerName: "MayaTester",
+        playerUserId: "1",
+        caption: "Tes Snapshot dari Maya Web Dashboard! Game terhubung dengan lancar.",
+        gameName: "Maya Adventure (Test Place)",
+        placeId: "1818",
+        imageUrl: randomImg
+      });
+
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error: any) {
+      logger.error(`Error sending test Roblox photo for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengirim tes foto Roblox." });
+    }
+  });
+
   // Save/Update configuration for a specific guild (Requires Auth)
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
