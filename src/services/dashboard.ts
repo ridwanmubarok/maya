@@ -20,7 +20,13 @@ import {
 import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
 import { startDailyPollForGuild, getLatestPollData } from "./dailyPollManager";
 import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStatus } from "./storyManager";
-import { handleIncomingRobloxPhoto, generateRobloxApiKey, getRobloxPhotosForGuild } from "./robloxService";
+import { 
+  handleIncomingRobloxPhoto, 
+  generateRobloxApiKey, 
+  getRobloxPhotosForGuild, 
+  deleteRobloxPhoto, 
+  clearAllRobloxPhotos 
+} from "./robloxService";
 import { tebakManager } from "./tebakManager";
 
 const app = express();
@@ -522,6 +528,34 @@ export function startDashboard(client: MayaClient) {
     } catch (error: any) {
       logger.error(`Error sending test Roblox photo for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal mengirim tes foto Roblox." });
+    }
+  });
+
+  // Delete single Roblox Photo (Requires Auth)
+  app.delete("/api/configs/:guildId/roblox/photos/:photoId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, photoId } = req.params;
+    try {
+      const success = await deleteRobloxPhoto(client, guildId, parseInt(photoId, 10));
+      if (success) {
+        res.json({ success: true, message: "Foto berhasil dihapus dari galeri dan S3." });
+      } else {
+        res.status(404).json({ error: "Foto tidak ditemukan." });
+      }
+    } catch (error: any) {
+      logger.error(`Error deleting Roblox photo #${photoId} for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menghapus foto." });
+    }
+  });
+
+  // Clear all Roblox Photos for guild (Requires Auth)
+  app.delete("/api/configs/:guildId/roblox/photos", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const count = await clearAllRobloxPhotos(client, guildId);
+      res.json({ success: true, message: `${count} foto berhasil dibersihkan.`, count });
+    } catch (error: any) {
+      logger.error(`Error clearing Roblox photos for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal membersihkan foto." });
     }
   });
 

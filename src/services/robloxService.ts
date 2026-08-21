@@ -3,7 +3,7 @@ import crypto from "crypto";
 import axios from "axios";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
-import { uploadBase64ToS3 } from "./storageService";
+import { uploadBase64ToS3, deleteObjectFromS3 } from "./storageService";
 
 export interface RobloxPhotoPayload {
   playerName: string;
@@ -172,10 +172,75 @@ export async function generateRobloxApiKey(guildId: string): Promise<string> {
 /**
  * Get recent Roblox photos for a guild
  */
-export async function getRobloxPhotosForGuild(guildId: string, limit: number = 20) {
+export async function getRobloxPhotosForGuild(guildId: string, limit: number = 24) {
   return await prisma.robloxPhotoLog.findMany({
     where: { guildId },
     orderBy: { createdAt: "desc" },
     take: limit
   });
+}
+
+/**
+ * Delete a single Roblox photo by ID and remove from S3 & Discord if possible
+ */
+export async function deleteRobloxPhoto(client: Client, guildId: string, photoId: number): Promise<boolean> {
+  try {
+    const photo = await prisma.robloxPhotoLog.findFirst({
+      where: { id: photoId, guildId }
+    });
+
+    if (!photo) return false;
+
+    // 1. Delete image from SeaweedFS S3
+    if (photo.imageUrl) {
+      await deleteObjectFromS3(photo.imageUrl).catch(() => {});
+    }
+
+    // 2. Delete Discord message if channel & msgId available
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      if (config && config.robloxChannelId && photo.discordMsgId) {
+        const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+        if (guild) {
+          const channel = (guild.channels.cache.get(config.robloxChannelId) || await guild.channels.fetch(config.robloxChannelId).catch(() => null)) as TextChannel;
+          if (channel && channel.isTextBased()) {
+            const msg = await channel.messages.fetch(photo.discordMsgId).catch(() => null);
+            if (msg) await msg.delete().catch(() => {});
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Delete database record
+    await prisma.robloxPhotoLog.delete({
+      where: { id: photoId }
+    });
+
+    logger.info(`RobloxService: Deleted photo ID #${photoId} for guild ${guildId}`);
+    return true;
+  } catch (error) {
+    logger.error(`RobloxService: Error deleting photo #${photoId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Clear all Roblox photos for a guild
+ */
+export async function clearAllRobloxPhotos(client: Client, guildId: string): Promise<number> {
+  try {
+    const photos = await prisma.robloxPhotoLog.findMany({ where: { guildId } });
+    for (const photo of photos) {
+      if (photo.imageUrl) {
+        await deleteObjectFromS3(photo.imageUrl).catch(() => {});
+      }
+    }
+
+    const deleteResult = await prisma.robloxPhotoLog.deleteMany({ where: { guildId } });
+    logger.info(`RobloxService: Cleared all (${deleteResult.count}) photos for guild ${guildId}`);
+    return deleteResult.count;
+  } catch (error) {
+    logger.error(`RobloxService: Error clearing photos for guild ${guildId}:`, error);
+    return 0;
+  }
 }

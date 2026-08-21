@@ -1414,12 +1414,17 @@
             <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
               <div class="flex justify-between items-center">
                 <div>
-                  <h4 class="font-outfit text-lg font-bold text-white">Galeri Foto In-Game • SeaweedFS Storage</h4>
+                  <h4 class="font-outfit text-lg font-bold text-white">Galeri Foto In-Game</h4>
                   <p class="text-xs text-gray-400">Koleksi foto terbaru yang di-upload dari dalam game Roblox</p>
                 </div>
-                <span id="roblox-photo-count" class="text-xs font-mono bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 px-2.5 py-1 rounded-full font-bold">
-                  0 Foto
-                </span>
+                <div class="flex items-center gap-2">
+                  <span id="roblox-photo-count" class="text-xs font-mono bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-full font-bold">
+                    0 Foto
+                  </span>
+                  <button onclick="clearAllRobloxPhotos()" class="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-xs font-semibold rounded-lg transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> Bersihkan Semua
+                  </button>
+                </div>
               </div>
 
               <div id="roblox-photo-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

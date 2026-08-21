@@ -127,7 +127,7 @@ function renderRobloxGallery(photos) {
     gallery.innerHTML = `
       <div class="col-span-full py-12 text-center text-gray-500 italic bg-white/2 rounded-2xl border border-white/5">
         <i class="fa-solid fa-camera-retro text-3xl text-gray-600 mb-2 block"></i>
-        Belum ada foto yang dikirim dari game Roblox. Klik tombol 'Tes Kirim Foto' atau ambil foto di game Anda!
+        Belum ada foto yang dikirim dari game Roblox. Klik tombol 'Tes Kirim Snapshot' atau ambil foto di game Anda!
       </div>
     `;
     return;
@@ -142,9 +142,14 @@ function renderRobloxGallery(photos) {
     }) : '-';
 
     return `
-      <div class="glass-panel rounded-2xl overflow-hidden border border-white/10 group hover:border-sky-500/50 transition-all shadow-lg flex flex-col">
+      <div class="glass-panel rounded-2xl overflow-hidden border border-white/10 group hover:border-sky-500/50 transition-all shadow-lg flex flex-col relative">
         <div class="aspect-video w-full bg-black/40 overflow-hidden relative">
           <img src="${escapeHtml(p.imageUrl)}" alt="Roblox Snapshot" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+          <div class="absolute top-2 right-2">
+            <button onclick="deleteRobloxPhoto(${p.id})" title="Hapus foto ini" class="w-7 h-7 rounded-lg bg-black/70 hover:bg-rose-500/80 text-gray-300 hover:text-white transition-all flex items-center justify-center text-xs backdrop-blur-md">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
           <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center text-[10px] bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-white">
             <span class="font-semibold truncate max-w-[120px]">👤 ${escapeHtml(p.playerName)}</span>
             <span class="font-mono text-gray-300 text-[9px]">${timeStr}</span>
@@ -172,6 +177,55 @@ function renderRobloxGallery(photos) {
       </div>
     `;
   }).join('');
+}
+
+async function deleteRobloxPhoto(photoId) {
+  if (!selectedGuildId) return;
+
+  if (!confirm('Apakah Anda yakin ingin menghapus foto ini dari galeri dan penyimpanan S3?')) {
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}/roblox/photos/${photoId}`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok) {
+      showToast('Berhasil Dihapus', 'Foto berhasil dihapus dari galeri dan penyimpanan.', 'success');
+      fetchRobloxData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast('Gagal Hapus', err.error || 'Gagal menghapus foto.', 'error');
+    }
+  } catch (err) {
+    showToast('Error', 'Terjadi kesalahan koneksi saat menghapus foto.', 'error');
+  }
+}
+
+async function clearAllRobloxPhotos() {
+  if (!selectedGuildId) return;
+
+  if (!confirm('PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA foto Roblox dari galeri server ini? Tindakan ini tidak dapat dibatalkan.')) {
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}/roblox/photos`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast('Pembersihan Berhasil', data.message || 'Semua foto Roblox berhasil dibersihkan.', 'success');
+      fetchRobloxData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast('Gagal Pembersihan', err.error || 'Gagal membersihkan galeri foto.', 'error');
+    }
+  } catch (err) {
+    showToast('Error', 'Terjadi kesalahan koneksi.', 'error');
+  }
 }
 
 async function saveRobloxConfig() {

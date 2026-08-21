@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { logger } from "../utils/logger";
 
 const s3Endpoint = process.env.S3_ENDPOINT || "http://154.26.129.168:8333";
@@ -69,4 +69,33 @@ export async function uploadBase64ToS3(
   const key = `${folder.replace(/\/+$/, "")}/${Date.now()}_${randomSuffix}.${extension}`;
 
   return await uploadBufferToS3(buffer, key, contentType);
+}
+
+/**
+ * Delete an object from SeaweedFS S3 by Key or Public URL
+ */
+export async function deleteObjectFromS3(keyOrUrl: string): Promise<boolean> {
+  try {
+    let key = keyOrUrl;
+    if (keyOrUrl.startsWith("http://") || keyOrUrl.startsWith("https://")) {
+      const url = new URL(keyOrUrl);
+      const pathParts = url.pathname.replace(/^\/+/, "").split("/");
+      if (pathParts[0] === s3Bucket) {
+        pathParts.shift();
+      }
+      key = pathParts.join("/");
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: s3Bucket,
+      Key: key
+    });
+
+    await s3Client.send(command);
+    logger.info(`StorageService: Successfully deleted ${key} from S3`);
+    return true;
+  } catch (error) {
+    logger.error(`StorageService: Error deleting ${keyOrUrl} from SeaweedFS S3:`, error);
+    return false;
+  }
 }
