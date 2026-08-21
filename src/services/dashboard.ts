@@ -20,10 +20,12 @@ import {
 import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
 import { startDailyPollForGuild, getLatestPollData } from "./dailyPollManager";
 import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStatus } from "./storyManager";
+import { handleIncomingRobloxPhoto, generateRobloxApiKey, getRobloxPhotosForGuild } from "./robloxService";
 import { tebakManager } from "./tebakManager";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ limit: "25mb", extended: true }));
 
 // Enable CORS headers
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -117,6 +119,10 @@ export function startDashboard(client: MayaClient) {
           storyPublishHour: 20,
           storyWordReward: 10,
           storyMvpReward: 250,
+          robloxEnabled: true,
+          robloxChannelId: null,
+          robloxApiKey: null,
+          robloxRewardAmount: 15,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -421,6 +427,68 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // ==========================================
+  // ROBLOX PHOTO SNAPSHOT WEBHOOK & DASHBOARD API
+  // ==========================================
+
+  // Public Webhook Endpoint for Roblox In-Game Photo Snapshots (Uses x-api-key header)
+  app.post("/api/roblox/photo", async (req: Request, res: Response) => {
+    const apiKey = (req.headers["x-api-key"] as string) ||
+                   (req.headers["authorization"] ? req.headers["authorization"].replace(/^Bearer\s+/i, "") : "") ||
+                   req.body?.apiKey;
+
+    const result = await handleIncomingRobloxPhoto(client, apiKey, req.body);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  });
+
+  // Get Roblox Configuration & Recent Photo Gallery (Requires Auth)
+  app.get("/api/configs/:guildId/roblox", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      let config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      if (!config) {
+        config = await prisma.guildConfig.create({
+          data: { guildId, robloxApiKey: `rbx_${Date.now()}` }
+        });
+      }
+
+      // Auto generate API Key if not present
+      if (!config.robloxApiKey) {
+        const generatedKey = await generateRobloxApiKey(guildId);
+        config.robloxApiKey = generatedKey;
+      }
+
+      const photos = await getRobloxPhotosForGuild(guildId, 24);
+      res.json({
+        success: true,
+        enabled: config.robloxEnabled !== false,
+        channelId: config.robloxChannelId || null,
+        apiKey: config.robloxApiKey,
+        rewardAmount: config.robloxRewardAmount ?? 15,
+        photos
+      });
+    } catch (error: any) {
+      logger.error(`Error fetching Roblox config for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil konfigurasi Roblox." });
+    }
+  });
+
+  // Generate / Reset Roblox API Key (Requires Auth)
+  app.post("/api/configs/:guildId/roblox-key", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const apiKey = await generateRobloxApiKey(guildId);
+      res.json({ success: true, apiKey });
+    } catch (error: any) {
+      logger.error(`Error generating Roblox API key for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal membuat API Key baru." });
+    }
+  });
+
   // Save/Update configuration for a specific guild (Requires Auth)
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
@@ -455,7 +523,10 @@ export function startDashboard(client: MayaClient) {
       storyStartHour,
       storyPublishHour,
       storyWordReward,
-      storyMvpReward
+      storyMvpReward,
+      robloxEnabled,
+      robloxChannelId,
+      robloxRewardAmount
     } = req.body;
 
     try {
@@ -491,6 +562,9 @@ export function startDashboard(client: MayaClient) {
       if (storyPublishHour !== undefined) updateData.storyPublishHour = Number(storyPublishHour);
       if (storyWordReward !== undefined) updateData.storyWordReward = Number(storyWordReward);
       if (storyMvpReward !== undefined) updateData.storyMvpReward = Number(storyMvpReward);
+      if (robloxEnabled !== undefined) updateData.robloxEnabled = Boolean(robloxEnabled);
+      if (robloxChannelId !== undefined) updateData.robloxChannelId = robloxChannelId || null;
+      if (robloxRewardAmount !== undefined) updateData.robloxRewardAmount = Number(robloxRewardAmount);
 
       const updatedConfig = await prisma.guildConfig.upsert({
         where: { guildId },

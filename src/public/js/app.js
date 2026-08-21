@@ -388,6 +388,10 @@ async function selectGuild(guildId) {
       loadMenfessConfig(config, channels);
     }
 
+    if (typeof loadRobloxConfig === 'function') {
+      loadRobloxConfig(config, channels);
+    }
+
     if (typeof loadEconomyConfig === 'function') {
       loadEconomyConfig(config);
     }
@@ -428,7 +432,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'daily-story' || tabId === 'menfess' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
+    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'daily-story' || tabId === 'menfess' || tabId === 'roblox' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');
@@ -461,6 +465,16 @@ function switchTab(tabId) {
       loadDailyStoryConfig(guildConfig, guildChannels);
     } else if (typeof loadActiveStoryLive === 'function') {
       loadActiveStoryLive();
+    }
+  } else if (tabId === 'menfess') {
+    if (typeof loadMenfessConfig === 'function' && guildConfig && guildChannels) {
+      loadMenfessConfig(guildConfig, guildChannels);
+    }
+  } else if (tabId === 'roblox') {
+    if (typeof loadRobloxConfig === 'function' && guildConfig && guildChannels) {
+      loadRobloxConfig(guildConfig, guildChannels);
+    } else if (typeof fetchRobloxData === 'function') {
+      fetchRobloxData();
     }
   } else if (tabId === 'analytics') {
     if (typeof loadAnalytics === 'function') loadAnalytics();

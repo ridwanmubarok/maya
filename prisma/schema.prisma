@@ -46,8 +46,25 @@ model GuildConfig {
   lastPollPostDate       String?
   lastStoryStartDate     String?
   lastStoryPublishDate   String?
+  robloxEnabled          Boolean  @default(true)
+  robloxChannelId        String?
+  robloxApiKey           String?
+  robloxRewardAmount     Int      @default(15)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+}
+
+model RobloxPhotoLog {
+  id           Int      @id @default(autoincrement())
+  guildId      String
+  playerName   String
+  playerUserId String?
+  imageUrl     String
+  caption      String?
+  gameName     String?
+  placeId      String?
+  discordMsgId String?
+  createdAt    DateTime @default(now())
 }
 
 model WarnLog {
