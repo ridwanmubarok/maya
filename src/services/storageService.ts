@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { logger } from "../utils/logger";
 
-const s3Endpoint = process.env.S3_ENDPOINT || "http://154.26.129.168:8333";
+const s3Endpoint = process.env.S3_ENDPOINT || "https://s3.rogatekno.my.id";
 const s3Region = process.env.S3_REGION || "us-east-1";
 const s3AccessKey = process.env.S3_ACCESS_KEY || "X9I88SS0Z6GFYHCSV15A";
 const s3SecretKey = process.env.S3_SECRET_KEY || "ZZKkS4bF4dg/RfAjNlKNpwLAu1/p8byfQbu8aCqQ";
@@ -31,8 +31,7 @@ export async function uploadBufferToS3(
       Bucket: s3Bucket,
       Key: key,
       Body: buffer,
-      ContentType: contentType,
-      ACL: "public-read"
+      ContentType: contentType
     });
 
     await s3Client.send(command);
