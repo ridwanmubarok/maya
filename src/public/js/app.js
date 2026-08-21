@@ -5,6 +5,8 @@ let selectedGuildId = '';
 let guilds = [];
 let activeTab = 'welcome';
 let guildRoles = [];
+let guildChannels = [];
+let guildConfig = {};
 
 // DOM Element References
 let loginOverlay, appContainer, guildsList, mainContent, emptyState;
@@ -329,6 +331,9 @@ async function selectGuild(guildId) {
     
     const { config, channels } = await response.json();
     
+    // Cache to globals so tabs can re-use them when switching
+    guildConfig = config;
+    guildChannels = channels;
 
     if (welcomeChannelSelect) {
       welcomeChannelSelect.innerHTML = `
@@ -452,7 +457,11 @@ function switchTab(tabId) {
   } else if (tabId === 'daily-poll') {
     if (typeof loadActivePollLive === 'function') loadActivePollLive();
   } else if (tabId === 'daily-story') {
-    if (typeof loadActiveStoryLive === 'function') loadActiveStoryLive();
+    if (typeof loadDailyStoryConfig === 'function' && guildConfig && guildChannels) {
+      loadDailyStoryConfig(guildConfig, guildChannels);
+    } else if (typeof loadActiveStoryLive === 'function') {
+      loadActiveStoryLive();
+    }
   } else if (tabId === 'analytics') {
     if (typeof loadAnalytics === 'function') loadAnalytics();
   } else if (tabId === 'economy') {

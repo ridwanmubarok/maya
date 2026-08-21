@@ -374,6 +374,18 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Ambil data polling aktif & daftar partisipan member (Live Backoffice Dashboard)
+  app.get("/api/configs/:guildId/active-poll", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const pollData = await getLatestPollData(guildId);
+      res.json({ success: true, ...pollData });
+    } catch (error: any) {
+      logger.error(`Error fetching active poll data for ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil data polling aktif." });
+    }
+  });
+
   // Ambil data rantai kata & status cerita harian hari ini (Live Backoffice Dashboard)
   app.get("/api/configs/:guildId/today-story", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
