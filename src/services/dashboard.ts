@@ -113,10 +113,10 @@ export function startDashboard(client: MayaClient) {
           muteDuration: 10,
           storyEnabled: true,
           storyChannelId: null,
-          storyStartHour: 10,
-          storyPublishHour: 22,
+          storyStartHour: 17,
+          storyPublishHour: 20,
           storyWordReward: 10,
-          storyMvpReward: 100,
+          storyMvpReward: 250,
           createdAt: new Date(),
           updatedAt: new Date()
         };

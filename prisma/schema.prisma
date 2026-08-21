@@ -37,10 +37,10 @@ model GuildConfig {
   voiceRewardAmount      Int      @default(5)
   storyChannelId         String?
   storyEnabled           Boolean  @default(true)
-  storyStartHour         Int      @default(10)
-  storyPublishHour       Int      @default(22)
+  storyStartHour         Int      @default(17)
+  storyPublishHour       Int      @default(20)
   storyWordReward        Int      @default(10)
-  storyMvpReward         Int      @default(100)
+  storyMvpReward         Int      @default(250)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

@@ -23,13 +23,13 @@ function populateStoryHourDropdowns(selectedStartHour, selectedPublishHour) {
 
   if (startSelect) {
     startSelect.innerHTML = hours.map(h => `
-      <option value="${h.value}" ${h.value === (selectedStartHour ?? 10) ? 'selected' : ''}>${h.label}</option>
+      <option value="${h.value}" ${h.value === (selectedStartHour ?? 17) ? 'selected' : ''}>${h.label}</option>
     `).join('');
   }
 
   if (publishSelect) {
     publishSelect.innerHTML = hours.map(h => `
-      <option value="${h.value}" ${h.value === (selectedPublishHour ?? 22) ? 'selected' : ''}>${h.label}</option>
+      <option value="${h.value}" ${h.value === (selectedPublishHour ?? 20) ? 'selected' : ''}>${h.label}</option>
     `).join('');
   }
 }
@@ -46,7 +46,7 @@ function loadDailyStoryConfig(config, channels) {
     wordRewardInput.value = config.storyWordReward ?? 10;
   }
   if (mvpRewardInput) {
-    mvpRewardInput.value = config.storyMvpReward ?? 100;
+    mvpRewardInput.value = config.storyMvpReward ?? 250;
   }
 
   populateStoryChannels(channels, config.storyChannelId);
