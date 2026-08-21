@@ -5,7 +5,7 @@ import { logger } from "../utils/logger";
 
 let dailyPollSchedulerInitialized = false;
 
-// Memory tracker to prevent duplicate poll posts on the same date per guild
+// In-memory lookup cache
 const lastPollPostMap = new Map<string, string>();
 
 /**
@@ -17,12 +17,7 @@ export function initDailyPollScheduler(client: Client) {
 
   logger.info("DailyPollScheduler: Initialized automatic daily AI poll timer (WIB Timezone).");
 
-  // Run initial check on startup
-  processScheduledPolls(client).catch((err) =>
-    logger.error("DailyPollScheduler: Startup check error:", err)
-  );
-
-  // Check every 1 minute
+  // Check every 1 minute (do NOT trigger duplicate on startup)
   setInterval(async () => {
     await processScheduledPolls(client);
   }, 60000);
@@ -63,8 +58,14 @@ async function processScheduledPolls(client: Client) {
 
       const pollPostHour = config?.dailyPollPostHour ?? 10; // Default 10:00 AM WIB
 
-      if (wibHour === pollPostHour && lastPollPostMap.get(guildId) !== dateStr) {
+      const alreadyPostedPollToday = config?.lastPollPostDate === dateStr || lastPollPostMap.get(guildId) === dateStr;
+      if (wibHour === pollPostHour && !alreadyPostedPollToday) {
         lastPollPostMap.set(guildId, dateStr);
+        await prisma.guildConfig.update({
+          where: { guildId },
+          data: { lastPollPostDate: dateStr }
+        }).catch(() => {});
+
         logger.info(`DailyPollScheduler: Triggering daily AI poll for ${guild.name} at ${wibHour}:00 WIB`);
         await startDailyPollForGuild(guild, config?.dailyPollChannelId || undefined);
       }

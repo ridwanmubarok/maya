@@ -15,7 +15,7 @@ export function initDailyStoryScheduler(client: Client) {
 
   logger.info("DailyStoryScheduler: Schedulers started for Maya Story Chain.");
 
-  // Check every 60 seconds
+  // Check every 60 seconds (do NOT trigger duplicate on startup)
   schedulerInterval = setInterval(() => {
     checkAndTriggerDailyStory(client).catch((err) => {
       logger.error("DailyStoryScheduler: Error checking schedule:", err);
@@ -47,21 +47,33 @@ async function checkAndTriggerDailyStory(client: Client) {
       const config = await prisma.guildConfig.findUnique({ where: { guildId: guild.id } });
       if (!config || !config.storyEnabled || !config.storyChannelId) continue;
 
-      const startHour = config.storyStartHour ?? 10;
-      const publishHour = config.storyPublishHour ?? 22;
+      const startHour = config.storyStartHour ?? 17;
+      const publishHour = config.storyPublishHour ?? 20;
 
-      // 1. Trigger Start Announcement (Start Hour)
+      // 1. Trigger Start Announcement (Start Hour) - Checked against DB persistent date
       const startKey = `${guild.id}_${dateStr}_${startHour}`;
-      if (currentHour === startHour && !lastStartTriggerMap[startKey]) {
+      const alreadyStartedToday = config.lastStoryStartDate === dateStr || lastStartTriggerMap[startKey];
+      if (currentHour === startHour && !alreadyStartedToday) {
         lastStartTriggerMap[startKey] = "TRIGGERED";
+        await prisma.guildConfig.update({
+          where: { guildId: guild.id },
+          data: { lastStoryStartDate: dateStr }
+        }).catch(() => {});
+
         logger.info(`DailyStoryScheduler: Triggering Start Announcement for guild ${guild.name}`);
         await announceStorySessionStart(guild, config.storyChannelId);
       }
 
-      // 2. Trigger End Session & AI Compilation (Publish Hour)
+      // 2. Trigger End Session & AI Compilation (Publish Hour) - Checked against DB persistent date
       const publishKey = `${guild.id}_${dateStr}_${publishHour}`;
-      if (currentHour === publishHour && !lastPublishTriggerMap[publishKey]) {
+      const alreadyPublishedToday = config.lastStoryPublishDate === dateStr || lastPublishTriggerMap[publishKey];
+      if (currentHour === publishHour && !alreadyPublishedToday) {
         lastPublishTriggerMap[publishKey] = "TRIGGERED";
+        await prisma.guildConfig.update({
+          where: { guildId: guild.id },
+          data: { lastStoryPublishDate: dateStr }
+        }).catch(() => {});
+
         logger.info(`DailyStoryScheduler: Triggering Story Compilation for guild ${guild.name}`);
         await compileDailyStoryForGuild(guild, config.storyChannelId);
       }

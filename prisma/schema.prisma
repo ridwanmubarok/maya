@@ -41,6 +41,11 @@ model GuildConfig {
   storyPublishHour       Int      @default(20)
   storyWordReward        Int      @default(10)
   storyMvpReward         Int      @default(250)
+  lastRiddlePostDate     String?
+  lastLeaderboardPostDate String?
+  lastPollPostDate       String?
+  lastStoryStartDate     String?
+  lastStoryPublishDate   String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

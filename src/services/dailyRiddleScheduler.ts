@@ -5,7 +5,7 @@ import { logger } from "../utils/logger";
 
 let dailySchedulerInitialized = false;
 
-// Memory tracker to prevent duplicate broadcasts on the same date per guild
+// In-memory quick lookup cache
 const lastRiddlePostMap = new Map<string, string>();
 const lastLeaderboardPostMap = new Map<string, string>();
 
@@ -18,12 +18,7 @@ export function initDailyRiddleScheduler(client: Client) {
 
   logger.info("DailyRiddleScheduler: Initialized automatic daily riddle background timer (WIB Timezone).");
 
-  // Run initial check immediately on startup
-  processScheduledBroadcasts(client).catch((err) =>
-    logger.error("DailyRiddleScheduler: Initial startup check error:", err)
-  );
-
-  // Check every 1 minute for exact time precision
+  // Check every 1 minute for exact time precision (do NOT trigger duplicate on startup)
   setInterval(async () => {
     await processScheduledBroadcasts(client);
   }, 60000);
@@ -65,16 +60,28 @@ async function processScheduledBroadcasts(client: Client) {
       const riddlePostHour = config?.dailyRiddlePostHour ?? 9;
       const leaderboardPostHour = config?.dailyLeaderboardPostHour ?? 21;
 
-      // 1. Check if it's time to post Daily Riddle (WIB) and not posted today yet
-      if (wibHour === riddlePostHour && lastRiddlePostMap.get(guildId) !== dateStr) {
+      // 1. Check if it's time to post Daily Riddle (WIB) and not posted today yet (both in memory and persistent DB)
+      const alreadyPostedRiddleToday = config?.lastRiddlePostDate === dateStr || lastRiddlePostMap.get(guildId) === dateStr;
+      if (wibHour === riddlePostHour && !alreadyPostedRiddleToday) {
         lastRiddlePostMap.set(guildId, dateStr);
+        await prisma.guildConfig.update({
+          where: { guildId },
+          data: { lastRiddlePostDate: dateStr }
+        }).catch(() => {});
+
         logger.info(`DailyRiddleScheduler: Triggering daily riddle for ${guild.name} at ${wibHour}:00 WIB`);
         await broadcastDailyRiddlesForGuild(guild, config?.dailyRiddleChannelId || undefined);
       }
 
       // 2. Check if it's time to post Evening Daily Leaderboard (WIB) and not posted today yet
-      if (wibHour === leaderboardPostHour && lastLeaderboardPostMap.get(guildId) !== dateStr) {
+      const alreadyPostedLeaderboardToday = config?.lastLeaderboardPostDate === dateStr || lastLeaderboardPostMap.get(guildId) === dateStr;
+      if (wibHour === leaderboardPostHour && !alreadyPostedLeaderboardToday) {
         lastLeaderboardPostMap.set(guildId, dateStr);
+        await prisma.guildConfig.update({
+          where: { guildId },
+          data: { lastLeaderboardPostDate: dateStr }
+        }).catch(() => {});
+
         logger.info(`DailyRiddleScheduler: Triggering daily leaderboard for ${guild.name} at ${wibHour}:00 WIB`);
         await broadcastDailyLeaderboardsForGuild(guild, config?.dailyRiddleChannelId || undefined);
       }
@@ -122,13 +129,10 @@ export async function broadcastDailyRiddlesForGuild(guild: any, configuredChanne
 }
 
 /**
- * Broadcast Daily Leaderboard Summary to a specific guild
+ * Broadcast Evening Daily Leaderboard (Peringkat Jawaban Hari Ini) to a specific guild
  */
-export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredChannelId?: string) {
+export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredChannelId?: string): Promise<boolean> {
   try {
-    const leaderboard = await tebakManager.getDailyLeaderboard(guild.id);
-    if (!leaderboard || leaderboard.length === 0) return;
-
     let targetChannel: TextChannel | null = null;
 
     if (configuredChannelId) {
@@ -136,36 +140,61 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
     }
 
     if (!targetChannel) {
-      targetChannel =
-        guild.systemChannel ||
-        (guild.channels.cache.find(
-          (c: any) => c.isTextBased() && (c.name.includes("general") || c.name.includes("chat") || c.name.includes("main") || c.name.includes("tebak"))
-        ) as TextChannel);
+      try {
+        const fetchedChannels = await guild.channels.fetch();
+        targetChannel = (fetchedChannels.find(
+          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("tebak") || c.name.includes("general") || c.name.includes("chat") || c.name.includes("main"))
+        ) || guild.systemChannel) as TextChannel;
+      } catch (_) {
+        targetChannel = guild.systemChannel as TextChannel;
+      }
     }
 
-    if (targetChannel && "send" in targetChannel) {
-      const embed = new EmbedBuilder()
-        .setTitle(`🏆 KLASEMEN LEADERBOARD HARIAN • ${guild.name}`)
-        .setDescription("Berikut adalah daftar member paling aktif & berprestasi pada Tebak-Tebakan Harian hari ini:")
-        .setColor("#10B981")
-        .setFooter({ text: "Maya Trivia Engine • Klasemen Harian Reset Setiap Malam" })
-        .setTimestamp();
-
-      let text = "";
-      leaderboard.forEach((entry, index) => {
-        const rank = index + 1;
-        const rankPrefix = rank === 1 ? "🥇 (Juara 1 Hari Ini)" : rank === 2 ? "🥈 (Juara 2 Hari Ini)" : rank === 3 ? "🥉 (Juara 3 Hari Ini)" : `${rank}`;
-        text += `**${rankPrefix}**. <@${entry.userId}> — **${entry.dailyScore} Poin Harian**\n`;
-      });
-
-      embed.addFields({ name: "Papan Peringkat Harian", value: text });
-
-      await targetChannel.send({
-        content: "@everyone @here **Pengumuman Pemenang Klasemen Tebak-Tebakan Harian Hari Ini!** 🎉",
-        embeds: [embed],
-      });
+    if (!targetChannel || !("send" in targetChannel)) {
+      logger.warn(`DailyRiddleScheduler: Channel target leaderboard harian tidak ditemukan di ${guild.name}`);
+      return false;
     }
+
+    // Fetch top 10 users for dailyScore sorted by highest dailyScore desc, updatedAt asc (first to answer correctly)
+    const topDailyUsers = await prisma.triviaScore.findMany({
+      where: { guildId: guild.id, dailyScore: { gt: 0 } },
+      orderBy: [{ dailyScore: "desc" }, { updatedAt: "asc" }],
+      take: 10,
+    });
+
+    const now = new Date();
+    const dateFormatted = new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Jakarta",
+      dateStyle: "full",
+    }).format(now);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🏆 KLASEMEN HARIAN TEBAK-TEBAKAN MAYA AI")
+      .setDescription(
+        `Berikut adalah perolehan skor member tercepat & terhebat hari ini (**${dateFormatted}**):\n\n` +
+        (topDailyUsers.length === 0
+          ? "*Belum ada member yang berhasil memecahkan tebak-tebakan hari ini.*"
+          : topDailyUsers
+              .map((u, index) => {
+                const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `**#${index + 1}**`;
+                return `${medal} <@${u.userId}> — **${u.dailyScore} RTK Points**`;
+              })
+              .join("\n")) +
+        `\n\n💡 *Skor harian akan direset setiap pagi pukul 00:00 WIB untuk tebakan baru besok.*`
+      )
+      .setColor("#EAB308")
+      .setFooter({ text: "Maya Daily Trivia Engine • Leaderboard Malam" })
+      .setTimestamp();
+
+    await targetChannel.send({
+      content: "📢 @everyone **Rekap Klasemen Tebak-Tebakan Harian Maya AI Hari Ini!** 🎉",
+      embeds: [embed],
+    });
+
+    logger.info(`DailyRiddleScheduler: Daily leaderboard posted to channel #${targetChannel.name} in ${guild.name}`);
+    return true;
   } catch (e) {
     logger.error(`DailyRiddleScheduler: Error broadcasting daily leaderboard to guild ${guild.name}:`, e);
+    return false;
   }
 }
