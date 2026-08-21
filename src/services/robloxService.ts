@@ -99,40 +99,31 @@ export async function handleIncomingRobloxPhoto(
     // 2. Fetch Player Avatar Thumbnail
     const avatarUrl = await getRobloxAvatarUrl(playerUserId);
 
-    // 3. Construct Discord Embed
+    // 3. Construct Clean, Aesthetic Discord Embed
     const embed = new EmbedBuilder()
-      .setTitle(`📸 ROBLOX PHOTO SNAP • ${gameName || "In-Game Snapshot"}`)
       .setColor("#00A2FF")
-      .setDescription(caption ? `> *"${caption}"*` : `> *Foto kenangan seru dari game Roblox!*`)
       .setImage(finalImageUrl)
-      .setFooter({ text: "Maya Roblox Snapshot Engine • SeaweedFS Storage" })
+      .setFooter({ text: "Roblox In-Game Snapshot" })
       .setTimestamp();
 
-    if (avatarUrl) {
+    if (playerName) {
       embed.setAuthor({
-        name: `${playerName}${playerUserId ? ` (@${playerUserId})` : ""}`,
+        name: playerName,
         iconURL: avatarUrl,
         url: playerUserId ? `https://www.roblox.com/users/${playerUserId}/profile` : undefined
       });
-      embed.setThumbnail(avatarUrl);
-    } else {
-      embed.setAuthor({ name: playerName });
     }
 
-    const fields = [
-      { name: "👤 Player", value: `**${playerName}**`, inline: true },
-      { name: "🎮 Experience", value: gameName || "Roblox Game", inline: true }
-    ];
-
-    if (placeId) {
-      fields.push({
-        name: "📍 Place Link",
-        value: `[Klik untuk Main](https://www.roblox.com/games/${placeId})`,
-        inline: true
-      });
+    if (gameName) {
+      embed.setTitle(gameName);
+      if (placeId) {
+        embed.setURL(`https://www.roblox.com/games/${placeId}`);
+      }
     }
 
-    embed.addFields(fields);
+    if (caption && caption.trim()) {
+      embed.setDescription(`> *"${caption.trim()}"*`);
+    }
 
     // 4. Send Message to Discord Channel
     const discordMessage = await channel.send({ embeds: [embed] });

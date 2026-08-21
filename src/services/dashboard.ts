@@ -506,10 +506,10 @@ export function startDashboard(client: MayaClient) {
       const randomImg = sampleImages[Math.floor(Math.random() * sampleImages.length)];
 
       const result = await handleIncomingRobloxPhoto(client, config.robloxApiKey, {
-        playerName: "MayaTester",
+        playerName: "MayaExplorer",
         playerUserId: "1",
-        caption: "Tes Snapshot dari Maya Web Dashboard! Game terhubung dengan lancar.",
-        gameName: "Maya Adventure (Test Place)",
+        caption: "Foto momen seru bareng teman di Roblox!",
+        gameName: "Sunset Valley",
         placeId: "1818",
         imageUrl: randomImg
       });
