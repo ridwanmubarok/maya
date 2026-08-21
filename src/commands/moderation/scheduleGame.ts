@@ -58,6 +58,7 @@ const command: Command = {
       }
 
       // Generate a temporary ID for mabar session so we can attach it to buttons customId
+      const creatorParticipants = [interaction.user.id];
       const tempSession = await prisma.gameSession.create({
         data: {
           guildId: interaction.guildId!,
@@ -66,10 +67,11 @@ const command: Command = {
           game,
           description,
           playTime,
-          maxPlayers,
+          maxPlayers: maxPlayers ?? 10,
           gameUrl,
           creatorId: interaction.user.id,
-          participants: [interaction.user.id] // Creator is joined by default
+          creatorName: interaction.user.tag || interaction.user.username,
+          participantIds: JSON.stringify(creatorParticipants) // Creator is joined by default
         }
       });
 
@@ -82,7 +84,7 @@ const command: Command = {
         maxPlayers,
         gameUrl,
         creatorId: interaction.user.id,
-        participants: [interaction.user.id]
+        participants: creatorParticipants
       });
 
       const buttons = createMabarButtons(tempSession.id, gameUrl);

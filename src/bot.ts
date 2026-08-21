@@ -7,6 +7,7 @@ import { connectDatabase } from "./services/database";
 import { initAI } from "./services/aiClient";
 import { startDashboard } from "./services/dashboard";
 import { initDailyPollScheduler } from "./services/dailyPollScheduler";
+import { initDailyStoryScheduler } from "./services/storyScheduler";
 import { logger } from "./utils/logger";
 
 // Load environment variables
@@ -49,11 +50,11 @@ const loadCommands = () => {
         const commandModule = require(filePath);
         const command: Command = commandModule.default || commandModule;
 
-        if (command && command.data && typeof command.execute === "function") {
+        if (command && command.data && command.data.name) {
           client.commands.set(command.data.name, command);
-          logger.info(`Command berhasil dimuat: /${command.data.name}`);
+          logger.info(`Command berhasil dimuat: ${command.data.name}`);
         } else {
-          logger.warn(`Command di ${file} tidak memiliki format data/execute yang sesuai.`);
+          logger.warn(`Command di ${file} tidak memiliki properti data.name yang sesuai.`);
         }
       } catch (error) {
         logger.error(`Gagal memuat command ${file}:`, error);
@@ -106,6 +107,7 @@ const startBot = async () => {
 
     await client.login(token);
     initDailyPollScheduler(client);
+    initDailyStoryScheduler(client);
     startDashboard(client);
   } catch (error) {
     logger.error("Gagal melakukan bootstrap aplikasi:", error);

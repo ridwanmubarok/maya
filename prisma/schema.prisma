@@ -35,6 +35,12 @@ model GuildConfig {
   voiceRewardEnabled     Boolean  @default(true)
   voiceRewardIntervalMin Int      @default(10)
   voiceRewardAmount      Int      @default(5)
+  storyChannelId         String?
+  storyEnabled           Boolean  @default(true)
+  storyStartHour         Int      @default(10)
+  storyPublishHour       Int      @default(22)
+  storyWordReward        Int      @default(10)
+  storyMvpReward         Int      @default(100)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -51,46 +57,54 @@ model WarnLog {
 }
 
 model GameSession {
-  id           String   @id @default(uuid())
-  guildId      String
-  channelId    String
-  messageId    String   @unique
-  game         String
-  description  String
-  playTime     String
-  maxPlayers   Int?
-  gameUrl      String?
-  creatorId    String
-  participants String[]
-  createdAt    DateTime @default(now())
+  id             String   @id @default(uuid())
+  guildId        String
+  channelId      String
+  messageId      String   @unique
+  game           String
+  description    String
+  playTime       String
+  gameUrl        String?
+  maxPlayers     Int
+  creatorId      String
+  creatorName    String
+  participantIds String   @default("[]")
+  participants   String?  @default("[]")
+  status         String   @default("OPEN")
+  createdAt      DateTime @default(now())
+
+  @@index([guildId, status])
 }
 
-model AiChatMessage {
-  id        Int      @id @default(autoincrement())
-  guildId   String
-  userId    String
-  username  String
-  role      String
-  content   String
-  createdAt DateTime @default(now())
+model ButtonRole {
+  id          Int      @id @default(autoincrement())
+  guildId     String
+  channelId   String
+  messageId   String   @unique
+  title       String
+  description String
+  buttonJson  String
+  createdAt   DateTime @default(now())
 
-  @@index([guildId, userId])
+  @@index([guildId])
 }
 
 model ReactionRoleMenu {
   id          String               @id @default(uuid())
   guildId     String
   channelId   String
-  messageId   String?
-  title       String               @default("🎭 Pilih Role Anda")
-  description String               @default("Klik tombol di bawah untuk mengambil atau melepas role!")
+  messageId   String               @unique
+  title       String
+  description String
   color       String               @default("#5865F2")
   options     ReactionRoleOption[]
   createdAt   DateTime             @default(now())
+
+  @@index([guildId])
 }
 
 model ReactionRoleOption {
-  id        String           @id @default(uuid())
+  id        Int              @id @default(autoincrement())
   menuId    String
   menu      ReactionRoleMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
   roleId    String
@@ -98,6 +112,9 @@ model ReactionRoleOption {
   label     String
   emoji     String?
   style     String           @default("Primary")
+  createdAt DateTime         @default(now())
+
+  @@index([menuId])
 }
 
 model TriviaScore {
@@ -107,39 +124,40 @@ model TriviaScore {
   username      String
   score         Int      @default(0)
   dailyScore    Int      @default(0)
-  lastDailyDate String?
+  lastDailyDate String?  @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, score])
-  @@index([guildId, dailyScore])
 }
 
 model MenfessLog {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  guildId     String
-  channelId   String
-  messageId   String
-  senderId    String
-  content     String
-  replyToCode String?
-  createdAt   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  guildId      String
+  channelId    String?
+  messageId    String?
+  replyToCode  String?
+  senderId     String
+  targetUserId String?
+  targetName   String?
+  content      String
+  aiFilterPass Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   @@index([guildId, code])
 }
 
-model AnalyticsLog {
+model MenfessReply {
   id        Int      @id @default(autoincrement())
+  code      String
   guildId   String
-  eventType String
-  eventName String?
-  hour      Int
+  replierId String
+  content   String
   createdAt DateTime @default(now())
 
-  @@index([guildId, eventType])
-  @@index([guildId, createdAt])
+  @@index([guildId, code])
 }
 
 model ShopItem {
@@ -201,4 +219,55 @@ model DailyPollVote {
 
   @@unique([pollId, userId])
   @@index([pollId])
+}
+
+model AiChatMessage {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  userId    String
+  username  String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+}
+
+model AnalyticsLog {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  eventType String
+  eventName String?
+  hour      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([guildId, eventType])
+}
+
+model DailyStoryWord {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  userId    String
+  username  String
+  word      String
+  dateStr   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, dateStr])
+}
+
+model DailyStory {
+  id               String   @id @default(uuid())
+  guildId          String
+  title            String
+  storyText        String
+  imageUrl         String?
+  mvpUserId        String?
+  mvpUsername      String?
+  mvpReason        String?
+  contributorCount Int      @default(0)
+  dateStr          String
+  createdAt        DateTime @default(now())
+
+  @@index([guildId, dateStr])
 }

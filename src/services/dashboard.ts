@@ -19,6 +19,7 @@ import {
 } from "./shopService";
 import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
 import { startDailyPollForGuild, getLatestPollData } from "./dailyPollManager";
+import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStatus } from "./storyManager";
 import { tebakManager } from "./tebakManager";
 
 const app = express();
@@ -367,15 +368,61 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Ambil data polling aktif & daftar partisipan member (Live Backoffice Dashboard)
-  app.get("/api/configs/:guildId/active-poll", authMiddleware, async (req: Request, res: Response) => {
+  // Ambil data rantai kata & status cerita harian hari ini (Live Backoffice Dashboard)
+  app.get("/api/configs/:guildId/today-story", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      const pollData = await getLatestPollData(guildId);
-      res.json({ success: true, ...pollData });
+      const storyData = await getTodayStoryStatus(guildId);
+      res.json({ success: true, ...storyData });
     } catch (error: any) {
-      logger.error(`Error fetching active poll data for ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal mengambil data polling aktif." });
+      logger.error(`Error fetching today story status for ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil status cerita harian." });
+    }
+  });
+
+  // Trigger Kirim Pengingat Pembukaan Sesi Cerita dari Dashboard
+  app.post("/api/configs/:guildId/start-story-session", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+      return res.status(404).json({ error: "Server tidak ditemukan atau bot tidak aktif di server tersebut." });
+    }
+
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      const success = await announceStorySessionStart(guild, config?.storyChannelId || undefined);
+
+      if (success) {
+        res.json({ success: true, message: "Pengumuman pembukaan sesi Maya Dongeng Bersambung berhasil dikirim ke channel target!" });
+      } else {
+        res.status(400).json({ error: "Gagal mengirim pengumuman. Pastikan channel target Maya Dongeng Bersambung sudah dikonfigurasi." });
+      }
+    } catch (error: any) {
+      logger.error(`Error starting story session for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan sistem saat memicu pengumuman sesi cerita." });
+    }
+  });
+
+  // Trigger Tes Render Dongeng & Pilih MVP dari Dashboard
+  app.post("/api/configs/:guildId/test-daily-story", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+      return res.status(404).json({ error: "Server tidak ditemukan atau bot tidak aktif di server tersebut." });
+    }
+
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      const success = await compileDailyStoryForGuild(guild, config?.storyChannelId || undefined);
+
+      if (success) {
+        res.json({ success: true, message: "Maya Dongeng Bersambung berhasil di-render dan diposting ke channel!" });
+      } else {
+        res.status(400).json({ error: "Gagal merender dongeng. Belum ada kata yang disumbangkan hari ini atau bot tidak memiliki izin di channel target." });
+      }
+    } catch (error: any) {
+      logger.error(`Error compiling story for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan sistem saat memicu render dongeng." });
     }
   });
 
@@ -407,7 +454,13 @@ export function startDashboard(client: MayaClient) {
       menfessEnabled,
       voiceRewardEnabled,
       voiceRewardIntervalMin,
-      voiceRewardAmount
+      voiceRewardAmount,
+      storyChannelId,
+      storyEnabled,
+      storyStartHour,
+      storyPublishHour,
+      storyWordReward,
+      storyMvpReward
     } = req.body;
 
     try {
@@ -437,6 +490,12 @@ export function startDashboard(client: MayaClient) {
       if (voiceRewardEnabled !== undefined) updateData.voiceRewardEnabled = Boolean(voiceRewardEnabled);
       if (voiceRewardIntervalMin !== undefined) updateData.voiceRewardIntervalMin = Number(voiceRewardIntervalMin);
       if (voiceRewardAmount !== undefined) updateData.voiceRewardAmount = Number(voiceRewardAmount);
+      if (storyChannelId !== undefined) updateData.storyChannelId = storyChannelId || null;
+      if (storyEnabled !== undefined) updateData.storyEnabled = Boolean(storyEnabled);
+      if (storyStartHour !== undefined) updateData.storyStartHour = Number(storyStartHour);
+      if (storyPublishHour !== undefined) updateData.storyPublishHour = Number(storyPublishHour);
+      if (storyWordReward !== undefined) updateData.storyWordReward = Number(storyWordReward);
+      if (storyMvpReward !== undefined) updateData.storyMvpReward = Number(storyMvpReward);
 
       const updatedConfig = await prisma.guildConfig.upsert({
         where: { guildId },
@@ -833,10 +892,11 @@ export function startDashboard(client: MayaClient) {
           game,
           description,
           playTime,
-          maxPlayers: maxPlayers ? Number(maxPlayers) : null,
+          maxPlayers: maxPlayers ? Number(maxPlayers) : 10,
           gameUrl: gameUrl || null,
           creatorId: "Dashboard Admin",
-          participants: [] // Empty list to start or with dummy
+          creatorName: "Dashboard Admin",
+          participantIds: "[]" // Empty list to start
         }
       });
 

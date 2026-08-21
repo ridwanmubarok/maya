@@ -94,20 +94,27 @@ export async function handleMabarJoin(
       return { success: false, message: "Jadwal mabar ini tidak ditemukan di database." };
     }
 
-    if (session.participants.includes(userId)) {
+    const participants: string[] = JSON.parse(session.participantIds || "[]");
+
+    if (participants.includes(userId)) {
       return { success: false, message: "Anda sudah bergabung dalam mabar ini!" };
     }
 
-    if (session.maxPlayers && session.participants.length >= session.maxPlayers) {
+    if (session.maxPlayers && participants.length >= session.maxPlayers) {
       return { success: false, message: "Maaf, slot mabar sudah penuh!" };
     }
 
     // Add user to participants list
-    const updatedParticipants = [...session.participants, userId];
+    const updatedParticipants = [...participants, userId];
     const updatedSession = await prisma.gameSession.update({
       where: { id: sessionId },
-      data: { participants: updatedParticipants }
+      data: { participantIds: JSON.stringify(updatedParticipants) }
     });
+
+    const sessionData: MabarSessionData = {
+      ...updatedSession,
+      participants: updatedParticipants
+    };
 
     // Update Discord message
     const guild = client.guilds.cache.get(session.guildId);
@@ -117,7 +124,7 @@ export async function handleMabarJoin(
         try {
           const msg = await channel.messages.fetch(session.messageId);
           if (msg) {
-            const embed = createMabarEmbed(updatedSession);
+            const embed = createMabarEmbed(sessionData);
             const buttons = createMabarButtons(sessionId, session.gameUrl);
             await msg.edit({ embeds: [embed], components: [buttons] });
           }
@@ -151,16 +158,23 @@ export async function handleMabarLeave(
       return { success: false, message: "Jadwal mabar ini tidak ditemukan di database." };
     }
 
-    if (!session.participants.includes(userId)) {
+    const participants: string[] = JSON.parse(session.participantIds || "[]");
+
+    if (!participants.includes(userId)) {
       return { success: false, message: "Anda belum bergabung dalam mabar ini." };
     }
 
     // Remove user from participants list
-    const updatedParticipants = session.participants.filter(id => id !== userId);
+    const updatedParticipants = participants.filter((id: string) => id !== userId);
     const updatedSession = await prisma.gameSession.update({
       where: { id: sessionId },
-      data: { participants: updatedParticipants }
+      data: { participantIds: JSON.stringify(updatedParticipants) }
     });
+
+    const sessionData: MabarSessionData = {
+      ...updatedSession,
+      participants: updatedParticipants
+    };
 
     // Update Discord message
     const guild = client.guilds.cache.get(session.guildId);
@@ -170,7 +184,7 @@ export async function handleMabarLeave(
         try {
           const msg = await channel.messages.fetch(session.messageId);
           if (msg) {
-            const embed = createMabarEmbed(updatedSession);
+            const embed = createMabarEmbed(sessionData);
             const buttons = createMabarButtons(sessionId, session.gameUrl);
             await msg.edit({ embeds: [embed], components: [buttons] });
           }

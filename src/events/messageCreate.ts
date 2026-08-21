@@ -5,6 +5,7 @@ import { createEmbed } from "../utils/embeds";
 import { logModeration } from "../utils/moderationLogger";
 import { logger } from "../utils/logger";
 import { trackAnalyticsEvent } from "../services/analyticsTracker";
+import { handleStoryWordMessage } from "../services/storyManager";
 
 const event: BotEvent = {
   name: Events.MessageCreate,
@@ -16,6 +17,10 @@ const event: BotEvent = {
       const guildId = message.guild.id;
       // Track analytics event for message sent
       trackAnalyticsEvent(guildId, "MESSAGE_SENT").catch(() => {});
+
+      // Pass message to Story Manager if sent in story channel
+      await handleStoryWordMessage(message);
+
       // Fetch server configuration
       const config = await prisma.guildConfig.findUnique({
         where: { guildId }
@@ -111,7 +116,7 @@ const event: BotEvent = {
         }
       }
     } catch (error) {
-      logger.error("Error pada event messageCreate (Automod):", error);
+      logger.error("Error pada event messageCreate (Automod/Story):", error);
     }
   }
 };
