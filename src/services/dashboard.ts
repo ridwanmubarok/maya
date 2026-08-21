@@ -403,29 +403,6 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Trigger Tes Render Dongeng & Pilih MVP dari Dashboard
-  app.post("/api/configs/:guildId/test-daily-story", authMiddleware, async (req: Request, res: Response) => {
-    const { guildId } = req.params;
-    const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
-    if (!guild) {
-      return res.status(404).json({ error: "Server tidak ditemukan atau bot tidak aktif di server tersebut." });
-    }
-
-    try {
-      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
-      const success = await compileDailyStoryForGuild(guild, config?.storyChannelId || undefined);
-
-      if (success) {
-        res.json({ success: true, message: "Maya Dongeng Bersambung berhasil di-render dan diposting ke channel!" });
-      } else {
-        res.status(400).json({ error: "Gagal merender dongeng. Belum ada kata yang disumbangkan hari ini atau bot tidak memiliki izin di channel target." });
-      }
-    } catch (error: any) {
-      logger.error(`Error compiling story for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Terjadi kesalahan sistem saat memicu render dongeng." });
-    }
-  });
-
   // Save/Update configuration for a specific guild (Requires Auth)
   app.post("/api/configs/:guildId", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;

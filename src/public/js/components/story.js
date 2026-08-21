@@ -266,38 +266,4 @@ async function startStorySessionBroadcast() {
     }
   }
 }
-
-async function testDailyStoryBroadcast() {
-  if (!selectedGuildId) {
-    showToast('Pilih Server', 'Silakan pilih server terlebih dahulu.', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('btn-test-daily-story');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Merender Dongeng & Pilih MVP...`;
-  }
-
-  try {
-    const res = await apiFetch(`/api/configs/${selectedGuildId}/test-daily-story`, {
-      method: 'POST'
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      showToast('Dongeng Di-render', data.message || 'Maya Dongeng Bersambung berhasil di-render!', 'success');
-      setTimeout(loadActiveStoryLive, 1000);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      showToast('Gagal Render', err.error || 'Gagal merender dongeng.', 'error');
-    }
-  } catch (err) {
-    showToast('Error', err.message || 'Terjadi kesalahan jaringan saat memicu render dongeng.', 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Render Dongeng & Pilih MVP`;
-    }
-  }
 }
