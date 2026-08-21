@@ -1,4 +1,4 @@
-// Maya Dongeng Bersambung Configuration & Live Backoffice Component
+// Maya Story Chain Configuration & Live Backoffice Component
 
 let liveStoryInterval = null;
 
@@ -77,14 +77,14 @@ async function loadActiveStoryLive() {
     const contributors = data.contributors || [];
 
     if (countBadge) {
-      countBadge.textContent = `${data.totalContributors || 0} Member (${words.length} Kata)`;
+      countBadge.textContent = `${data.totalContributors || 0} Member (${words.length} Kalimat)`;
     }
 
-    // 1. Render Live Word Chain
+    // 1. Render Live Sentence Chain
     if (words.length === 0) {
       chainContainer.innerHTML = `
         <div class="flex items-center justify-between">
-          <div class="text-xs text-gray-400 italic">Belum ada kata yang disumbangkan oleh member hari ini. Klik 'Kirim Pengingat Buka Sesi' atau mulai tulis di Discord!</div>
+          <div class="text-xs text-gray-400 italic">Belum ada kalimat yang disumbangkan oleh member hari ini. Klik 'Kirim Pengingat Buka Sesi' atau mulai tulis di Discord!</div>
           <span class="text-[10px] bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded font-mono uppercase">Status: Idle</span>
         </div>
       `;
@@ -92,14 +92,14 @@ async function loadActiveStoryLive() {
       const chainHtml = words.map(w => `
         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-discord-blurple/10 border border-discord-blurple/30 text-xs font-semibold text-white">
           <span class="text-gray-400 font-normal font-mono text-[10px]">${escapeHtml(w.username)}:</span>
-          <span class="text-emerald-400 font-bold font-mono">${escapeHtml(w.word)}</span>
+          <span class="text-emerald-400 font-medium">"${escapeHtml(w.word)}"</span>
         </span>
       `).join(` <i class="fa-solid fa-arrow-right text-gray-600 text-[10px]"></i> `);
 
       chainContainer.innerHTML = `
         <div class="space-y-3">
           <div class="flex justify-between items-center border-b border-white/10 pb-2">
-            <span class="text-[10px] font-bold bg-discord-blurple/20 text-discord-blurple px-2.5 py-0.5 rounded uppercase tracking-wider">LIVE STORY WORD CHAIN • ${escapeHtml(data.todayDate || '')}</span>
+            <span class="text-[10px] font-bold bg-discord-blurple/20 text-discord-blurple px-2.5 py-0.5 rounded uppercase tracking-wider">LIVE STORY CHAIN • ${escapeHtml(data.todayDate || '')}</span>
             <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> LIVE
             </span>
@@ -115,7 +115,7 @@ async function loadActiveStoryLive() {
     if (contributors.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada member yang berpartisipasi menulis hari ini.</td>
+          <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada member yang berpartisipasi menulis kalimat hari ini.</td>
         </tr>
       `;
     } else {
@@ -158,7 +158,7 @@ async function loadActiveStoryLive() {
         <div class="border border-white/10 rounded-2xl p-4 bg-discord-dark/50 space-y-3">
           <div class="flex justify-between items-start">
             <div>
-              <span class="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded uppercase font-mono">DONGENG TERAKHIR • ${escapeHtml(ls.dateStr || '')}</span>
+              <span class="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded uppercase font-mono">CERITA TERAKHIR • ${escapeHtml(ls.dateStr || '')}</span>
               <h4 class="font-outfit font-bold text-white text-base mt-1">${escapeHtml(ls.title)}</h4>
             </div>
             <span class="text-xs font-mono text-gray-400 bg-white/5 px-2.5 py-1 rounded-lg">${ls.contributorCount} Member</span>
@@ -222,10 +222,10 @@ async function saveDailyStoryConfig() {
     });
 
     if (response.ok) {
-      showToast('Berhasil Disimpan', 'Pengaturan Maya Dongeng Bersambung berhasil diperbarui.', 'success');
+      showToast('Berhasil Disimpan', 'Pengaturan Maya Story Chain berhasil diperbarui.', 'success');
       loadActiveStoryLive();
     } else {
-      showToast('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan pengaturan dongeng.', 'error');
+      showToast('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan pengaturan story chain.', 'error');
     }
   } catch (error) {
     showToast('Gagal Menyimpan', 'Terjadi kesalahan koneksi.', 'error');
@@ -251,11 +251,11 @@ async function startStorySessionBroadcast() {
 
     if (res.ok) {
       const data = await res.json();
-      showToast('Pengingat Terkirim', data.message || 'Pengumuman pembukaan sesi dongeng terkirim!', 'success');
+      showToast('Pengingat Terkirim', data.message || 'Pengumuman pembukaan sesi story chain terkirim!', 'success');
       setTimeout(loadActiveStoryLive, 1000);
     } else {
       const err = await res.json().catch(() => ({}));
-      showToast('Gagal Pengingat', err.error || 'Gagal mengirim pengingat sesi cerita.', 'error');
+      showToast('Gagal Pengingat', err.error || 'Gagal mengirim pengingat sesi story chain.', 'error');
     }
   } catch (err) {
     showToast('Error', err.message || 'Terjadi kesalahan jaringan.', 'error');

@@ -166,7 +166,7 @@
                 <i class="fa-solid fa-square-poll-vertical w-4 text-center"></i> Maya Poll
               </button>
               <button onclick="switchTab('daily-story')" id="tab-btn-daily-story" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-book-open w-4 text-center"></i> Dongeng Bersambung
+                <i class="fa-solid fa-book-open w-4 text-center"></i> Maya Story Chain
               </button>
               <button onclick="switchTab('menfess')" id="tab-btn-menfess" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-dove w-4 text-center"></i> AI Menfess
@@ -1178,19 +1178,19 @@
             </div>
           </div>
 
-          <!-- TAB content: MAYA DONGENG BERSAMBUNG (Self-contained) -->
+          <!-- TAB content: MAYA STORY CHAIN (Self-contained) -->
           <div id="tab-content-daily-story" class="tab-pane hidden space-y-6 max-w-2xl">
             <div class="flex justify-between items-center">
               <div>
-                <h3 class="font-outfit text-xl font-bold text-white">Maya Dongeng Bersambung</h3>
-                <p class="text-xs text-gray-400">Konfigurasi kolaborasi cerita 1 kata harian, reward RTK, dan pemantauan rantai kata live</p>
+                <h3 class="font-outfit text-xl font-bold text-white">Maya Story Chain</h3>
+                <p class="text-xs text-gray-400">Konfigurasi kolaborasi menyambung cerita 1 kalimat harian, reward RTK, dan pemantauan rantai kalimat live</p>
               </div>
             </div>
 
             <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
               <div>
-                <h4 class="text-sm font-semibold text-white">Aktifkan Maya Dongeng Bersambung</h4>
-                <p class="text-xs text-gray-400">Mengaktifkan sesi kolaborasi cerita 1 kata harian &amp; rendering dongeng komedi AI otomatis</p>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Maya Story Chain</h4>
+                <p class="text-xs text-gray-400">Mengaktifkan sesi kolaborasi cerita 1 kalimat harian &amp; rendering dongeng komedi AI otomatis</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="story-enabled" class="sr-only peer" checked>
@@ -1199,7 +1199,7 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <label for="story-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Cerita</label>
+              <label for="story-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Story Chain</label>
               <select id="story-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
                 <option value="">Pilih Channel (Default: #cerita-bersambung / Channel Utama)</option>
               </select>
@@ -1220,9 +1220,9 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="flex flex-col gap-2">
-                <label for="story-word-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Reward RTK (Per Kata Valid)</label>
+                <label for="story-word-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Reward RTK (Per Kalimat Valid)</label>
                 <input type="number" id="story-word-reward" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="10" min="0" max="1000">
-                <p class="text-[10px] text-gray-500">Poin RTK langsung yang didapatkan member saat menyumbangkan 1 kata valid</p>
+                <p class="text-[10px] text-gray-500">Poin RTK langsung yang didapatkan member saat menyumbangkan 1 kalimat valid</p>
               </div>
               <div class="flex flex-col gap-2">
                 <label for="story-mvp-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Bonus MVP RTK (Pilihan Maya AI)</label>
@@ -1233,7 +1233,7 @@
 
             <div class="flex flex-col sm:flex-row gap-3">
               <button onclick="saveDailyStoryConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
-                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Dongeng
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Story Chain
               </button>
               <button id="btn-start-story" onclick="startStorySessionBroadcast()" class="px-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-bullhorn"></i> Kirim Pengingat Buka Sesi
@@ -1246,8 +1246,8 @@
                 <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
               </div>
               <div>
-                <div class="text-xs font-bold text-indigo-300">Render Dongeng & Pilih MVP — Otomatis oleh Maya AI</div>
-                <div class="text-[11px] text-gray-400 mt-0.5">Maya akan secara otomatis merangkai dongeng komedi, membuat gambar ilustrasi AI, dan memilih MVP kontributor terbaik pada jam tutup sesi yang dikonfigurasi (default: 22:00 WIB). Tidak ada intervensi manual yang diperlukan.</div>
+                <div class="text-xs font-bold text-indigo-300">Render Dongeng &amp; Pilih MVP — Otomatis oleh Maya AI</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">Maya akan secara otomatis merangkai seluruh kalimat cerita, membuat gambar ilustrasi AI, dan memilih MVP kontributor terbaik pada jam tutup sesi yang dikonfigurasi (default: 22:00 WIB). Tidak ada intervensi manual yang diperlukan.</div>
               </div>
             </div>
 
@@ -1255,17 +1255,17 @@
             <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
               <div class="flex justify-between items-center">
                 <div>
-                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Maya Dongeng Bersambung</h4>
-                  <p class="text-xs text-gray-400">Pantau alur rantai kata real-time &amp; sisa kesempatan (2/2) member yang berpartisipasi</p>
+                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Maya Story Chain</h4>
+                  <p class="text-xs text-gray-400">Pantau alur rantai kalimat real-time &amp; sisa kesempatan (2/2) member yang berpartisipasi</p>
                 </div>
                 <span id="live-story-count" class="text-xs font-mono bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 px-2.5 py-1 rounded-full font-bold">
-                  0 Member (0 Kata)
+                  0 Member (0 Kalimat)
                 </span>
               </div>
 
               <!-- Live Story Word Chain Visualizer Card -->
               <div id="live-story-chain-card" class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
-                <div class="text-xs text-gray-400 italic text-center py-2">Memuat rantai kata cerita hari ini...</div>
+                <div class="text-xs text-gray-400 italic text-center py-2">Memuat rantai kalimat cerita hari ini...</div>
               </div>
 
               <!-- Showcase Dongeng Terakhir -->
@@ -1275,7 +1275,7 @@
               <div class="glass-panel rounded-2xl overflow-hidden border border-white/5 space-y-2">
                 <div class="p-4 bg-white/2 border-b border-white/5 flex justify-between items-center">
                   <h5 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-users text-discord-blurple"></i> Daftar Member Kontributor (Sisa Kesempatan 2/2)
+                    <i class="fa-solid fa-users text-discord-blurple"></i> Daftar Member Kontributor (Sisa Kesempatan 2/2 Kalimat)
                   </h5>
                   <button onclick="loadActiveStoryLive()" class="text-[10px] text-gray-400 hover:text-white transition-all underline">
                     <i class="fa-solid fa-rotate-right"></i> Refresh Log

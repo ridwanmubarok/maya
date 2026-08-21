@@ -13,7 +13,7 @@ export interface StoryWordItem {
 }
 
 /**
- * Handle incoming messages in the story channel
+ * Handle incoming messages in the story chain channel (1 kalimat per pesan)
  */
 export async function handleStoryWordMessage(message: Message) {
   try {
@@ -28,26 +28,26 @@ export async function handleStoryWordMessage(message: Message) {
     const text = message.content.trim();
     if (!text) return;
 
-    // 1. Enforce 1-word limit per message (no whitespace, spaces, or linebreaks)
+    // 1. Enforce 1-sentence limit per message (max 25 words, max 250 chars, no multi-line spam)
     const words = text.split(/\s+/).filter(Boolean);
-    if (words.length !== 1) {
-      const warnMsg = await message.reply("⚠️ Di channel ini hanya boleh menulis **1 kata per pesan**! Pesan kamu telah dihapus.").catch(() => null);
+    if (text.includes("\n") || words.length > 25 || text.length > 250) {
+      const warnMsg = await message.reply("⚠️ Di channel ini hanya boleh menulis **1 kalimat pendek per pesan** (maks. 25 kata & 1 baris)! Pesan kamu telah dihapus.").catch(() => null);
       await message.delete().catch(() => {});
       if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
       return;
     }
 
-    const singleWord = words[0];
+    const singleSentence = text;
     const todayStr = new Date().toISOString().split("T")[0];
 
-    // 2. Anti-consecutive-posting (User cannot write 2 words in a row consecutively)
+    // 2. Anti-consecutive-posting (User cannot write 2 sentences in a row consecutively)
     const lastWord = await prisma.dailyStoryWord.findFirst({
       where: { guildId, dateStr: todayStr },
       orderBy: { id: "desc" }
     });
 
     if (lastWord && lastWord.userId === message.author.id) {
-      const warnMsg = await message.reply("⏳ Harap tunggu member lain menulis kata berikutnya baru giliranmu lagi! Pesan kamu telah dihapus.").catch(() => null);
+      const warnMsg = await message.reply("⏳ Harap tunggu member lain menulis kalimat berikutnya baru giliranmu lagi! Pesan kamu telah dihapus.").catch(() => null);
       await message.delete().catch(() => {});
       if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
       return;
@@ -59,19 +59,19 @@ export async function handleStoryWordMessage(message: Message) {
     });
 
     if (userWordCount >= 2) {
-      const warnMsg = await message.reply("🎉 Kamu sudah menggunakan **2 kesempatan menulis hari ini**! Sesi kamu hari ini sudah selesai. Pesan kamu telah dihapus.").catch(() => null);
+      const warnMsg = await message.reply("🎉 Kamu sudah menggunakan **2 kesempatan menulis kalimat hari ini**! Sesi kamu hari ini sudah selesai. Pesan kamu telah dihapus.").catch(() => null);
       await message.delete().catch(() => {});
       if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
       return;
     }
 
-    // Save word to database
+    // Save sentence to database
     await prisma.dailyStoryWord.create({
       data: {
         guildId,
         userId: message.author.id,
         username: message.author.displayName || message.author.username,
-        word: singleWord,
+        word: singleSentence,
         dateStr: todayStr
       }
     });
@@ -98,7 +98,7 @@ export async function handleStoryWordMessage(message: Message) {
       });
     }
 
-    // React with 👍 on valid word message
+    // React with 👍 on valid sentence message
     await message.react("👍").catch(() => {});
 
   } catch (err) {
@@ -126,22 +126,22 @@ export async function announceStorySessionStart(guild: Guild, configuredChannelI
     const mvpRewardAmount = config?.storyMvpReward ?? 100;
 
     const embed = new EmbedBuilder()
-      .setTitle("📖 MAYA DONGENG BERSAMBUNG HARI INI")
+      .setTitle("📖 MAYA STORY CHAIN HARI INI")
       .setColor("#5865F2")
       .setDescription(
-        "Sesi kolaborasi menulis cerita bersama member lain hari ini telah dibuka!\n\n" +
+        "Sesi kolaborasi menyambung cerita bersama member lain hari ini telah dibuka!\n\n" +
         "📌 **Aturan Menulis**:\n" +
-        `• Tulis **1 kata per pesan** di channel ini.\n` +
-        `• Maksimal **2 kata per member** setiap harinya.\n` +
+        `• Tulis **1 kalimat lanjutan per pesan** di channel ini (maks. 25 kata).\n` +
+        `• Maksimal **2 kalimat per member** setiap harinya.\n` +
         `• Wajib **gantian** dengan member lain (tidak boleh 2x berurutan).\n` +
-        `• Hadiah Langsung: **+${rewardAmount} RTK Point** per kata valid!\n\n` +
-        `🏆 **Bonus MVP Pilihan Maya AI**: **+${mvpRewardAmount} RTK Point** untuk kontributor paling konyol/berpengaruh di akhir hari!`
+        `• Hadiah Langsung: **+${rewardAmount} RTK Point** per kalimat valid!\n\n` +
+        `🏆 **Bonus MVP Pilihan Maya AI**: **+${mvpRewardAmount} RTK Point** untuk kontributor kalimat paling konyol/berpengaruh di akhir hari!`
       )
-      .setFooter({ text: "Maya Story Engine • Mulai tulis katamu sekarang!" })
+      .setFooter({ text: "Maya Story Engine • Sambung ceritamu sekarang!" })
       .setTimestamp();
 
     await targetChannel.send({
-      content: "📢 @everyone **MAYA DONGENG BERSAMBUNG HARI INI TELAH DIBUKA!**",
+      content: "📢 @everyone **MAYA STORY CHAIN HARI INI TELAH DIBUKA!**",
       embeds: [embed]
     });
 
@@ -154,7 +154,7 @@ export async function announceStorySessionStart(guild: Guild, configuredChannelI
 }
 
 /**
- * Compile today's story words, synthesize fairytale via AI, generate AI image, pick MVP automatically & award points
+ * Compile today's story sentences, synthesize fairytale via AI, generate AI image, pick MVP automatically & award points
  */
 export async function compileDailyStoryForGuild(guild: Guild, configuredChannelId?: string): Promise<boolean> {
   try {
@@ -177,7 +177,7 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
 
     if (words.length === 0) {
       await targetChannel.send({
-        content: "📖 **Maya Dongeng Bersambung**: Sesi hari ini ditutup. Belum ada kata yang disumbangkan oleh member hari ini. Sesi berikutnya dibuka besok!"
+        content: "📖 **Maya Story Chain**: Sesi hari ini ditutup. Belum ada kalimat yang disumbangkan oleh member hari ini. Sesi berikutnya dibuka besok!"
       }).catch(() => {});
       return false;
     }
@@ -186,13 +186,13 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
     const mvpReward = config?.storyMvpReward ?? 100;
 
     // AI Synthesis & Automatic MVP Selection
-    const prompt = `Berikut adalah urutan kata-kata yang ditulis oleh para member Discord hari ini secara bergantian:
+    const prompt = `Berikut adalah urutan kalimat-kalimat cerita yang ditulis oleh para member Discord hari ini secara berantai:
 
 ${rawWordStream}
 
 TUGAS KAMU SEBAGAI MAYA AI:
-1. Rangkailah kata-kata konyol di atas menjadi sebuah **Dongeng Komedi Singkat yang Utuh, Lucu, Konyol, dan Menghibur khas Indonesia** (1-2 paragraf).
-2. BERDASARKAN KEHENDAK DAN PENILAIAN MU, pilihlah 1 MEMBER yang kata-katanya paling konyol, paling kocak, atau paling berpengaruh mengubah alur cerita sebagai **MVP / Kontributor Terbaik Hari Ini**.
+1. Rangkailah susunan kalimat konyol di atas menjadi sebuah **Dongeng Komedi Singkat yang Utuh, Lucu, Konyol, dan Menghibur khas Indonesia** (1-2 paragraf mengalir).
+2. BERDASARKAN KEHENDAK DAN PENILAIAN MU, pilihlah 1 MEMBER yang kalimatnya paling konyol, paling kocak, atau paling berpengaruh mengubah alur cerita sebagai **MVP / Kontributor Terbaik Hari Ini**.
 3. Buatkan prompt gambar dalam Bahasa Inggris untuk menghasilkan ilustrasi AI visual dari adegan dongeng tersebut.
 
 SYARAT PENTING:
@@ -211,7 +211,7 @@ SYARAT PENTING:
     let storyText = words.map(w => w.word).join(" ");
     let mvpUserId = words[0].userId;
     let mvpUsername = words[0].username;
-    let mvpReason = "Kata-katanya menjadi pembuka kisah yang tak terduga!";
+    let mvpReason = "Kalimatnya menjadi pembuka kisah yang tak terduga!";
     let imagePrompt = "A funny cartoon illustration of a funny fantasy adventure";
 
     try {
@@ -277,7 +277,7 @@ SYARAT PENTING:
 
     // Build Clean Embed Output
     const embed = new EmbedBuilder()
-      .setTitle(`📖 MAYA DONGENG BERSAMBUNG • ${todayStr}`)
+      .setTitle(`📖 MAYA STORY CHAIN • ${todayStr}`)
       .setColor("#5865F2")
       .setDescription(
         `### ${title}\n` +
@@ -285,7 +285,7 @@ SYARAT PENTING:
         `🏆 **MVP Kontributor Terbaik Pilihan Maya AI**:\n` +
         `<@${mvpUserId}> (**${mvpUsername}**) — **+${mvpReward} RTK Point**\n` +
         `*Alasan Maya AI*: "${mvpReason}"\n\n` +
-        `👥 **Total Kontributor**: **${uniqueUserIds.size} Member** (${words.length} Kata)`
+        `👥 **Total Kontributor**: **${uniqueUserIds.size} Member** (${words.length} Kalimat)`
       )
       .setFooter({ text: "Maya Story Engine • Terima kasih telah berkolaborasi hari ini!" })
       .setTimestamp();
@@ -295,7 +295,7 @@ SYARAT PENTING:
     }
 
     await targetChannel.send({
-      content: "📢 @everyone **DONGENG KOMEDI SERVER HARI INI TELAH DIRENDER!** 🎉",
+      content: "📢 @everyone **CERITA MAYA STORY CHAIN HARI INI TELAH DIRENDER!** 🎉",
       embeds: [embed]
     });
 

@@ -13,7 +13,7 @@ let lastPublishTriggerMap: Record<string, string> = {};
 export function initDailyStoryScheduler(client: Client) {
   if (schedulerInterval) clearInterval(schedulerInterval);
 
-  logger.info("DailyStoryScheduler: Schedulers started for Maya Dongeng Bersambung.");
+  logger.info("DailyStoryScheduler: Schedulers started for Maya Story Chain.");
 
   // Check every 60 seconds
   schedulerInterval = setInterval(() => {

@@ -411,9 +411,9 @@ export function startDashboard(client: MayaClient) {
       const success = await announceStorySessionStart(guild, config?.storyChannelId || undefined);
 
       if (success) {
-        res.json({ success: true, message: "Pengumuman pembukaan sesi Maya Dongeng Bersambung berhasil dikirim ke channel target!" });
+        res.json({ success: true, message: "Pengumuman pembukaan sesi Maya Story Chain berhasil dikirim ke channel target!" });
       } else {
-        res.status(400).json({ error: "Gagal mengirim pengumuman. Pastikan channel target Maya Dongeng Bersambung sudah dikonfigurasi." });
+        res.status(400).json({ error: "Gagal mengirim pengumuman. Pastikan channel target Maya Story Chain sudah dikonfigurasi." });
       }
     } catch (error: any) {
       logger.error(`Error starting story session for guild ${guildId}:`, error);

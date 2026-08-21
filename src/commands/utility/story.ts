@@ -7,16 +7,16 @@ import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStat
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("story")
-    .setDescription("Kelola & Akses Maya Dongeng Bersambung Harian")
+    .setDescription("Kelola & Akses Maya Story Chain Harian")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sub =>
       sub
         .setName("channel")
-        .setDescription("Atur channel target tempat Maya Dongeng Bersambung diposting")
+        .setDescription("Atur channel target tempat Maya Story Chain diposting")
         .addChannelOption(opt =>
           opt
             .setName("target")
-            .setDescription("Pilih channel teks tempat member menulis cerita")
+            .setDescription("Pilih channel teks tempat member menyambung cerita")
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(true)
         )
@@ -24,17 +24,17 @@ const command: Command = {
     .addSubcommand(sub =>
       sub
         .setName("start")
-        .setDescription("Kirim pengumuman pembukaan sesi Maya Dongeng Bersambung secara manual")
+        .setDescription("Kirim pengumuman pembukaan sesi Maya Story Chain secara manual")
     )
     .addSubcommand(sub =>
       sub
         .setName("publish")
-        .setDescription("Rangkai dongeng komedi & render gambar ilustrasi AI hari ini secara langsung")
+        .setDescription("Rangkai cerita komedi & render gambar ilustrasi AI hari ini secara langsung")
     )
     .addSubcommand(sub =>
       sub
         .setName("read")
-        .setDescription("Baca kata-kata cerita hari ini atau dongeng komedi hasil kesimpulan terakhir")
+        .setDescription("Baca susunan kalimat cerita hari ini atau dongeng hasil kesimpulan terakhir")
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -51,8 +51,8 @@ const command: Command = {
       });
 
       const embed = createEmbed.success(
-        "Konfigurasi Channel Cerita Berhasil",
-        `Channel target Maya Dongeng Bersambung telah diatur ke ${channel}.`
+        "Konfigurasi Channel Story Chain Berhasil",
+        `Channel target Maya Story Chain telah diatur ke ${channel}.`
       );
 
       await interaction.reply({ embeds: [embed] });
@@ -67,14 +67,14 @@ const command: Command = {
 
       if (success) {
         const embed = createEmbed.success(
-          "Pengumuman Sesi Cerita Terkirim",
-          "Pengumuman pembukaan sesi Maya Dongeng Bersambung telah berhasil dikirim ke channel target!"
+          "Pengumuman Sesi Story Chain Terkirim",
+          "Pengumuman pembukaan sesi Maya Story Chain telah berhasil dikirim ke channel target!"
         );
         await interaction.editReply({ embeds: [embed] });
       } else {
         const embed = createEmbed.error(
           "Gagal Mengirim Pengumuman",
-          "Terjadi kesalahan saat mengirim pengumuman sesi cerita. Pastikan channel target sudah diatur."
+          "Terjadi kesalahan saat mengirim pengumuman sesi story chain. Pastikan channel target sudah diatur."
         );
         await interaction.editReply({ embeds: [embed] });
       }
@@ -89,14 +89,14 @@ const command: Command = {
 
       if (success) {
         const embed = createEmbed.success(
-          "Dongeng Berhasil Di-render!",
-          "Dongeng Komedi Server & Gambar Ilustrasi AI terbaru telah berhasil diposting ke channel!"
+          "Cerita Berhasil Di-render!",
+          "Cerita Komedi Server & Gambar Ilustrasi AI terbaru telah berhasil diposting ke channel!"
         );
         await interaction.editReply({ embeds: [embed] });
       } else {
         const embed = createEmbed.error(
-          "Gagal Merender Dongeng",
-          "Tidak ada kata yang disumbangkan hari ini atau terjadi kesalahan sistem."
+          "Gagal Merender Cerita",
+          "Tidak ada kalimat yang disumbangkan hari ini atau terjadi kesalahan sistem."
         );
         await interaction.editReply({ embeds: [embed] });
       }
@@ -111,17 +111,17 @@ const command: Command = {
       const words = status.words || [];
 
       if (!status.active || (totalWords === 0 && !status.latestStory)) {
-        await interaction.reply({ content: "Belum ada riwayat kata atau dongeng tercatat di server ini." });
+        await interaction.reply({ content: "Belum ada riwayat kalimat atau cerita tercatat di server ini." });
         return;
       }
 
       if (totalWords > 0) {
         const wordChain = words.map(w => `**${w.username}**: "${w.word}"`).join(" ➔ ");
         const embed = new EmbedBuilder()
-          .setTitle("📖 Rantai Kata Cerita Hari Ini")
+          .setTitle("📖 Rantai Kalimat Cerita Hari Ini")
           .setDescription(
-            `### Urutan Kata Saat Ini:\n${wordChain}\n\n` +
-            `📊 **Total Kata**: **${totalWords} Kata** dari **${status.totalContributors || 0} Member**\n` +
+            `### Urutan Kalimat Saat Ini:\n${wordChain}\n\n` +
+            `📊 **Total Kalimat**: **${totalWords} Kalimat** dari **${status.totalContributors || 0} Member**\n` +
             `💡 *Sesi ditutup & di-render otomatis pukul 22:00 WIB.*`
           )
           .setColor("#5865F2")
