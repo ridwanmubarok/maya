@@ -12,168 +12,151 @@ export interface NewsItem {
   category: string;
 }
 
+interface FeedConfig {
+  name: string;
+  url: string;
+  category: string;
+}
+
+const FEEDS_CONFIG: Record<string, FeedConfig[]> = {
+  semua: [
+    { name: "CNN Indonesia", url: "https://www.cnnindonesia.com/nasional/rss", category: "Berita Nasional" },
+    { name: "Antara News", url: "https://www.antaranews.com/rss/politik.xml", category: "Politik" },
+    { name: "Detikcom", url: "https://news.detik.com/rss", category: "Peristiwa & Nasional" },
+    { name: "Antara News", url: "https://www.antaranews.com/rss/terkini.xml", category: "Terkini" }
+  ],
+  politik: [
+    { name: "Antara Politik", url: "https://www.antaranews.com/rss/politik.xml", category: "Politik" },
+    { name: "CNN Indonesia", url: "https://www.cnnindonesia.com/nasional/rss", category: "Politik & Nasional" },
+    { name: "Tempo", url: "https://rss.tempo.co/nasional", category: "Politik & Pemerintahan" }
+  ],
+  nasional: [
+    { name: "CNN Indonesia", url: "https://www.cnnindonesia.com/nasional/rss", category: "Berita Nasional" },
+    { name: "Detik News", url: "https://news.detik.com/rss", category: "Nasional & Terkini" },
+    { name: "Antara News", url: "https://www.antaranews.com/rss/terkini.xml", category: "Kabar Nusantara" }
+  ],
+  ekonomi: [
+    { name: "CNN Ekonomi", url: "https://www.cnnindonesia.com/ekonomi/rss", category: "Ekonomi & Bisnis" },
+    { name: "CNBC Indonesia", url: "https://www.cnbcindonesia.com/news/rss", category: "Pasar & Finansial" }
+  ]
+};
+
 /**
- * Fetch latest tech news from verified RSS feeds
+ * Fetch and parse an RSS feed URL
  */
-export async function fetchTechNews(category: string = ""): Promise<NewsItem[]> {
-  const newsList: NewsItem[] = [];
-  const normalizedCategory = (category || "").toLowerCase();
-
-  logger.info(`NewsScraper: Memulai pencarian berita teknologi (Kategori: '${category}')`);
-
-  // Source 1: TechCrunch RSS
+async function fetchFeed(feed: FeedConfig, maxItems: number = 4): Promise<NewsItem[]> {
+  const items: NewsItem[] = [];
   try {
-    const res = await axios.get("https://techcrunch.com/feed/", {
+    const res = await axios.get(feed.url, {
       timeout: 6000,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-      },
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+      }
     });
 
     const $ = cheerio.load(res.data, { xmlMode: true });
     $("item").each((i, el) => {
-      if (newsList.length >= 4) return;
+      if (items.length >= maxItems) return;
+
       const title = $(el).find("title").text().trim();
       const link = $(el).find("link").text().trim();
       const pubDate = $(el).find("pubDate").text().trim();
-      let description = $(el).find("description").text().replace(/<[^>]*>?/gm, "").trim();
+      let description = $(el).find("description").text().replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").trim();
 
       if (description.length > 150) {
         description = `${description.substring(0, 147)}...`;
       }
 
       if (title && link) {
-        newsList.push({
-          id: `tc-${Date.now()}-${i}`,
-          title: title,
-          summary: description || "Klik tombol untuk membaca ulasan lengkap artikel.",
-          source: "TechCrunch",
-          publishedAt: pubDate ? new Date(pubDate).toLocaleDateString("id-ID") : "Terbaru",
-          url: link,
-          category: "Teknologi & Startup",
-        });
-      }
-    });
-  } catch (error) {
-    logger.error("NewsScraper: Error fetching TechCrunch feed:", error);
-  }
-
-  // Source 2: HackerNews Top Stories API
-  try {
-    const res = await axios.get("https://hacker-news.firebaseio.com/v0/topstories.json", { timeout: 5000 });
-    if (Array.isArray(res.data)) {
-      const topIds = res.data.slice(0, 5);
-      for (const id of topIds) {
-        try {
-          const itemRes = await axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, { timeout: 3000 });
-          const item = itemRes.data;
-          if (item && item.title && item.url) {
-            newsList.push({
-              id: `hn-${item.id}`,
-              title: item.title,
-              summary: `Diskusi & Berita Trending Hacker News (Score: ${item.score || 0})`,
-              source: "Hacker News",
-              publishedAt: "Terbaru",
-              url: item.url,
-              category: "Teknologi & Developer",
+        let formattedDate = "Terbaru";
+        if (pubDate) {
+          try {
+            formattedDate = new Date(pubDate).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit"
             });
+          } catch (_) {
+            formattedDate = "Hari Ini";
           }
-        } catch {
-          // Ignore individual item fetch error
         }
-      }
-    }
-  } catch (error) {
-    logger.error("NewsScraper: Error fetching HackerNews feed:", error);
-  }
 
-  // Source 3: Wired RSS Feed
-  try {
-    const res = await axios.get("https://www.wired.com/feed/rss", {
-      timeout: 6000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-      },
-    });
-
-    const $ = cheerio.load(res.data, { xmlMode: true });
-    $("item").each((i, el) => {
-      if (newsList.length >= 8) return;
-      const title = $(el).find("title").text().trim();
-      const link = $(el).find("link").text().trim();
-      let description = $(el).find("description").text().replace(/<[^>]*>?/gm, "").trim();
-
-      if (description.length > 150) {
-        description = `${description.substring(0, 147)}...`;
-      }
-
-      if (title && link) {
-        newsList.push({
-          id: `wired-${Date.now()}-${i}`,
-          title: title,
-          summary: description || "Klik tombol untuk membaca ulasan lengkap artikel.",
-          source: "Wired Tech",
-          publishedAt: "Terbaru",
+        items.push({
+          id: `${feed.name.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}-${i}`,
+          title,
+          summary: description || "Klik tombol untuk membaca artikel berita selengkapnya.",
+          source: feed.name,
+          publishedAt: formattedDate,
           url: link,
-          category: "Teknologi & Sains",
+          category: feed.category
         });
       }
     });
-  } catch (error) {
-    logger.error("NewsScraper: Error fetching Wired feed:", error);
+  } catch (error: any) {
+    logger.warn(`NewsScraper: Gagal mengambil feed dari ${feed.name} (${feed.url}): ${error.message}`);
+  }
+  return items;
+}
+
+/**
+ * Fetch latest Indonesian news (focusing on Politik, Nasional, and General news)
+ */
+export async function fetchIndonesianNews(category: string = "semua"): Promise<NewsItem[]> {
+  const normalizedCategory = (category || "semua").toLowerCase();
+  const feedsToFetch = FEEDS_CONFIG[normalizedCategory] || FEEDS_CONFIG.semua;
+
+  logger.info(`NewsScraper: Mengambil berita Indonesia terkini (Kategori: '${category}')`);
+
+  const results = await Promise.all(feedsToFetch.map(f => fetchFeed(f, 3)));
+  const allNews = results.flat();
+
+  // Deduplicate by title
+  const uniqueMap = new Map<string, NewsItem>();
+  for (const item of allNews) {
+    const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, item);
+    }
   }
 
-  // Fallback Curator if feeds return few results
-  if (newsList.length < 3) {
-    newsList.push(
+  const finalNews = Array.from(uniqueMap.values());
+
+  // Fallback curated news if network fails
+  if (finalNews.length === 0) {
+    return [
       {
         id: "cur-1",
-        title: "Perkembangan Model AI Generatif & Otomasi Industri 2026",
-        summary: "Inovasi arsitektur AI terbaru semakin mempercepat efisiensi pengembangan perangkat lunak dan analisis data.",
-        source: "Tech News Daily",
+        title: "Perkembangan Dinamika Politik & Kebijakan Publik Nasional 2026",
+        summary: "Pemerintah dan DPR terus membahas penyelarasan regulasi strategis untuk pembangunan infrastruktur dan tata kelola daerah.",
+        source: "Antara News",
         publishedAt: "Hari Ini",
-        url: "https://news.ycombinator.com/",
-        category: "Artificial Intelligence",
+        url: "https://www.antaranews.com/politik",
+        category: "Politik & Nasional"
       },
       {
         id: "cur-2",
-        title: "Tren Keamanan Siber & Cloud Native Architecture",
-        summary: "Peningkatan fokus pada Zero Trust Security dan arsitektur mikroservis berkinerja tinggi untuk enterprise.",
-        source: "Enterprise Tech Digest",
+        title: "Kabar Terkini Perekonomian dan Pertumbuhan Sektor Domestik",
+        summary: "Stabilitas pasar dan penguatan daya beli masyarakat menjadi fokus utama dalam kebijakan fiskal nasional kuartal ini.",
+        source: "CNN Indonesia",
         publishedAt: "Hari Ini",
-        url: "https://techcrunch.com/",
-        category: "Cybersecurity & Cloud",
+        url: "https://www.cnnindonesia.com/ekonomi",
+        category: "Ekonomi & Bisnis"
       },
       {
         id: "cur-3",
-        title: "Rilis Framework & Ekosistem Perangkat Lunak Terbaru",
-        summary: "Pembaruan performa pada ekosistem web modern dan alat bantu produktivitas pengembang.",
-        source: "Wired Tech",
-        publishedAt: "Terbaru",
-        url: "https://www.wired.com/category/gear/",
-        category: "Software Development",
+        title: "Rangkuman Berita Peristiwa dan Isu Hangat Nusantara",
+        summary: "Berbagai perkembangan peristiwa dan liputan terkini dari berbagai penjuru tanah air.",
+        source: "Detikcom",
+        publishedAt: "Hari Ini",
+        url: "https://news.detik.com/",
+        category: "Berita Nasional"
       }
-    );
+    ];
   }
 
-  // Filter category if specified
-  let filtered = newsList;
-  if (normalizedCategory && normalizedCategory !== "semua") {
-    filtered = filtered.filter(
-      (n) =>
-        n.title.toLowerCase().includes(normalizedCategory) ||
-        n.category.toLowerCase().includes(normalizedCategory) ||
-        n.summary.toLowerCase().includes(normalizedCategory)
-    );
-  }
-
-  const resultList = filtered.length >= 3 ? filtered : newsList;
-
-  // Deduplicate and return top 5
-  const uniqueMap = new Map<string, NewsItem>();
-  for (const n of resultList) {
-    uniqueMap.set(n.title.toLowerCase(), n);
-  }
-
-  return Array.from(uniqueMap.values()).slice(0, 5);
+  return finalNews.slice(0, 5);
 }
+
+// Backward compatibility alias
+export const fetchTechNews = fetchIndonesianNews;
