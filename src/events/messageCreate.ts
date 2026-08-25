@@ -6,6 +6,7 @@ import { logModeration } from "../utils/moderationLogger";
 import { logger } from "../utils/logger";
 import { trackAnalyticsEvent } from "../services/analyticsTracker";
 import { handleStoryWordMessage } from "../services/storyManager";
+import { handlePantunMessage } from "../services/pantunManager";
 
 const event: BotEvent = {
   name: Events.MessageCreate,
@@ -20,6 +21,9 @@ const event: BotEvent = {
 
       // Pass message to Story Manager if sent in story channel
       await handleStoryWordMessage(message);
+
+      // Pass message to Pantun Manager if sent in pantun channel
+      await handlePantunMessage(message);
 
       // Fetch server configuration
       const config = await prisma.guildConfig.findUnique({

@@ -20,13 +20,7 @@ import {
 import { broadcastDailyRiddlesForGuild } from "./dailyRiddleScheduler";
 import { startDailyPollForGuild, getLatestPollData } from "./dailyPollManager";
 import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStatus } from "./storyManager";
-import { 
-  handleIncomingRobloxPhoto, 
-  generateRobloxApiKey, 
-  getRobloxPhotosForGuild, 
-  deleteRobloxPhoto, 
-  clearAllRobloxPhotos 
-} from "./robloxService";
+import { announcePantunSessionStart, closeAndEvaluateDailyPantun, getTodayPantunStatus } from "./pantunManager";
 import { tebakManager } from "./tebakManager";
 
 const app = express();
@@ -125,10 +119,12 @@ export function startDashboard(client: MayaClient) {
           storyPublishHour: 20,
           storyWordReward: 10,
           storyMvpReward: 250,
-          robloxEnabled: true,
-          robloxChannelId: null,
-          robloxApiKey: null,
-          robloxRewardAmount: 15,
+          pantunEnabled: true,
+          pantunChannelId: null,
+          pantunStartHour: 9,
+          pantunCloseHour: 23,
+          pantunRewardAmount: 15,
+          pantunMvpReward: 150,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -434,135 +430,77 @@ export function startDashboard(client: MayaClient) {
   });
 
   // ==========================================
-  // ROBLOX PHOTO SNAPSHOT WEBHOOK & DASHBOARD API
+  // MAYA LANJUTKAN PANTUN DASHBOARD API
   // ==========================================
 
-  // Public Webhook Endpoint for Roblox In-Game Photo Snapshots (Uses x-api-key header)
-  app.post("/api/roblox/photo", async (req: Request, res: Response) => {
-    let payload = req.body;
-    if (typeof payload === "string") {
-      try {
-        payload = JSON.parse(payload);
-      } catch (_) {}
-    }
-
-    const apiKey = (req.headers["x-api-key"] as string) ||
-                   (req.headers["authorization"] ? req.headers["authorization"].replace(/^Bearer\s+/i, "") : "") ||
-                   payload?.apiKey;
-
-    const result = await handleIncomingRobloxPhoto(client, apiKey, payload);
-    if (result.success) {
-      res.json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  });
-
-  // Get Roblox Configuration & Recent Photo Gallery (Requires Auth)
-  app.get("/api/configs/:guildId/roblox", authMiddleware, async (req: Request, res: Response) => {
+  // Get Pantun Configuration & Today's Active Session (Requires Auth)
+  app.get("/api/configs/:guildId/pantun", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
       let config = await prisma.guildConfig.findUnique({ where: { guildId } });
       if (!config) {
         config = await prisma.guildConfig.create({
-          data: { guildId, robloxApiKey: `rbx_${Date.now()}` }
+          data: { guildId }
         });
       }
 
-      // Auto generate API Key if not present
-      if (!config.robloxApiKey) {
-        const generatedKey = await generateRobloxApiKey(guildId);
-        config.robloxApiKey = generatedKey;
-      }
+      const todayPantun = await getTodayPantunStatus(guildId);
 
-      const photos = await getRobloxPhotosForGuild(guildId, 24);
       res.json({
         success: true,
-        enabled: config.robloxEnabled !== false,
-        channelId: config.robloxChannelId || null,
-        apiKey: config.robloxApiKey,
-        rewardAmount: config.robloxRewardAmount ?? 15,
-        photos
+        enabled: config.pantunEnabled !== false,
+        channelId: config.pantunChannelId || null,
+        startHour: config.pantunStartHour ?? 9,
+        closeHour: config.pantunCloseHour ?? 23,
+        rewardAmount: config.pantunRewardAmount ?? 15,
+        mvpReward: config.pantunMvpReward ?? 150,
+        todayPantun
       });
     } catch (error: any) {
-      logger.error(`Error fetching Roblox config for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal mengambil konfigurasi Roblox." });
+      logger.error(`Error fetching Pantun config for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal mengambil konfigurasi Maya Lanjutkan Pantun." });
     }
   });
 
-  // Generate / Reset Roblox API Key (Requires Auth)
-  app.post("/api/configs/:guildId/roblox-key", authMiddleware, async (req: Request, res: Response) => {
+  // Manually Trigger Pantun Session Start Announcement (Requires Auth)
+  app.post("/api/configs/:guildId/pantun/start", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      const apiKey = await generateRobloxApiKey(guildId);
-      res.json({ success: true, apiKey });
-    } catch (error: any) {
-      logger.error(`Error generating Roblox API key for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal membuat API Key baru." });
-    }
-  });
-
-  // Test Roblox Photo Broadcast from Dashboard (Requires Auth)
-  app.post("/api/configs/:guildId/test-roblox-photo", authMiddleware, async (req: Request, res: Response) => {
-    const { guildId } = req.params;
-    try {
-      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
-      if (!config || !config.robloxApiKey) {
-        return res.status(400).json({ error: "API Key belum di-generate untuk server ini." });
+      const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+      if (!guild) {
+        return res.status(404).json({ error: "Server Discord tidak ditemukan." });
       }
 
-      const sampleImages = [
-        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1000&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1000&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1000&auto=format&fit=crop&q=80"
-      ];
-      const randomImg = sampleImages[Math.floor(Math.random() * sampleImages.length)];
-
-      const result = await handleIncomingRobloxPhoto(client, config.robloxApiKey, {
-        playerName: "MayaExplorer",
-        playerUserId: "1",
-        caption: "Foto momen seru bareng teman di Roblox!",
-        gameName: "Sunset Valley",
-        placeId: "1818",
-        imageUrl: randomImg
-      });
-
-      if (result.success) {
-        res.json(result);
-      } else {
-        res.status(400).json(result);
-      }
-    } catch (error: any) {
-      logger.error(`Error sending test Roblox photo for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal mengirim tes foto Roblox." });
-    }
-  });
-
-  // Delete single Roblox Photo (Requires Auth)
-  app.delete("/api/configs/:guildId/roblox/photos/:photoId", authMiddleware, async (req: Request, res: Response) => {
-    const { guildId, photoId } = req.params;
-    try {
-      const success = await deleteRobloxPhoto(client, guildId, parseInt(photoId, 10));
+      const success = await announcePantunSessionStart(guild);
       if (success) {
-        res.json({ success: true, message: "Foto berhasil dihapus dari galeri dan S3." });
+        res.json({ success: true, message: "Sesi Maya Lanjutkan Pantun hari ini berhasil dibuka dan diumumkan!" });
       } else {
-        res.status(404).json({ error: "Foto tidak ditemukan." });
+        res.status(400).json({ error: "Gagal membuka sesi. Pastikan channel target Pantun sudah dikonfigurasi dan bot memiliki izin kirim pesan." });
       }
     } catch (error: any) {
-      logger.error(`Error deleting Roblox photo #${photoId} for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal menghapus foto." });
+      logger.error(`Error triggering Pantun start for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan sistem saat memicu pembukaan sesi pantun." });
     }
   });
 
-  // Clear all Roblox Photos for guild (Requires Auth)
-  app.delete("/api/configs/:guildId/roblox/photos", authMiddleware, async (req: Request, res: Response) => {
+  // Manually Trigger Pantun Session Close & MVP Review (Requires Auth)
+  app.post("/api/configs/:guildId/pantun/close", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      const count = await clearAllRobloxPhotos(client, guildId);
-      res.json({ success: true, message: `${count} foto berhasil dibersihkan.`, count });
+      const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+      if (!guild) {
+        return res.status(404).json({ error: "Server Discord tidak ditemukan." });
+      }
+
+      const success = await closeAndEvaluateDailyPantun(guild);
+      if (success) {
+        res.json({ success: true, message: "Sesi Pantun berhasil ditutup dan dinilai oleh Maya AI!" });
+      } else {
+        res.status(400).json({ error: "Gagal menutup sesi pantun." });
+      }
     } catch (error: any) {
-      logger.error(`Error clearing Roblox photos for guild ${guildId}:`, error);
-      res.status(500).json({ error: "Gagal membersihkan foto." });
+      logger.error(`Error triggering Pantun close for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan sistem saat menutup sesi pantun." });
     }
   });
 
@@ -601,9 +539,12 @@ export function startDashboard(client: MayaClient) {
       storyPublishHour,
       storyWordReward,
       storyMvpReward,
-      robloxEnabled,
-      robloxChannelId,
-      robloxRewardAmount
+      pantunEnabled,
+      pantunChannelId,
+      pantunStartHour,
+      pantunCloseHour,
+      pantunRewardAmount,
+      pantunMvpReward
     } = req.body;
 
     try {
@@ -639,9 +580,12 @@ export function startDashboard(client: MayaClient) {
       if (storyPublishHour !== undefined) updateData.storyPublishHour = Number(storyPublishHour);
       if (storyWordReward !== undefined) updateData.storyWordReward = Number(storyWordReward);
       if (storyMvpReward !== undefined) updateData.storyMvpReward = Number(storyMvpReward);
-      if (robloxEnabled !== undefined) updateData.robloxEnabled = Boolean(robloxEnabled);
-      if (robloxChannelId !== undefined) updateData.robloxChannelId = robloxChannelId || null;
-      if (robloxRewardAmount !== undefined) updateData.robloxRewardAmount = Number(robloxRewardAmount);
+      if (pantunEnabled !== undefined) updateData.pantunEnabled = Boolean(pantunEnabled);
+      if (pantunChannelId !== undefined) updateData.pantunChannelId = pantunChannelId || null;
+      if (pantunStartHour !== undefined) updateData.pantunStartHour = Number(pantunStartHour);
+      if (pantunCloseHour !== undefined) updateData.pantunCloseHour = Number(pantunCloseHour);
+      if (pantunRewardAmount !== undefined) updateData.pantunRewardAmount = Number(pantunRewardAmount);
+      if (pantunMvpReward !== undefined) updateData.pantunMvpReward = Number(pantunMvpReward);
 
       const updatedConfig = await prisma.guildConfig.upsert({
         where: { guildId },

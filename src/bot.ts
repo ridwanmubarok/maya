@@ -8,6 +8,7 @@ import { initAI } from "./services/aiClient";
 import { startDashboard } from "./services/dashboard";
 import { initDailyPollScheduler } from "./services/dailyPollScheduler";
 import { initDailyStoryScheduler } from "./services/storyScheduler";
+import { initDailyPantunScheduler } from "./services/pantunScheduler";
 import { logger } from "./utils/logger";
 
 // Load environment variables
@@ -108,6 +109,7 @@ const startBot = async () => {
     await client.login(token);
     initDailyPollScheduler(client);
     initDailyStoryScheduler(client);
+    initDailyPantunScheduler(client);
     startDashboard(client);
   } catch (error) {
     logger.error("Gagal melakukan bootstrap aplikasi:", error);

@@ -46,25 +46,47 @@ model GuildConfig {
   lastPollPostDate       String?
   lastStoryStartDate     String?
   lastStoryPublishDate   String?
-  robloxEnabled          Boolean  @default(true)
-  robloxChannelId        String?
-  robloxApiKey           String?
-  robloxRewardAmount     Int      @default(15)
+  pantunEnabled          Boolean  @default(true)
+  pantunChannelId        String?
+  pantunStartHour        Int      @default(9)
+  pantunCloseHour        Int      @default(23)
+  pantunRewardAmount     Int      @default(15)
+  pantunMvpReward        Int      @default(150)
+  lastPantunStartDate    String?
+  lastPantunCloseDate    String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
 
-model RobloxPhotoLog {
-  id           Int      @id @default(autoincrement())
+model DailyPantun {
+  id           Int                    @id @default(autoincrement())
   guildId      String
-  playerName   String
-  playerUserId String?
-  imageUrl     String
-  caption      String?
-  gameName     String?
-  placeId      String?
-  discordMsgId String?
-  createdAt    DateTime @default(now())
+  starterLines String
+  theme        String?
+  dateStr      String
+  isActive     Boolean                @default(true)
+  mvpUserId    String?
+  mvpUsername  String?
+  mvpPantun    String?
+  mvpReason    String?
+  createdAt    DateTime               @default(now())
+  submissions  DailyPantunSubmission[]
+}
+
+model DailyPantunSubmission {
+  id            Int         @id @default(autoincrement())
+  dailyPantunId Int
+  dailyPantun   DailyPantun @relation(fields: [dailyPantunId], references: [id], onDelete: Cascade)
+  guildId       String
+  userId        String
+  username      String
+  userAvatar    String?
+  content       String
+  dateStr       String
+  createdAt     DateTime    @default(now())
+
+  @@index([dailyPantunId])
+  @@index([guildId, dateStr])
 }
 
 model WarnLog {
