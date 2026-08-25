@@ -211,26 +211,28 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
     const rawWordStream = words.map(w => `[User ID: ${w.userId}, Name: ${w.username}] -> "${w.word}"`).join("\n");
     const mvpReward = config?.storyMvpReward ?? 250;
 
-    // AI Synthesis & Automatic MVP Selection
+    // AI Synthesis & Automatic MVP Selection with Smart Cocokologi
     const prompt = `Berikut adalah urutan kalimat-kalimat cerita yang ditulis oleh para member Discord hari ini secara berantai:
 
 ${rawWordStream}
 
-TUGAS KAMU SEBAGAI MAYA AI:
-1. Rangkailah susunan kalimat konyol di atas menjadi sebuah **Dongeng Komedi Singkat yang Utuh, Lucu, Konyol, dan Menghibur khas Indonesia** (1-2 paragraf mengalir).
-2. BERDASARKAN KEHENDAK DAN PENILAIAN MU, pilihlah 1 MEMBER yang kalimatnya paling konyol, paling kocak, atau paling berpengaruh mengubah alur cerita sebagai **MVP / Kontributor Terbaik Hari Ini**.
-3. Buatkan prompt gambar dalam Bahasa Inggris untuk menghasilkan ilustrasi AI visual dari adegan dongeng tersebut.
+TUGAS UTAMA KAMU SEBAGAI MAYA AI (MASTER COCOKOLOGI & PENUTUR DONGENG):
+1. Rangkailah seluruh kalimat di atas menjadi sebuah **Dongeng Petualangan Komedi Singkat yang Utuh, Mengalir Nyambung, dan Sangat Menghibur**.
+2. **TEKNIK COCOKOLOGI CERDAS**: Jika kalimat-kalimat di atas terlihat acak, aneh, atau tidak saling nyambung, gunakan keahlian cocokologi tingkat tinggi kamu untuk menjembatani plotnya! Tambahkan narasi transisi yang lucu, logika komedi absurd, atau plot twist tak terduga sehingga semua peristiwa acak tersebut terasa sebagai satu kesatuan petualangan epik yang utuh dan bikin ngakak.
+3. Selipkan nama-nama member di atas sebagai tokoh/karakter kocak dalam dongeng.
+4. PILIH 1 MEMBER sebagai **MVP / Kontributor Terbaik Hari Ini** yang kalimatnya paling mengubah alur, paling gokil, atau jadi punchline utama.
+5. Buatkan prompt gambar Bahasa Inggris untuk ilustrasi AI visual adegan dongeng tersebut.
 
-SYARAT PENTING:
+SYARAT FORMAT:
 - DILARANG menggunakan banyak emoji keyboard lebay! Maksimal 1 emoji di judul.
 - Format Output HARUS JSON murni tanpa markdown codeblock:
 {
-  "title": "Judul Dongeng Komedi",
-  "storyText": "Teks dongeng komedi utuh di sini...",
+  "title": "Judul Dongeng Komedi yang Menarik",
+  "storyText": "Teks dongeng komedi utuh hasil cocokologi yang mengalir di sini (2-3 paragraf seru)...",
   "mvpUserId": "User ID member pilihanmu",
   "mvpUsername": "Nama member pilihanmu",
-  "mvpReason": "Alasan lucu kenapa Maya AI memilih dia sebagai MVP",
-  "imagePrompt": "A humorous 3D digital art illustration of [scene description]"
+  "mvpReason": "Alasan kocak dan apresiatif kenapa kamu memilih dia sebagai MVP",
+  "imagePrompt": "A humorous digital art illustration of [scene description with lighting and vibrant comedy style]"
 }`;
 
     let title = "Kisah Konyol Warga Server";
@@ -241,7 +243,7 @@ SYARAT PENTING:
     let imagePrompt = "A funny cartoon illustration of a funny fantasy adventure";
 
     try {
-      const rawAi = await askNvidia(prompt, "Kamu adalah Maya, AI penutur cerita humoris yang kreatif dan adil.");
+      const rawAi = await askNvidia(prompt, "Kamu adalah Maya, AI penutur cerita dongeng komedi cerdas yang jago cocokologi.");
       const cleaned = rawAi.replace(/```json/gi, "").replace(/```/g, "").trim();
       const parsed = JSON.parse(cleaned);
 

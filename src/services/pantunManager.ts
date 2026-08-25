@@ -32,30 +32,69 @@ export function getWibHour(): number {
   return parseInt(hour || "0", 10);
 }
 
+const PANTUN_THEMES = [
+  "Gaming & Push Rank Dark System",
+  "Cinta Ngenes & Korban Friendzone",
+  "Dilema Tanggal Tua & Mie Instan",
+  "Drama Kantor & Bos Cari Muka",
+  "Satir Konoha & Proyek Anggaran Gaib",
+  "Belanja Online & Misteri Kurir Paket",
+  "Wacana Nongkrong di Warkop",
+  "Sains Absurd & AI Menguasai Bumi",
+  "Diet Wacana & Godaan Gorengan",
+  "Dukun Online & Horor Komedi",
+  "Skripsi Abadi & Dosen Menghilang",
+  "Gosip Tetangga & Info Orang Dalam"
+];
+
 const CURATED_STARTER_PANTUNS = [
   {
-    theme: "Kisah Kopi & Senja Santai",
-    lines: "Beli kopi di pinggir jalan,\nMinumnya sambil makan combro."
+    theme: "Gaming & Push Rank",
+    lines: "Main ranked kalah lima kali beruntun,\nHero assassin malah farming di kebun."
   },
   {
-    theme: "Petualangan & Pasar Malam",
-    lines: "Pergi ke pasar beli blewah,\nPulangnya mampir ke toko pita."
+    theme: "Cinta Ngenes",
+    lines: "Beli cilok kuahnya tumpah di celana,\nUdah nemenin lama cuma dianggap abang."
   },
   {
-    theme: "Dunia Digital & Gaming",
-    lines: "Main game dari pagi hingga senja,\nBaterai habis tinggal lima persen."
+    theme: "Tanggal Tua",
+    lines: "Tanggal dua puluh makan mie kuah polos,\nNiat mau hemat malah saldo raib."
   },
   {
-    theme: "Kocak & Percintaan Ringan",
-    lines: "Pohon beringin daunnya lebat,\nTempat berteduh si burung nuri."
+    theme: "Satir Konoha",
+    lines: "Rapat paripurna anggarannya triliunan,\nPengadaan sapu harganya puluhan juta."
   },
   {
-    theme: "Misteri & Humor Sehari-hari",
-    lines: "Jalan-jalan ke kota Blitar,\nJangan lupa beli sukun."
+    theme: "Kurir Paket",
+    lines: "Beli casing hp datangnya batu bata,\nKurir paket teriak di depan gerbang."
   },
   {
-    theme: "Semangat & Keseharian",
-    lines: "Beli mangga manis rasanya,\nDipetik langsung dari dahan."
+    theme: "Wacana Nongkrong",
+    lines: "Di grup WhatsApp janjian jam delapan malam,\nSampe jam sepuluh masih pada rebahan."
+  },
+  {
+    theme: "Diet Gagal",
+    lines: "Pagi lari pagi niat mau ramping,\nMalemnya beli martabak telur dua porsi."
+  },
+  {
+    theme: "Drama Kantor",
+    lines: "Kerja lembur bagai kuda tiap malam,\nGaji masuk cuma numpang transfer cicilan."
+  },
+  {
+    theme: "Horor Komedi",
+    lines: "Malam jumat lewat bawah pohon beringin,\nKuntilanak ketawa minta hotspot wifi."
+  },
+  {
+    theme: "Skripsi & Kampus",
+    lines: "Chat dosen pembimbing centang dua abu-abu,\nRevisi bab empat coretannya makin tebal."
+  },
+  {
+    theme: "Warkop & Kopi",
+    lines: "Pesen es teh manis gulanya segunung,\nNongkrong tiga jam bayarnya cuma serebu."
+  },
+  {
+    theme: "Belanja Flash Sale",
+    lines: "Pasang alarm demi diskon sembilan puluh persen,\nPas mau checkout server langsung down."
   }
 ];
 
@@ -71,20 +110,33 @@ export async function getOrCreateTodayPantun(guildId: string) {
 
   if (pantun) return pantun;
 
-  // Try generating with AI
+  // Pick a fresh theme based on date hash
+  const dayIndex = Math.abs(todayStr.split("-").reduce((acc, part) => acc + parseInt(part, 10), 0)) % PANTUN_THEMES.length;
+  const pickedTheme = PANTUN_THEMES[dayIndex];
+
   let starterLines = "";
-  let theme = "Pantun Bebas & Kreatif";
+  let theme = pickedTheme;
 
   try {
-    const aiPrompt = `Buatkan 2 baris bait pembuka (sampiran pantun) dalam bahasa Indonesia yang unik, berima rima a-b atau sajak jelas, lucu/menarik, dan mudah dilanjutkan oleh member Discord.
-Format balasan HANYA JSON persis tanpa markdown lain:
-{"theme": "Tema singkat", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;
+    const aiPrompt = `Kamu adalah Maya, AI master pantun humor dan komedi Indonesia yang gaul, cerdas, dan super lucu.
+Hari ini adalah tanggal ${todayStr}.
+Tema pantun hari ini: "${pickedTheme}".
 
-    const rawResponse = await askNvidia(aiPrompt);
+TUGAS:
+Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang:
+1. Sangat lucu, fresh, relatable dengan anak muda/warganet Indonesia.
+2. Memiliki rima/sajak akhir yang jelas (misal rima an/an, ar/ar, uh/uh, dsb) agar mudah disambung isi pantunnya.
+3. JANGAN klise seperti pantun buku pelajaran SD (hindari "berlayar ke pulau pinang" dsb).
+4. Buat dalam 2 baris (dipisahkan enter).
+
+Format balasan HANYA JSON persis tanpa markdown lain:
+{"theme": "${pickedTheme}", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;
+
+    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, komedian sastra pantun modern.");
     const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.lines && parsed.lines.trim()) {
+      if (parsed.lines && parsed.lines.trim() && parsed.lines.includes("\n")) {
         starterLines = parsed.lines.trim();
         theme = parsed.theme || theme;
       }
@@ -94,7 +146,7 @@ Format balasan HANYA JSON persis tanpa markdown lain:
   }
 
   if (!starterLines) {
-    const fallback = CURATED_STARTER_PANTUNS[Math.floor(Math.random() * CURATED_STARTER_PANTUNS.length)];
+    const fallback = CURATED_STARTER_PANTUNS[dayIndex % CURATED_STARTER_PANTUNS.length];
     starterLines = fallback.lines;
     theme = fallback.theme;
   }
@@ -130,7 +182,7 @@ export async function announcePantunSessionStart(guild: Guild, configuredChannel
     const pantun = await getOrCreateTodayPantun(guild.id);
 
     const embed = new EmbedBuilder()
-      .setTitle("🎭 MAYA LANJUTKAN PANTUN • SESI RESMI DIBUKA!")
+      .setTitle("🎭 MAYA LANJUTKAN PANTUN • SESI HARI INI DIBUKA!")
       .setColor("#F59E0B")
       .setDescription(
         `Selamat pagi warga **${guild.name}**! Sesi **Lanjutkan Pantun** hari ini telah dibuka.\n` +
@@ -332,24 +384,26 @@ export async function closeAndEvaluateDailyPantun(guild: Guild, configuredChanne
     // AI Evaluation of submissions
     const submissionsText = submissions.map((s, idx) => `[#${idx + 1}] ID: ${s.id} | User: @${s.username} (UserId: ${s.userId})\nPantun Lanjutan:\n"${s.content}"`).join("\n\n");
 
-    const evalPrompt = `Kamu adalah juri pantun sastra humor profesional di Discord server Maya.
-Berikut adalah 2 baris sampiran pembuka pantun hari ini:
+    const evalPrompt = `Kamu adalah juri pantun komedi dan sastra humor profesional di Discord server Maya.
+Berikut adalah 2 baris sampiran pembuka pantun hari ini (Tema: "${activePantun.theme || 'Pantun'} "):
 "${activePantun.starterLines}"
 
-Berikut adalah daftar kiriman bait isi pantun dari member server:
+Berikut adalah daftar kiriman bait isi pantun dari para member:
 ${submissionsText}
 
-Tugas:
-Pilihlah SATU pantun lanjutan terbaik, paling lucu/kreatif, dan rimanya paling pas menyatu dengan bait sampiran di atas sebagai MVP Juara Pantun Hari Ini.
-Berikan alasan apresiasi singkat yang santai dan menghibur (1-2 kalimat).
+TUGAS PENILAIAN JURI MAYA:
+1. Pilihlah SATU pantun lanjutan terbaik yang:
+   - Paling nyambung rimanya dengan sampiran di atas.
+   - Paling lucu, cerdas, kreatif, atau mengandung punchline komedi yang pecah.
+2. Tuliskan alasan apresiasi yang kocak, hangat, dan menghibur khas gaya bicara Maya (1-2 kalimat).
 
-Balas HANYA dalam format JSON persis:
+Balas HANYA dalam format JSON persis tanpa markdown lain:
 {
   "mvpSubmissionId": 123,
   "mvpUserId": "user_id_string",
   "mvpUsername": "username_string",
   "mvpPantun": "isi pantun terpilih",
-  "mvpReason": "alasan apresiasi yang seru dan apresiatif"
+  "mvpReason": "alasan kocak dan apresiatif dari Maya"
 }`;
 
     let mvpData = {
@@ -360,7 +414,7 @@ Balas HANYA dalam format JSON persis:
     };
 
     try {
-      const aiResponse = await askNvidia(evalPrompt);
+      const aiResponse = await askNvidia(evalPrompt, "Kamu adalah Maya, juri pantun humoris yang cerdas dan adil.");
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
