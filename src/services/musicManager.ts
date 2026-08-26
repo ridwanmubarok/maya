@@ -17,6 +17,7 @@ export interface SongTrack {
   thumbnail?: string;
   requestedBy: string;
   channelTitle?: string;
+  sourceType?: "youtube" | "soundcloud" | "spotify";
 }
 
 export interface GuildMusicQueue {
@@ -31,14 +32,31 @@ export interface GuildMusicQueue {
 export class MusicManager {
   private static instance: MusicManager;
   private queues = new Map<string, GuildMusicQueue>(); // key: guildId
+  private soundCloudInitialized = false;
 
-  private constructor() {}
+  private constructor() {
+    this.initSoundCloud();
+  }
 
   public static getInstance(): MusicManager {
     if (!MusicManager.instance) {
       MusicManager.instance = new MusicManager();
     }
     return MusicManager.instance;
+  }
+
+  private async initSoundCloud() {
+    if (this.soundCloudInitialized) return;
+    try {
+      const clientId = await play.getFreeClientID();
+      if (clientId) {
+        await play.setToken({ soundcloud: { client_id: clientId } });
+        this.soundCloudInitialized = true;
+        logger.info(`MusicManager: SoundCloud Client ID berhasil diaktifkan: ${clientId}`);
+      }
+    } catch (err) {
+      logger.warn("MusicManager: Gagal inisialisasi SoundCloud Client ID:", err);
+    }
   }
 
   public getQueue(guildId: string): GuildMusicQueue | undefined {
@@ -62,7 +80,7 @@ export class MusicManager {
   }
 
   /**
-   * Search and enqueue a song
+   * Search and enqueue a song (Supports SoundCloud & YouTube)
    */
   public async play(
     guildId: string, 
@@ -71,6 +89,7 @@ export class MusicManager {
     voiceChannel?: VoiceBasedChannel
   ): Promise<{ success: boolean; message: string; track?: SongTrack }> {
     const queue = this.getOrCreateQueue(guildId);
+    await this.initSoundCloud();
 
     // If bot not connected and voice channel provided, join
     if (!voiceChatManager.isConnected(guildId) && voiceChannel) {
@@ -83,7 +102,7 @@ export class MusicManager {
     try {
       let trackInfo: SongTrack | null = null;
 
-      // Check if URL or Search Query
+      // 1. Check if direct URL
       if (query.startsWith("http://") || query.startsWith("https://")) {
         const validation = await play.validate(query);
         if (validation === "yt_video") {
@@ -95,21 +114,56 @@ export class MusicManager {
             thumbnail: info.video_details.thumbnails[0]?.url,
             requestedBy: user.displayName || user.username,
             channelTitle: info.video_details.channel?.name || "YouTube",
+            sourceType: "youtube",
+          };
+        } else if (validation === "so_track") {
+          const info = await play.soundcloud(query) as any;
+          trackInfo = {
+            title: info.name || info.title || "Unknown Title",
+            url: info.url,
+            duration: info.durationRaw || "0:00",
+            thumbnail: info.thumbnail,
+            requestedBy: user.displayName || user.username,
+            channelTitle: info.user?.name || "SoundCloud",
+            sourceType: "soundcloud",
           };
         }
       }
 
+      // 2. Search SoundCloud first for 100% reliable streaming
       if (!trackInfo) {
-        const searchResults = await play.search(query, { limit: 1 });
-        if (searchResults && searchResults.length > 0) {
-          const res = searchResults[0];
+        try {
+          const scResults = await play.search(query, { source: { soundcloud: "tracks" }, limit: 1 });
+          if (scResults && scResults.length > 0) {
+            const res = scResults[0] as any;
+            trackInfo = {
+              title: res.name || res.title || query,
+              url: res.url,
+              duration: res.durationRaw || "3:30",
+              thumbnail: res.thumbnail,
+              requestedBy: user.displayName || user.username,
+              channelTitle: res.user?.name || "SoundCloud",
+              sourceType: "soundcloud",
+            };
+          }
+        } catch (scErr) {
+          logger.warn("MusicManager: SoundCloud search failed, falling back to YouTube:", scErr);
+        }
+      }
+
+      // 3. Fallback to YouTube Search
+      if (!trackInfo) {
+        const ytResults = await play.search(query, { limit: 1 });
+        if (ytResults && ytResults.length > 0) {
+          const res = ytResults[0];
           trackInfo = {
-            title: res.title || "Unknown Title",
+            title: res.title || query,
             url: res.url,
             duration: res.durationRaw || "0:00",
             thumbnail: res.thumbnails[0]?.url,
             requestedBy: user.displayName || user.username,
             channelTitle: res.channel?.name || "YouTube",
+            sourceType: "youtube",
           };
         }
       }
@@ -145,7 +199,7 @@ export class MusicManager {
   }
 
   /**
-   * Stream audio track to session player
+   * Stream audio track to session player with automatic SoundCloud fallback
    */
   private async streamTrack(guildId: string, track: SongTrack) {
     const queue = this.getOrCreateQueue(guildId);
@@ -158,7 +212,21 @@ export class MusicManager {
     }
 
     try {
-      const stream = await play.stream(track.url);
+      let stream: any = null;
+
+      try {
+        stream = await play.stream(track.url);
+      } catch (streamErr) {
+        logger.warn(`MusicManager: Stream langsung gagal untuk "${track.title}", mencoba fallback SoundCloud...`, streamErr);
+        // Search & stream on SoundCloud as resilient fallback
+        const scResults = await play.search(track.title, { source: { soundcloud: "tracks" }, limit: 1 });
+        if (scResults && scResults.length > 0) {
+          stream = await play.stream(scResults[0].url);
+        } else {
+          throw streamErr;
+        }
+      }
+
       const resource = createAudioResource(stream.stream, {
         inputType: stream.type === "opus" ? StreamType.Opus : StreamType.Arbitrary,
         inlineVolume: true,

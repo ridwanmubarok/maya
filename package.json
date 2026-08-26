@@ -16,6 +16,7 @@
     "@aws-sdk/client-s3": "^3.1115.0",
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.19.2",
+    "@distube/ytdl-core": "^4.16.12",
     "@noble/ciphers": "^2.3.0",
     "@prisma/client": "^5.14.0",
     "@snazzah/davey": "^0.1.12",
