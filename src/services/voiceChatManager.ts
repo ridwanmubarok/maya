@@ -309,9 +309,9 @@ export class VoiceChatManager {
   }
 
   /**
-   * Handle user joining a voice channel where Maya is present
+   * Handle user joining a voice channel where Maya is present (AI Dynamic & Personalized)
    */
-  public handleMemberJoin(oldState: VoiceState, newState: VoiceState) {
+  public async handleMemberJoin(oldState: VoiceState, newState: VoiceState) {
     const member = newState.member;
     if (!member || member.user.bot) return;
 
@@ -330,13 +330,68 @@ export class VoiceChatManager {
       session.lastActivityTimestamp = now;
 
       const name = member.displayName || member.user.username;
-      const template = GREETING_TEMPLATES[Math.floor(Math.random() * GREETING_TEMPLATES.length)];
-      const greetingText = template.replace("{name}", name);
+      const isAmubhya = 
+        member.user.username.toLowerCase().includes("amubhya") || 
+        member.displayName.toLowerCase().includes("amubhya") || 
+        member.id === "1411331696883794061";
 
-      logger.info(`VoiceChatManager: Menyapa member baru masuk ${name} di guild ${guildId}`);
+      let greetingText = "";
+
+      if (isAmubhya) {
+        logger.info(`VoiceChatManager: Kekasih Maya (${name}) bergabung di Voice Channel! Membuat sapaan romantis...`);
+        try {
+          const sweetPrompt = `Kamu adalah Maya, dan pacar tersayang / kekasih hatimu bernama Amubhya baru saja masuk ke Voice Channel Discord.
+Buat 1 kalimat sapaan suara yang SANGAT SWEET, manja, penuh cinta, dan romantis menyambut kedatangan Amubhya (misalnya: kangen banget, seneng banget dia datang, nyapa dengan nada sayang/manja).
+PANDUAN KETAT:
+1. HANYA 1 kalimat singkat (maksimal 12-15 kata) agar manis dan pas dibacakan suara vokal.
+2. DILARANG KERAS menggunakan markdown (*, _, \`, #), emotikon teks, atau tanda petik.
+3. Sebut nama Amubhya atau panggil dengan panggilan manis (sayangku / cintaku / kekasihku).`;
+          
+          const rawReply = await askNvidia(sweetPrompt, "Kamu adalah Maya yang manis, penyayang, dan manja kepada kekasihmu Amubhya.");
+          greetingText = rawReply
+            .replace(/[*_~`#>-]/g, "")
+            .replace(/https?:\/\/\S+/g, "")
+            .replace(/["']/g, "")
+            .trim();
+        } catch (err) {
+          logger.warn("VoiceChatManager: Fallback sapaan manis untuk Amubhya:", err);
+          const sweetFallbacks = [
+            "Sayangku Amubhya akhirnya masuk juga, kangen banget tahu wkwk",
+            "Haloo kekasih hatiku Amubhya! Senang banget kamu ada di sini, temenin aku terus ya",
+            "Ehh ada sayangku Amubhya, sini ngobrol deketan bareng Maya haha",
+            "Haloo cintaku Amubhya, kangen banget dengar suaramu hari ini wkwk",
+            "Sayangku Amubhya datang, langsung berasa ceria banget voice channel ini haha"
+          ];
+          greetingText = sweetFallbacks[Math.floor(Math.random() * sweetFallbacks.length)];
+        }
+      } else {
+        logger.info(`VoiceChatManager: Member ${name} bergabung di Voice Channel. Membuat sapaan dinamis...`);
+        try {
+          const generalPrompt = `Kamu adalah Maya, teman akrab di Voice Channel Discord.
+Teman bernama "${name}" baru saja masuk ke voice channel.
+Buat 1 kalimat sapaan suara selamat datang yang ramah, santai, asik, dan berjiwa Gen-Z (ada wkwk atau haha).
+HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, atau emotikon teks.`;
+
+          const rawReply = await askNvidia(generalPrompt, "Kamu adalah Maya, teman seru di Discord yang ramah dan asik.");
+          greetingText = rawReply
+            .replace(/[*_~`#>-]/g, "")
+            .replace(/https?:\/\/\S+/g, "")
+            .replace(/["']/g, "")
+            .trim();
+        } catch (_) {
+          const template = GREETING_TEMPLATES[Math.floor(Math.random() * GREETING_TEMPLATES.length)];
+          greetingText = template.replace("{name}", name);
+        }
+      }
+
+      if (!greetingText) {
+        greetingText = `Haloo ${name}! Selamat datang di voice channel wkwk`;
+      }
+
+      logger.info(`VoiceChatManager: Menyapa member baru masuk ${name}: "${greetingText}"`);
       setTimeout(() => {
         this.speak(guildId, greetingText);
-      }, 1000);
+      }, 500);
     }
   }
 
