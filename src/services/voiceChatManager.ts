@@ -499,6 +499,40 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
     return true;
   }
 
+  private async generateTTSAudio(text: string): Promise<Buffer> {
+    // 1. Try Microsoft Edge Neural TTS (id-ID-GadisNeural - Ultra Natural Female Indonesian Voice)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
+      const tts = new MsEdgeTTS();
+      await tts.setMetadata("id-ID-GadisNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      const { audioStream } = tts.toStream(text);
+
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        audioStream.on("data", (chunk: Buffer) => chunks.push(chunk));
+        audioStream.on("end", () => resolve());
+        audioStream.on("error", (err: any) => reject(err));
+      });
+
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length > 0) {
+        return buffer;
+      }
+    } catch (edgeErr) {
+      logger.warn("VoiceChatManager: Edge Neural TTS fallback ke Google TTS:", edgeErr);
+    }
+
+    // 2. Fallback to Google TTS
+    const base64Audio = await googleTTS.getAudioBase64(text, {
+      lang: "id",
+      slow: false,
+      host: "https://translate.google.com",
+      timeout: 10000,
+    });
+    return Buffer.from(base64Audio, "base64");
+  }
+
   /**
    * Process speech audio queue
    */
@@ -524,14 +558,7 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
     session.isSpeaking = true;
 
     try {
-      const base64Audio = await googleTTS.getAudioBase64(textToSpeak, {
-        lang: "id",
-        slow: false,
-        host: "https://translate.google.com",
-        timeout: 10000,
-      });
-
-      const audioBuffer = Buffer.from(base64Audio, "base64");
+      const audioBuffer = await this.generateTTSAudio(textToSpeak);
       const audioStream = Readable.from(audioBuffer);
 
       const resource = createAudioResource(audioStream, {
@@ -541,7 +568,7 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
       resource.volume?.setVolume(1.0);
 
       session.player.play(resource);
-      logger.info(`VoiceChatManager: Memutar vokal suara untuk: "${textToSpeak}"`);
+      logger.info(`VoiceChatManager: Memutar vokal suara natural untuk: "${textToSpeak}"`);
     } catch (error) {
       logger.error(`VoiceChatManager: Gagal memutar TTS untuk "${textToSpeak}":`, error);
       session.isSpeaking = false;
