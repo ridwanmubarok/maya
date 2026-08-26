@@ -213,7 +213,7 @@ export async function getOrCreateTodayPantun(guildId: string) {
   let theme = pickedTheme;
 
   try {
-    const aiPrompt = `Kamu adalah Maya, asisten bot yang jago pantun komedi super receh, pendek, gokil, dan relate ala Gen-Z Indonesia.
+    const aiPrompt = `Kamu adalah Maya, teman di server yang jago pantun komedi super receh, pendek, gokil, dan relate ala Gen-Z Indonesia.
 Hari ini adalah tanggal ${todayStr}.
 Tema pantun hari ini: "${pickedTheme}".
 
@@ -244,7 +244,7 @@ Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang BARU, FRESH, dan BELUM PERNA
 Format balasan HANYA JSON persis tanpa markdown codeblock:
 {"theme": "${pickedTheme}", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;
 
-    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, komedian sastra pantun receh modern yang selalu membuat bait orisinal.");
+    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, teman gaul yang jago pantun receh modern dan selalu membuat bait orisinal.");
     const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);

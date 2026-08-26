@@ -109,7 +109,7 @@ export function startDashboard(client: MayaClient) {
           welcomeMessage: "Selamat datang **{username}** di **{guildName}**!\n\nKamu adalah member ke-**{memberCount}** di server ini.\nJangan lupa untuk membaca aturan server dan bersenang-senang!",
           welcomeImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
           welcomeThumbnail: true,
-          aiPersonality: "Anda adalah Maya, asisten AI pintar di server Discord ini. Jawablah pertanyaan dengan sopan, cerdas, dan membantu.",
+          aiPersonality: "Kamu adalah Maya, teman yang seru, cerdas, dan suportif di server Discord ini. Ngobrollah dengan santai, akrab, dan menyenangkan.",
           bannedWords: "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
           maxStrikes: 3,
           muteDuration: 10,

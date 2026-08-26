@@ -6,7 +6,7 @@ import { prisma } from "../../services/database";
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("ask")
-    .setDescription("Tanya apa saja kepada Maya (Asisten Pintar)")
+    .setDescription("Tanya atau ngobrol apa saja dengan Maya")
     .addStringOption(opt =>
       opt
         .setName("pertanyaan")
