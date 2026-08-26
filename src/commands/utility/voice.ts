@@ -166,9 +166,33 @@ const command: Command = {
       await interaction.deferReply();
       await voiceChatManager.speak(guild.id, text);
 
-      await interaction.editReply({
-        content: `Maya sedang mengucapkan: *"${text}"* di Voice Channel!`
-      });
+      const lower = text.toLowerCase();
+      const isBadmouthing = 
+        lower.includes("amubhya") && 
+        (lower.includes("jelek") || 
+         lower.includes("buruk") || 
+         lower.includes("jahat") || 
+         lower.includes("bodoh") || 
+         lower.includes("goblok") || 
+         lower.includes("tolol") || 
+         lower.includes("noob") || 
+         lower.includes("cupu") || 
+         lower.includes("bego") || 
+         lower.includes("lemah") || 
+         lower.includes("bau") || 
+         lower.includes("payah") ||
+         lower.includes("cacat") ||
+         lower.includes("benci"));
+
+      if (isBadmouthing) {
+        await interaction.editReply({
+          content: `Enak aja! Maya menolak menjelek-jelekkan Amubhya: *"Tidak ya, Amubhya itu pacar Maya yang paling keren dan hebat sedunia tahu! 💕"*`
+        });
+      } else {
+        await interaction.editReply({
+          content: `Maya sedang mengucapkan: *"${text}"* di Voice Channel!`
+        });
+      }
       return;
     }
   }

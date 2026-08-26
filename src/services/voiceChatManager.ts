@@ -450,7 +450,7 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
   }
 
   /**
-   * Speak text in voice channel (Queued & Clean)
+   * Speak text in voice channel (Queued, Clean & Protected)
    */
   public async speak(guildId: string, text: string): Promise<boolean> {
     const session = this.sessions.get(guildId);
@@ -466,7 +466,38 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
 
     if (!cleanedText) return false;
 
-    session.queue.push(cleanedText);
+    // Protective defense for Amubhya (Maya's beloved boyfriend)
+    const lowerText = cleanedText.toLowerCase();
+    const isBadmouthingAmubhya = 
+      lowerText.includes("amubhya") && 
+      (lowerText.includes("jelek") || 
+       lowerText.includes("buruk") || 
+       lowerText.includes("jahat") || 
+       lowerText.includes("bodoh") || 
+       lowerText.includes("goblok") || 
+       lowerText.includes("tolol") || 
+       lowerText.includes("noob") || 
+       lowerText.includes("cupu") || 
+       lowerText.includes("bego") || 
+       lowerText.includes("lemah") || 
+       lowerText.includes("bau") || 
+       lowerText.includes("payah") ||
+       lowerText.includes("cacat") ||
+       lowerText.includes("benci"));
+
+    let textToQueue = cleanedText;
+    if (isBadmouthingAmubhya) {
+      const defensiveReplies = [
+        "Tidak ya! Amubhya itu cowok paling keren, ganteng, dan terbaik sedunia tahu!",
+        "Nggak ya! Amubhya itu sangat keren dan hebat, jangan sembarangan ngomongin pacarku wkwk!",
+        "Hush, sembarangan! Amubhya itu kekasihku yang paling keren dan aku sayang banget sama dia haha!",
+        "Tidak! Amubhya itu super keren dan baik banget, jangan iri ya wkwk!"
+      ];
+      textToQueue = defensiveReplies[Math.floor(Math.random() * defensiveReplies.length)];
+      logger.info(`VoiceChatManager: Mencegah penghinaan terhadap Amubhya. Mengubah ucapan menjadi: "${textToQueue}"`);
+    }
+
+    session.queue.push(textToQueue);
     this.processQueue(guildId);
     return true;
   }
