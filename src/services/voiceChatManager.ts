@@ -47,15 +47,21 @@ function trackClient(client: Client) {
   if (trackedClients.has(client)) return;
   trackedClients.add(client);
 
-  client.ws.on(GatewayDispatchEvents.VoiceServerUpdate, (payload: GatewayVoiceServerUpdateDispatchData) => {
-    logger.info(`[Voice Gateway] VoiceServerUpdate for guild ${payload.guild_id} (endpoint: ${payload.endpoint})`);
-    adapters.get(payload.guild_id)?.onVoiceServerUpdate(payload as any);
-  });
+  client.on("raw", (packet: any) => {
+    if (!packet || !packet.t || !packet.d) return;
 
-  client.ws.on(GatewayDispatchEvents.VoiceStateUpdate, (payload: GatewayVoiceStateUpdateDispatchData) => {
-    if (payload.guild_id && payload.user_id === client.user?.id) {
-      logger.info(`[Voice Gateway] VoiceStateUpdate for Maya (channel_id: ${payload.channel_id})`);
-      adapters.get(payload.guild_id)?.onVoiceStateUpdate(payload as any);
+    if (packet.t === "VOICE_SERVER_UPDATE") {
+      const payload = packet.d;
+      logger.info(`[Voice Gateway] VOICE_SERVER_UPDATE received for guild ${payload.guild_id} (endpoint: ${payload.endpoint})`);
+      adapters.get(payload.guild_id)?.onVoiceServerUpdate(payload);
+    }
+
+    if (packet.t === "VOICE_STATE_UPDATE") {
+      const payload = packet.d;
+      if (payload.guild_id && payload.user_id === client.user?.id) {
+        logger.info(`[Voice Gateway] VOICE_STATE_UPDATE for Maya (channel_id: ${payload.channel_id})`);
+        adapters.get(payload.guild_id)?.onVoiceStateUpdate(payload);
+      }
     }
   });
 
