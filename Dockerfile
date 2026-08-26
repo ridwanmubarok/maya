@@ -1,34 +1,44 @@
 # Build Stage
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /usr/src/app
 
-# Install build tools and openssl for native modules and Prisma
-RUN apk add --no-cache openssl python3 make g++
+# Install build dependencies for Prisma and native packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Force NODE_ENV=development to ensure devDependencies (tsc, prisma) are installed
+# Use --include=dev to guarantee all devDependencies (TypeScript, Prisma CLI) install cleanly
 RUN --mount=type=cache,target=/root/.npm \
-    NODE_ENV=development npm install
+    npm install --include=dev
 
 COPY . .
 
 RUN npm run db:generate
 RUN npm run build
 
-# Prune devDependencies to keep node_modules minimal
+# Prune devDependencies for clean production artifact
 RUN --mount=type=cache,target=/root/.npm \
     npm prune --omit=dev
 
 # Production Stage
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /usr/src/app
 
 # Install runtime dependencies for audio streaming (ffmpeg) and Prisma database client (openssl)
-RUN apk add --no-cache ffmpeg openssl
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 COPY prisma ./prisma/
