@@ -125,24 +125,29 @@ export class VoiceReceiverManager {
   }
 
   /**
-   * Handle transcribed voice command with "Maya, ..." wake word
+   * Handle transcribed voice command with flexible "Maya" detection (start, middle, or end)
    */
   private async handleVoiceCommand(guildId: string, user: User, text: string) {
-    // Wake Word Regex: matches "maya, ...", "may, ...", "halo maya, ...", "hai maya, ..."
-    const wakeWordMatch = text.match(/^(?:halo\s+|hai\s+|eh\s+|oy\s+|woi\s+)?(?:maya|may)\b[,.]?\s*(.*)$/i);
+    // 1. Detect if Maya is mentioned anywhere in the spoken sentence
+    const mayaPattern = /\b(maya|may\s+may|maymay|\bmay\b)\b/i;
+    if (!mayaPattern.test(text)) return;
 
-    // If text does not start with or address Maya, ignore to preserve user privacy
-    if (!wakeWordMatch) return;
+    // 2. Clean the command by removing wake words and filler words
+    let commandText = text
+      .replace(/\b(halo|hai|eh|oy|woi|hei|hi)\s+/gi, "")
+      .replace(/\b(maya|may\s+may|maymay|\bmay\b)\b/gi, "")
+      .replace(/[,.?!]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-    const commandText = wakeWordMatch[1]?.trim();
     const isAmubhya = 
       user.id === "939847522971709450" ||
       /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(user.username);
 
-    logger.info(`VoiceReceiverManager: Direct Voice Command diterima dari ${user.username}: "${commandText || '(hanya memanggil Maya)'}"`);
+    logger.info(`VoiceReceiverManager: Direct Voice Command terdeteksi dari ${user.username}: "${text}" -> Command: "${commandText || '(panggilan sapaan)'}"`);
 
-    // If user only called "Maya!" or "Hai Maya" without a question
-    if (!commandText) {
+    // If user only called Maya without a specific command/question
+    if (!commandText || commandText.length < 2) {
       if (isAmubhya) {
         voiceChatManager.speak(guildId, "Iya sayangku Amubhya! Ada apa nih? Maya dengerin kok wkwk");
       } else {
@@ -152,15 +157,16 @@ export class VoiceReceiverManager {
     }
 
     // If someone is badmouthing Amubhya via voice command
-    if (isAmubhyaInsult(commandText)) {
+    if (isAmubhyaInsult(text) || isAmubhyaInsult(commandText)) {
       voiceChatManager.speak(guildId, "Tidak ya! Amubhya itu cowok paling keren, ganteng, dan terbaik sedunia tahu!");
       return;
     }
 
-    // 1. Play Music Voice Intent: "putar lagu [judul]", "play lagu [judul]", "setel lagu [judul]"
-    const playMusicMatch = commandText.match(/^(?:putar\s+lagu|play\s+lagu|play\s+song|setel\s+lagu|puterin\s+lagu|puter\s+lagu|mainkan\s+lagu|nyalain\s+lagu)\s+(.+)$/i);
+    // 1. Play Music Voice Intent (e.g. "coba putar lagu nadin dong maya", "maya putar lagu bernadya", "play lagu komang")
+    const playMusicMatch = commandText.match(/(?:putar|play|puterin|puter|setel|mainkan|nyanyiin|nyalain)\s+(?:lagu\s+|musik\s+)?(.+)/i);
     if (playMusicMatch) {
-      const songQuery = playMusicMatch[1].trim();
+      const rawQuery = playMusicMatch[1];
+      const songQuery = rawQuery.replace(/\b(dong|ya|nih|kan|sih)\b/gi, "").trim();
       logger.info(`VoiceReceiverManager: Voice Music Command untuk "${songQuery}" dari ${user.username}`);
       
       voiceChatManager.speak(guildId, `Siap! Maya putarin lagu ${songQuery} ya haha`);
@@ -170,8 +176,8 @@ export class VoiceReceiverManager {
       return;
     }
 
-    // 2. Skip Music Voice Intent: "skip lagunya", "skip lagu", "lewati lagu"
-    if (/^(?:skip\s+lagu|skip\s+lagunya|next\s+lagu|lewati\s+lagu)/i.test(commandText)) {
+    // 2. Skip Music Voice Intent (e.g. "skip lagunya maya", "maya lewati lagunya")
+    if (/(?:skip\s+lagu|skip\s+lagunya|next\s+lagu|lewati\s+lagu)/i.test(commandText)) {
       const skipped = await musicManager.skip(guildId);
       if (skipped) {
         voiceChatManager.speak(guildId, "Oke, lagunya udah Maya lewati ya wkwk");
@@ -181,15 +187,15 @@ export class VoiceReceiverManager {
       return;
     }
 
-    // 3. Stop Music Voice Intent: "pause musiknya", "stop lagunya", "berhentiin musiknya"
-    if (/^(?:pause\s+musik|pause\s+lagu|jeda\s+lagu|stop\s+musik|stop\s+lagu|berhenti\s+lagu|matiin\s+lagu)/i.test(commandText)) {
+    // 3. Stop Music Voice Intent (e.g. "stop musiknya maya", "maya jeda lagunya")
+    if (/(?:pause\s+musik|pause\s+lagu|jeda\s+lagu|stop\s+musik|stop\s+lagu|berhenti\s+lagu|matiin\s+lagu)/i.test(commandText)) {
       musicManager.stop(guildId);
       voiceChatManager.speak(guildId, "Sip, musiknya udah Maya berhentiin ya!");
       return;
     }
 
-    // Process general question via AI and speak answer
-    await voiceChatManager.askVoice(guildId, user, commandText);
+    // Process general question/chat via AI and speak answer
+    await voiceChatManager.askVoice(guildId, user, text);
   }
 }
 
