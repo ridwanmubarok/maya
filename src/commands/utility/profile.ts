@@ -64,14 +64,14 @@ const command: Command = {
       dailyScore = 0;
     }
 
-    const joinedAt = member?.joinedAt 
-      ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>`
+    const joinedAtText = member?.joinedAt 
+      ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:f> (<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>)`
       : "Tidak diketahui";
 
-    const createdAt = `<t:${Math.floor(targetUser.createdAt.getTime() / 1000)}:R>`;
+    const createdAtText = `<t:${Math.floor(targetUser.createdAt.getTime() / 1000)}:f> (<t:${Math.floor(targetUser.createdAt.getTime() / 1000)}:R>)`;
 
     // Format roles list
-    let rolesString = "Tidak ada role khusus";
+    let rolesString = "Tidak ada peran khusus";
     if (member) {
       const roles = member.roles.cache
         .filter(r => r.id !== guild.id) // Exclude @everyone
@@ -79,16 +79,16 @@ const command: Command = {
         .map(r => `<@&${r.id}>`);
 
       if (roles.length > 0) {
-        rolesString = roles.slice(0, 8).join(" ") + (roles.length > 8 ? ` ...+${roles.length - 8}` : "");
+        rolesString = roles.slice(0, 10).join(" ") + (roles.length > 10 ? ` +${roles.length - 10} lainnya` : "");
       }
     }
 
     // Strike status indicator
     let strikeStatus = "Bersih (0 Peringatan)";
     if (strikeCount === 1) {
-      strikeStatus = "1 Strike Warning";
+      strikeStatus = "1 Peringatan Aktif";
     } else if (strikeCount >= 2) {
-      strikeStatus = `${strikeCount} Strike Warning`;
+      strikeStatus = `${strikeCount} Peringatan Aktif`;
     }
 
     const highestRole = member?.roles.highest;
@@ -97,20 +97,26 @@ const command: Command = {
     const embed = new EmbedBuilder()
       .setColor(embedColor)
       .setAuthor({ 
-        name: `Kartu Profil Member • ${targetUser.username}`, 
+        name: `Profil Member — ${targetUser.displayName || targetUser.username}`, 
         iconURL: targetUser.displayAvatarURL({ size: 256 }) 
       })
       .setThumbnail(targetUser.displayAvatarURL({ size: 512 }))
-      .addFields(
-        { name: "Pengguna", value: `${targetUser} (${targetUser.tag})`, inline: true },
-        { name: "Saldo RTK (Cash)", value: `🪙 **${totalScore.toLocaleString('id-ID')} RTK** (Rank #${rank})`, inline: true },
-        { name: "Perolehan Harian", value: `⚡ **+${dailyScore.toLocaleString('id-ID')} RTK**`, inline: true },
-        { name: "Status Moderasi", value: strikeStatus, inline: true },
-        { name: "Bergabung Server", value: joinedAt, inline: true },
-        { name: "Akun Dibuat", value: createdAt, inline: true },
-        { name: "Roles Member", value: rolesString, inline: false }
+      .setDescription(
+        `### Informasi Pengguna\n` +
+        `> **Nama**: ${targetUser} (\`${targetUser.username}\`)\n` +
+        `> **User ID**: \`${targetUser.id}\`\n` +
+        `> **Status Moderasi**: \`${strikeStatus}\`\n\n` +
+        `### Ekonomi & Saldo RTK\n` +
+        `> **Total Saldo**: **${totalScore.toLocaleString('id-ID')} RTK**\n` +
+        `> **Peringkat Server**: **Rank #${rank}**\n` +
+        `> **Perolehan Hari Ini**: **+${dailyScore.toLocaleString('id-ID')} RTK**\n\n` +
+        `### Waktu & Keanggotaan\n` +
+        `> **Bergabung Server**: ${joinedAtText}\n` +
+        `> **Akun Terdaftar**: ${createdAtText}\n\n` +
+        `### Peran Member\n` +
+        `${rolesString}`
       )
-      .setFooter({ text: `ID: ${targetUser.id} • Server ${guild.name}` })
+      .setFooter({ text: `Maya System • Server ${guild.name}` })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
