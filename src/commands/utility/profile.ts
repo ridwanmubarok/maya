@@ -43,6 +43,27 @@ const command: Command = {
       strikeCount = 0;
     }
 
+    // Fetch Rogatekno Koin (RTK) / Cash Balance & Server Rank
+    let totalScore = 0;
+    let dailyScore = 0;
+    let rank = 1;
+    try {
+      const scoreRecord = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId: guild.id, userId: targetUser.id } }
+      });
+
+      totalScore = scoreRecord?.score ?? 0;
+      dailyScore = scoreRecord?.dailyScore ?? 0;
+
+      const higherCount = await prisma.triviaScore.count({
+        where: { guildId: guild.id, score: { gt: totalScore } }
+      });
+      rank = higherCount + 1;
+    } catch (e) {
+      totalScore = 0;
+      dailyScore = 0;
+    }
+
     const joinedAt = member?.joinedAt 
       ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>`
       : "Tidak diketahui";
@@ -82,6 +103,8 @@ const command: Command = {
       .setThumbnail(targetUser.displayAvatarURL({ size: 512 }))
       .addFields(
         { name: "Pengguna", value: `${targetUser} (${targetUser.tag})`, inline: true },
+        { name: "Saldo RTK (Cash)", value: `🪙 **${totalScore.toLocaleString('id-ID')} RTK** (Rank #${rank})`, inline: true },
+        { name: "Perolehan Harian", value: `⚡ **+${dailyScore.toLocaleString('id-ID')} RTK**`, inline: true },
         { name: "Status Moderasi", value: strikeStatus, inline: true },
         { name: "Bergabung Server", value: joinedAt, inline: true },
         { name: "Akun Dibuat", value: createdAt, inline: true },
