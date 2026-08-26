@@ -27,6 +27,7 @@ import axios from "axios";
 import { Readable } from "stream";
 import { askNvidia } from "./aiClient";
 import { voiceReceiverManager } from "./voiceReceiverManager";
+import { musicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 
 // Configure ffmpeg-static binary path for prism-media
@@ -223,14 +224,28 @@ export class VoiceChatManager {
 
       // Handle Audio Player events
       player.on(AudioPlayerStatus.Idle, () => {
-        session.isSpeaking = false;
-        this.processQueue(guildId);
+        if (session.isSpeaking) {
+          session.isSpeaking = false;
+          if (session.queue.length > 0) {
+            this.processQueue(guildId);
+          } else {
+            // Maya finished all pending speech -> Auto-resume music
+            musicManager.onMayaSpeechEnd(guildId);
+          }
+        } else {
+          // Track finished naturally -> Play next track
+          musicManager.playNext(guildId);
+        }
       });
 
       player.on("error", (error) => {
         logger.error(`VoiceChatManager: Audio Player error in guild ${guildId}:`, error);
-        session.isSpeaking = false;
-        this.processQueue(guildId);
+        if (session.isSpeaking) {
+          session.isSpeaking = false;
+          this.processQueue(guildId);
+        } else {
+          musicManager.playNext(guildId);
+        }
       });
 
       player.on("stateChange", (oldState, newState) => {
@@ -556,6 +571,7 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
     if (!textToSpeak) return;
 
     session.isSpeaking = true;
+    musicManager.onMayaSpeechStart(guildId);
 
     try {
       const audioBuffer = await this.generateTTSAudio(textToSpeak);

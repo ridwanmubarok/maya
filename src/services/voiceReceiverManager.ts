@@ -6,6 +6,7 @@ import { Client, User } from "discord.js";
 import prism from "prism-media";
 import { transcribeAudio } from "./sttClient";
 import { voiceChatManager, isAmubhyaInsult } from "./voiceChatManager";
+import { musicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 
 /**
@@ -156,7 +157,38 @@ export class VoiceReceiverManager {
       return;
     }
 
-    // Process question via AI and speak answer
+    // 1. Play Music Voice Intent: "putar lagu [judul]", "play lagu [judul]", "setel lagu [judul]"
+    const playMusicMatch = commandText.match(/^(?:putar\s+lagu|play\s+lagu|play\s+song|setel\s+lagu|puterin\s+lagu|puter\s+lagu|mainkan\s+lagu|nyalain\s+lagu)\s+(.+)$/i);
+    if (playMusicMatch) {
+      const songQuery = playMusicMatch[1].trim();
+      logger.info(`VoiceReceiverManager: Voice Music Command untuk "${songQuery}" dari ${user.username}`);
+      
+      voiceChatManager.speak(guildId, `Siap! Maya putarin lagu ${songQuery} ya haha`);
+      setTimeout(async () => {
+        await musicManager.play(guildId, songQuery, user);
+      }, 2500);
+      return;
+    }
+
+    // 2. Skip Music Voice Intent: "skip lagunya", "skip lagu", "lewati lagu"
+    if (/^(?:skip\s+lagu|skip\s+lagunya|next\s+lagu|lewati\s+lagu)/i.test(commandText)) {
+      const skipped = await musicManager.skip(guildId);
+      if (skipped) {
+        voiceChatManager.speak(guildId, "Oke, lagunya udah Maya lewati ya wkwk");
+      } else {
+        voiceChatManager.speak(guildId, "Lagi gak ada lagu yang diputar nih wkwk");
+      }
+      return;
+    }
+
+    // 3. Stop Music Voice Intent: "pause musiknya", "stop lagunya", "berhentiin musiknya"
+    if (/^(?:pause\s+musik|pause\s+lagu|jeda\s+lagu|stop\s+musik|stop\s+lagu|berhenti\s+lagu|matiin\s+lagu)/i.test(commandText)) {
+      musicManager.stop(guildId);
+      voiceChatManager.speak(guildId, "Sip, musiknya udah Maya berhentiin ya!");
+      return;
+    }
+
+    // Process general question via AI and speak answer
     await voiceChatManager.askVoice(guildId, user, commandText);
   }
 }
