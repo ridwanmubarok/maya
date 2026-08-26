@@ -46,8 +46,11 @@ const command: Command = {
         }));
       }
 
-      const promptWithUser = `[User: ${interaction.user.displayName || interaction.user.username}]: ${question}`;
-      const response = await askNvidia(promptWithUser, personality, historyMessages);
+      const promptWithUser = `${interaction.user.displayName || interaction.user.username}: ${question}`;
+      const rawResponse = await askNvidia(promptWithUser, personality, historyMessages);
+      const cleanResponse = rawResponse
+        .replace(/^(\[User:.*?\]|\bMaya:\s*|\bAI:\s*)/i, "")
+        .trim();
 
       // Save user prompt & AI response to memory
       if (guildId) {
@@ -66,7 +69,7 @@ const command: Command = {
                 userId: interaction.user.id,
                 username: interaction.user.username,
                 role: "assistant",
-                content: response
+                content: cleanResponse
               }
             ]
           });
@@ -75,7 +78,7 @@ const command: Command = {
         }
       }
 
-      let replyText = `> **${question}**\n\n${response}`;
+      let replyText = `> **${question}**\n\n${cleanResponse}`;
       if (replyText.length > 2000) {
         replyText = replyText.substring(0, 1997) + "...";
       }
