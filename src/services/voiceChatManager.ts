@@ -331,9 +331,9 @@ export class VoiceChatManager {
 
       const name = member.displayName || member.user.username;
       const isAmubhya = 
+        member.id === "939847522971709450" ||
         member.user.username.toLowerCase().includes("amubhya") || 
-        member.displayName.toLowerCase().includes("amubhya") || 
-        member.id === "1411331696883794061";
+        member.displayName.toLowerCase().includes("amubhya");
 
       let greetingText = "";
 
