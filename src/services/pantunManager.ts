@@ -232,10 +232,14 @@ Contoh gaya pantun receh & pendek yang diinginkan (4 baris utuh):
 
 TUGAS KAMU:
 Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang BARU, FRESH, dan BELUM PERNAH DIGUNAKAN:
-1. Sangat PENDEK, RECEH, LUCU, dan berima sajak jelas (misal rima an/an, at/at, ang/ang, ak/ak, ol/ol, dsb).
-2. Bahasa santai, absurd, atau bertema keseharian anak muda / jokes tongkrongan.
-3. Mudah dan memancing member server untuk membalas dengan isi pantun yang gak kalah receh & kocak.
-4. Tepat 2 baris (dipisahkan baris baru / newline).
+1. **RIMA NATURAL & TIDAK MEMAKSAKAN**:
+   - Rima dan pilihan kata HARUS mengalir alami, wajar, dan bermakna. DILARANG memaksakan kata aneh atau tata bahasa yang rancu hanya demi mengejar bunyi akhir!
+   - Gunakan rima sajak yang bersih dan mudah dicerna (misal: an/an, at/at, ang/ang, ak/ak, ol/ol, ur/ur, dsb).
+2. **PENDEK, RECEH, & RELATABLE**:
+   - Bahasa santai, ringan, bertema keseharian anak muda / warganet / jokes tongkrongan.
+   - Bersifat memancing member server untuk membalas dengan 2 baris isi pantun yang gak kalah receh & kocak.
+3. **STRUKTUR**:
+   - Tepat 2 baris bait pembuka (dipisahkan enter / newline).
 
 Format balasan HANYA JSON persis tanpa markdown codeblock:
 {"theme": "${pickedTheme}", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;

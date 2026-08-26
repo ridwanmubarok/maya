@@ -74,7 +74,7 @@ const QUESTION_BANK: TebakQuestion[] = [
   { id: "q20", category: "Asah Otak", question: "Benda apa yang kalau dipotong malah makin tinggi?", answer: "Celana Panjang", acceptableAnswers: ["celana panjang", "celana"], clue: "Dipotong bagian bawahnya jadi celana pendek/tinggi..." },
   { id: "q21", category: "Plesetan Gaul", question: "Penyanyi yang selalu gak sabaran dan suka buru-buru?", answer: "Afgan", acceptableAnswers: ["afgan", "afgan buru-buru"], clue: "Plesetan dari 'Ah, buruan gan!'..." },
   { id: "q22", category: "Teka-Teki Lucu", question: "Bebek apa yang kalau jalan selalu noleh ke kiri?", answer: "Bebek Dikunci Stang", acceptableAnswers: ["bebek dikunci stang", "kunci stang", "motor bebek"], clue: "Bukan sembarang unggas, tapi jenis motor..." },
-  { id: "q23", category: "Plesetan Makanan", question: "Roti apa yang tidak boleh dimakan dan sangat berbahaya?", answer: "Roti Busuk", acceptableAnswers: ["roti busuk", "roti buaya beneran"], clue: "Bisa bikin keracunan perut!" },
+  { id: "q23", category: "Plesetan Makanan", question: "Buah apa yang paling ditakuti oleh mahasiswa semester akhir?", answer: "Belimbingan", acceptableAnswers: ["belimbingan", "bimbingan", "buah belimbing"], clue: "Plesetan dari kata bimbingan skripsi..." },
   { id: "q24", category: "Asah Otak Kocak", question: "Jika ada 10 burung di pohon ditembak 1 ekor, sisa berapa burung di pohon?", answer: "Nol", acceptableAnswers: ["nol", "0", "habis", "tidak ada"], clue: "Sisanya kabur semua karena kaget suara tembakan..." },
   { id: "q25", category: "Tebak-Tebakan Hewan", question: "Kuda apa yang paling bikin capek dan pegal-pegal?", answer: "Kuda-Kudaan", acceptableAnswers: ["kuda-kudaan", "kuda kuda"], clue: "Pose silat atau menahan beban tubuh..." },
   { id: "q26", category: "Plesetan Minuman", question: "Es apa yang paling ditakuti oleh para jomblo?", answer: "Eskalator", acceptableAnswers: ["eskalator", "es kelapa"], clue: "Karena naiknya bareng pasangan orang lain..." },
@@ -82,7 +82,7 @@ const QUESTION_BANK: TebakQuestion[] = [
   { id: "q28", category: "Plesetan Nama Kota", question: "Kota di Indonesia yang paling banyak bapak-bapaknya?", answer: "Purwodadi", acceptableAnswers: ["purwodadi", "papa dadi"], clue: "Plesetan 'Purwo dadi (jadi) bapak'..." },
   { id: "q29", category: "Tebak-Tebakan Gaul", question: "Kenapa pohon mangga di depan rumah harus ditebang?", answer: "Karena Tumbuh", acceptableAnswers: ["karena tumbuh", "tumbuh"], clue: "Kalau tidak tumbuh ya tidak ada pohonnya!" },
   { id: "q30", category: "Asah Otak", question: "Benda apa yang kalau basah makin berguna dan menyerap air?", answer: "Handuk", acceptableAnswers: ["handuk", "kain handuk", "spons"], clue: "Dipakai sehabis mandi." },
-  { id: "q31", category: "Plesetan Artis", question: "Artis Hollywood yang selalu dingin dan beku?", answer: "Vin Diesel", acceptableAnswers: ["vin diesel", "diesel"], clue: "Bahan bakar solar pendingin..." },
+  { id: "q31", category: "Plesetan Band", question: "Band luar negeri yang personelnya paling sering kedinginan?", answer: "Coldplay", acceptableAnswers: ["coldplay", "cold play"], clue: "Dari kata 'Cold' yang artinya dingin..." },
   { id: "q32", category: "Teka-Teki Santai", question: "Bulan apa yang orang-orang tidur paling sedikit?", answer: "Februari", acceptableAnswers: ["februari", "bulan februari"], clue: "Jumlah harinya paling pendek (28 hari)..." },
   { id: "q33", category: "Tebak-Tebakan Hewan", question: "Kutu apa yang paling bikin panik dan menakutkan?", answer: "Kutukan", acceptableAnswers: ["kutukan", "kutukan seribu tahun"], clue: "Dari penyihir sakti di dongeng..." },
   { id: "q34", category: "Plesetan Makanan", question: "Sate apa yang aromanya paling harum dan wangi?", answer: "Satelit", acceptableAnswers: ["satelit", "sate melati"], clue: "Mengorbit di luar angkasa..." },
@@ -92,7 +92,7 @@ const QUESTION_BANK: TebakQuestion[] = [
   { id: "q38", category: "Teka-Teki Santai", question: "Rumah apa yang paling luas dan tidak punya atap sama sekali?", answer: "Rumah Tangga", acceptableAnswers: ["rumah tangga"], clue: "Dibangun bersama pasangan tercinta..." },
   { id: "q39", category: "Tebak-Tebakan Hewan", question: "Ayam apa yang paling besar di seluruh dunia?", answer: "Ayam Semesta", acceptableAnswers: ["ayam semesta", "alam semesta"], clue: "Plesetan dari alam semesta..." },
   { id: "q40", category: "Asah Otak Kocak", question: "Kunci apa yang bisa bikin orang joget gembira?", answer: "Kunci Dangdut", acceptableAnswers: ["kunci dangdut", "kunci nada"], clue: "Kunci nada lagu koplo..." },
-  { id: "q41", category: "Plesetan Makanan", question: "Bakso apa yang warnanya tidak abu-abu dan tidak bulat?", answer: "Bakso Warna-Warni", acceptableAnswers: ["bakso kotak", "baksos", "bakti sosial"], clue: "Plesetan dari kegiatan bakti sosial..." },
+  { id: "q41", category: "Plesetan Makanan", question: "Kue apa yang paling sering bikin orang tersinggung dan emosi?", answer: "Kue-rang Ajar", acceptableAnswers: ["kue-rang ajar", "kurang ajar"], clue: "Plesetan dari kata kurang ajar..." },
   { id: "q42", category: "Teka-Teki Lucu", question: "Ikan apa yang matanya ada lima puluh?", answer: "Ikan Teri 25 Ekor", acceptableAnswers: ["ikan teri 25 ekor", "ikan teri", "teri"], clue: "Satu ekor punya 2 mata..." },
   { id: "q43", category: "Plesetan Nama Tokoh", question: "Superhero yang selalu rajin membersihkan kamar mandi?", answer: "Aquaman", acceptableAnswers: ["aquaman", "aqua"], clue: "Penguasa air tujuh samudra..." },
   { id: "q44", category: "Tebak-Tebakan Gaul", question: "Kenapa hantu pocong jalannya selalu lompat-lompat?", answer: "Kakinya Diikat", acceptableAnswers: ["kakinya diikat", "diikat", "kaki diikat"], clue: "Kain kafannya belum dibuka..." },
@@ -101,7 +101,7 @@ const QUESTION_BANK: TebakQuestion[] = [
   { id: "q47", category: "Teka-Teki Santai", question: "Benda apa yang selalu lari tapi tidak punya kaki?", answer: "Waktu", acceptableAnswers: ["waktu", "air", "jam"], clue: "Terus berjalan tanpa henti..." },
   { id: "q48", category: "Tebak-Tebakan Hewan", question: "Tikus apa yang kalau jalan cuma pakai dua kaki?", answer: "Mickey Mouse", acceptableAnswers: ["mickey mouse", "miki tikus"], clue: "Karakter kartun terkenal Disney..." },
   { id: "q49", category: "Asah Otak Kocak", question: "Bebek apa yang kalau jalan cuma pakai dua kaki?", answer: "Semua Bebek", acceptableAnswers: ["semua bebek", "bebek memang dua kaki", "bebek"], clue: "Emang bebek kakinya cuma dua!" },
-  { id: "q50", category: "Plesetan Gaul", question: "Sepatu apa yang paling disukai oleh kucing?", answer: "Sepatu Bot", acceptableAnswers: ["sepatu bot", "puss in boots"], clue: "Karakter Puss in Boots..." }
+  { id: "q50", category: "Plesetan Makanan", question: "Cemilan apa yang bunyinya paling keras saat digigit?", answer: "Keripik Petir", acceptableAnswers: ["keripik petir", "keripik", "petir"], clue: "Plesetan suara halilintar..." }
 ];
 
 export class TebakManager {
@@ -614,7 +614,7 @@ Format JSON wajib:
   }
 
   /**
-   * Generate dynamic AI riddle using NVIDIA AI with random themes & history tracking
+   * Generate dynamic AI riddle using NVIDIA AI with random themes & strict quality guidelines
    */
   private async generateAiTebakQuestion(): Promise<TebakQuestion | null> {
     const themes = [
@@ -628,25 +628,36 @@ Format JSON wajib:
       "Tebak-Tebakan Kehidupan Sehari-hari",
     ];
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-    const historyList = Array.from(this.askedQuestionHistory).slice(-20).join("; ");
+    const historyList = Array.from(this.askedQuestionHistory).slice(-25).join("; ");
 
     const prompt = `
-Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia bertema "${randomTheme}" yang SANGAT LUCU, KEKINIAN (Gen-Z / Gaul / Plesetan Cerdas), dan TIDAK GARING!
-PENTING: Pertanyaan HARUS BARU & UNIK! JANGAN gunakan tebakan yang pernah dipakai baru-baru ini berikut:
-[${historyList || "Belum ada"}]
+Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia bertema "${randomTheme}" yang SANGAT LUCU, NATURAL, dan TIDAK MEMAKSAKAN!
 
-Jawab dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
+ATURAN KETAT KUALITAS TEBAK-TEBAKAN:
+1. **PLESETAN WAJIB MASUK AKAL & TIDAK DIPAKSAKAN**:
+   - Jika jawaban adalah nama artis/benda, unsur plesetan HARUS didasarkan pada bunyi, suku kata, atau kata yang benar-benar menyerupai nama tersebut (Contoh Bagus: "Justin Bieber -> Justin Beliber (beli-beli di pasar)", "Afgan -> Ah, buruan gan").
+   - DILARANG menggunakan asosiasi yang terlalu jauh (Contoh Buruk: Menghubungkan Taylor Swift dengan "tart kue", ini DILARANG!).
+2. **SETIAP KATA DALAM PETUNJUK HARUS RELEVAN**:
+   - Petunjuk harus mengarah secara natural ke jawaban.
+   - Hubungan antara pertanyaan -> petunjuk -> jawaban HARUS bisa dipahami orang awam dalam 1 kalimat tanpa butuh penjelasan berbelit-belit.
+3. **PRINSIP UTAMA**:
+   - Jangan mencari pembenaran untuk jawaban. Cari hubungan kata yang benar-benar menghasilkan jawaban yang klop dan bikin tersenyum.
+4. **ANTI-DUPLIKASI**:
+   - JANGAN gunakan tebakan yang pernah dipakai baru-baru ini berikut:
+   [${historyList || "Belum ada"}]
+
+Jawab HANYA dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
 {
   "category": "${randomTheme}",
   "question": "Pertanyaan tebak-tebakan lucu di sini...",
   "answer": "Jawaban utama singkat",
   "acceptableAnswers": ["jawaban utama", "kata kunci singkat"],
-  "clue": "Petunjuk kocak..."
+  "clue": "Petunjuk natural dan relevan..."
 }
 `.trim();
 
     try {
-      const raw = await askNvidia(prompt);
+      const raw = await askNvidia(prompt, "Kamu adalah Maya, master teka-teki humor cerdas yang selalu membuat tebakan berbobot, berima alami, dan tidak pernah memaksakan plesetan.");
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
