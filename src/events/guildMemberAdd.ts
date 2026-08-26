@@ -28,6 +28,39 @@ const event: BotEvent = {
         logger.error(`Auto-role: Gagal menambahkan role "Rotasi" ke member ${member.user.tag}:`, roleErr);
       }
 
+      // Award 50 RTK Points Welcome Bonus to new member
+      const todayStr = new Date().toISOString().split("T")[0];
+      const startingBonus = 50;
+      try {
+        await prisma.triviaScore.upsert({
+          where: { guildId_userId: { guildId: guild.id, userId: member.user.id } },
+          update: {
+            score: { increment: startingBonus },
+            dailyScore: { increment: startingBonus },
+            lastDailyDate: todayStr,
+            username: member.user.displayName || member.user.username
+          },
+          create: {
+            guildId: guild.id,
+            userId: member.user.id,
+            username: member.user.displayName || member.user.username,
+            score: startingBonus,
+            dailyScore: startingBonus,
+            lastDailyDate: todayStr
+          }
+        });
+        logger.info(`GuildMemberAdd: Menghadiahkan +${startingBonus} RTK Points welcome bonus kepada member baru ${member.user.tag}`);
+      } catch (err) {
+        logger.error("GuildMemberAdd: Gagal menambahkan welcome RTK bonus:", err);
+      }
+
+      // Try sending friendly welcome DM with bonus notification
+      member.send({
+        content: `👋 Selamat datang di **${guild.name}**, ${member.user.username}!\n\n` +
+          `🎁 Sebagai hadiah selamat datang, kamu telah menerima bonus **+50 RTK Points** (Rogatekno Koin) di dompetmu!\n` +
+          `Gunakan perintah \`/cash saldo\` di server untuk melihat dompetmu, dan nikmati berbagai fitur seru seperti Pantun Harian, Tebak-Tebakan, Voice Cash, dan Penukaran Hadiah di \`/shop\`!`
+      }).catch(() => {});
+
       const config = await prisma.guildConfig.findUnique({
         where: { guildId: guild.id }
       });
@@ -49,11 +82,19 @@ const event: BotEvent = {
       const welcomeMessage = rawMessage
         .replace(/{username}/g, member.user.username)
         .replace(/{guildName}/g, guild.name)
-        .replace(/{memberCount}/g, guild.memberCount.toString());
+        .replace(/{memberCount}/g, guild.memberCount.toString())
+        .replace(/{rtkBonus}/g, startingBonus.toString());
 
       // Create dynamic welcome embed
       const welcomeEmbed = createEmbed.info(welcomeTitle, welcomeMessage);
       
+      // Add Welcome Bonus Field to Embed
+      welcomeEmbed.addFields({
+        name: "🎁 Bonus Selamat Datang",
+        value: `Selamat! Kamu mendapatkan bonus modal awal **+50 RTK Points**! Cek saldomu dengan perintah \`/cash saldo\`.`,
+        inline: false
+      });
+
       if (config.welcomeThumbnail) {
         welcomeEmbed.setThumbnail(member.user.displayAvatarURL({ size: 256 }));
       }
@@ -63,10 +104,10 @@ const event: BotEvent = {
       }
 
       await channel.send({ 
-        content: `Halo ${member}, selamat datang!`,
+        content: `Halo ${member}, selamat datang! Kamu mendapatkan **+50 RTK Points**! 🎉`,
         embeds: [welcomeEmbed] 
       });
-      logger.info(`Welcomed ${member.user.tag} in ${guild.name}`);
+      logger.info(`Welcomed ${member.user.tag} in ${guild.name} with 50 RTK points`);
     } catch (error) {
       logger.error("Error pada event guildMemberAdd:", error);
     }

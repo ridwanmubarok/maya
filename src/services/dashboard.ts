@@ -221,6 +221,86 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  // Adjust / Give / Edit RTK Points for a User (Requires Auth)
+  app.post("/api/economy/:guildId/adjust", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { userId, username, action, amount, reason } = req.body;
+
+    if (!userId || typeof amount !== "number" || isNaN(amount) || amount < 0) {
+      return res.status(400).json({ error: "Parameter userId dan jumlah amount valid (angka non-negatif) wajib diisi." });
+    }
+
+    if (!["add", "subtract", "set"].includes(action)) {
+      return res.status(400).json({ error: "Aksi tidak valid. Pilih antara 'add', 'subtract', atau 'set'." });
+    }
+
+    try {
+      const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+      let targetUsername = username || "";
+
+      if (!targetUsername && guild) {
+        const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+        if (member) {
+          targetUsername = member.user.displayName || member.user.username;
+        }
+      }
+
+      if (!targetUsername) {
+        targetUsername = `User-${userId.slice(-4)}`;
+      }
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      const existing = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId, userId } }
+      });
+
+      let currentScore = existing?.score ?? 0;
+      let newScore = currentScore;
+
+      if (action === "add") {
+        newScore = currentScore + amount;
+      } else if (action === "subtract") {
+        newScore = Math.max(0, currentScore - amount);
+      } else if (action === "set") {
+        newScore = amount;
+      }
+
+      const updated = await prisma.triviaScore.upsert({
+        where: { guildId_userId: { guildId, userId } },
+        update: {
+          score: newScore,
+          username: targetUsername || existing?.username || "User",
+          updatedAt: new Date()
+        },
+        create: {
+          guildId,
+          userId,
+          username: targetUsername,
+          score: newScore,
+          dailyScore: action === "add" ? amount : 0,
+          lastDailyDate: todayStr
+        }
+      });
+
+      logger.info(`Dashboard Economy: Admin menyesuaikan saldo untuk ${targetUsername} (${userId}) [${action}: ${amount}] -> Saldo Baru: ${newScore} RTK. Alasan: ${reason || '-'}`);
+
+      res.json({
+        success: true,
+        message: `Saldo RTK untuk ${targetUsername} berhasil diperbarui menjadi ${newScore.toLocaleString('id-ID')} RTK!`,
+        updatedBalance: updated.score,
+        user: {
+          userId: updated.userId,
+          username: updated.username,
+          score: updated.score,
+          dailyScore: updated.dailyScore
+        }
+      });
+    } catch (error: any) {
+      logger.error(`Error adjusting economy balance for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menyesuaikan saldo RTK member." });
+    }
+  });
+
   // --- SHOP MANAGEMENT ENDPOINTS ---
 
   // Ambil daftar produk toko aktif
