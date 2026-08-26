@@ -1,6 +1,12 @@
 import { 
   VoiceBasedChannel, 
-  User 
+  User,
+  Client,
+  Guild,
+  GatewayDispatchEvents,
+  GatewayVoiceServerUpdateDispatchData,
+  GatewayVoiceStateUpdateDispatchData,
+  Status
 } from "discord.js";
 import { 
   joinVoiceChannel, 
@@ -12,7 +18,9 @@ import {
   entersState, 
   AudioPlayer,
   NoSubscriberBehavior,
-  StreamType
+  StreamType,
+  DiscordGatewayAdapterCreator,
+  DiscordGatewayAdapterLibraryMethods
 } from "@discordjs/voice";
 import axios from "axios";
 import { Readable } from "stream";
@@ -30,6 +38,54 @@ try {
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const googleTTS = require("google-tts-api");
+
+// --- RESILIENT DISCORD.JS VOICE GATEWAY ADAPTER ---
+const adapters = new Map<string, DiscordGatewayAdapterLibraryMethods>();
+const trackedClients = new Set<Client>();
+
+function trackClient(client: Client) {
+  if (trackedClients.has(client)) return;
+  trackedClients.add(client);
+
+  client.ws.on(GatewayDispatchEvents.VoiceServerUpdate, (payload: GatewayVoiceServerUpdateDispatchData) => {
+    logger.info(`[Voice Gateway] VoiceServerUpdate for guild ${payload.guild_id} (endpoint: ${payload.endpoint})`);
+    adapters.get(payload.guild_id)?.onVoiceServerUpdate(payload as any);
+  });
+
+  client.ws.on(GatewayDispatchEvents.VoiceStateUpdate, (payload: GatewayVoiceStateUpdateDispatchData) => {
+    if (payload.guild_id && payload.user_id === client.user?.id) {
+      logger.info(`[Voice Gateway] VoiceStateUpdate for Maya (channel_id: ${payload.channel_id})`);
+      adapters.get(payload.guild_id)?.onVoiceStateUpdate(payload as any);
+    }
+  });
+
+  client.on("shardDisconnect", (_, shardId) => {
+    for (const [guildId, adapter] of adapters.entries()) {
+      if (client.guilds.cache.get(guildId)?.shardId === shardId) {
+        adapter.destroy();
+      }
+    }
+  });
+}
+
+function createDiscordJSAdapter(guild: Guild): DiscordGatewayAdapterCreator {
+  return (methods) => {
+    adapters.set(guild.id, methods);
+    trackClient(guild.client);
+    return {
+      sendPayload(data) {
+        if (guild.shard.status === Status.Ready) {
+          guild.shard.send(data);
+          return true;
+        }
+        return false;
+      },
+      destroy() {
+        adapters.delete(guild.id);
+      }
+    };
+  };
+}
 
 interface GuildVoiceSession {
   guildId: string;
@@ -92,7 +148,7 @@ export class VoiceChatManager {
       const connection = joinVoiceChannel({
         channelId: channel.id,
         guildId: channel.guild.id,
-        adapterCreator: channel.guild.voiceAdapterCreator as any,
+        adapterCreator: createDiscordJSAdapter(channel.guild),
         selfDeaf: false,
         selfMute: false
       });
@@ -161,7 +217,21 @@ export class VoiceChatManager {
 
       // Wait until connection reaches Ready state (UDP socket established)
       try {
-        await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+        // Fast race: check if Ready in 8s; if still in signalling, re-trigger handshake
+        try {
+          await entersState(connection, VoiceConnectionStatus.Ready, 8_000);
+        } catch (fastErr) {
+          if (connection.state.status === VoiceConnectionStatus.Signalling) {
+            logger.info(`VoiceChatManager: Koneksi tertahan di Signalling, memicu handshake ulang...`);
+            connection.rejoin({
+              channelId: channel.id,
+              selfDeaf: false,
+              selfMute: false
+            });
+          }
+          await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+        }
+
         logger.info(`VoiceChatManager: Maya berhasil terhubung (Ready) di Voice Channel "${channel.name}" (${guildId})`);
         
         // Greet channel members
