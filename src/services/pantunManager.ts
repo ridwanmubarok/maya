@@ -33,68 +33,100 @@ export function getWibHour(): number {
 }
 
 const PANTUN_THEMES = [
-  "Gaming & Push Rank Dark System",
-  "Cinta Ngenes & Korban Friendzone",
-  "Dilema Tanggal Tua & Mie Instan",
-  "Drama Kantor & Bos Cari Muka",
-  "Satir Konoha & Proyek Anggaran Gaib",
-  "Belanja Online & Misteri Kurir Paket",
-  "Wacana Nongkrong di Warkop",
-  "Sains Absurd & AI Menguasai Bumi",
-  "Diet Wacana & Godaan Gorengan",
-  "Dukun Online & Horor Komedi",
-  "Skripsi Abadi & Dosen Menghilang",
-  "Gosip Tetangga & Info Orang Dalam"
+  "Humor Receh & Kehidupan Sehari-hari",
+  "Nongkrong Warkop & Jajan Gorengan",
+  "Dilema Cinta Ngenes & Mantan",
+  "Dunia Kerja, Kampus & Rebahan",
+  "Gaming, Push Rank & Paket Internet",
+  "Meme, TikTok & Netizen Konoha",
+  "Tanggal Tua, Saldo Kritis & Dompet Tipis",
+  "Belanja Online & Kurir Nyasar",
+  "Hewan Absurd & Cerita Nyeleneh",
+  "Diet Wacana & Kuliner Malam",
+  "Keluarga, Kakek Nenek & Tetangga",
+  "Piknik, Hutan & Petualangan Konyol"
 ];
 
 const CURATED_STARTER_PANTUNS = [
   {
-    theme: "Gaming & Push Rank",
-    lines: "Main ranked kalah lima kali beruntun,\nHero assassin malah farming di kebun."
+    theme: "Pasar & Belanja",
+    lines: "Pergi ke pasar beli tomat,\nSambil belanja bawa sekop."
   },
   {
-    theme: "Cinta Ngenes",
-    lines: "Beli cilok kuahnya tumpah di celana,\nUdah nemenin lama cuma dianggap abang."
+    theme: "Anak Ayam & Masak",
+    lines: "Anak ayam turun sepuluh,\nMakan jagung di pinggir jalan."
   },
   {
-    theme: "Tanggal Tua",
-    lines: "Tanggal dua puluh makan mie kuah polos,\nNiat mau hemat malah saldo raib."
+    theme: "Rawa & Binatang",
+    lines: "Jalan-jalan ke rawa-rawa,\nJika lelah duduk di pohon palm."
   },
   {
-    theme: "Satir Konoha",
-    lines: "Rapat paripurna anggarannya triliunan,\nPengadaan sapu harganya puluhan juta."
+    theme: "Empang & Katak",
+    lines: "Jalan-jalan ke pinggir empang,\nNemu katak di pinggir empang."
   },
   {
-    theme: "Kurir Paket",
-    lines: "Beli casing hp datangnya batu bata,\nKurir paket teriak di depan gerbang."
+    theme: "Warung Sabun",
+    lines: "Beli sabun di sebuah warung,\nWarung baru milik Fauzan."
   },
   {
-    theme: "Wacana Nongkrong",
-    lines: "Di grup WhatsApp janjian jam delapan malam,\nSampe jam sepuluh masih pada rebahan."
+    theme: "Burung Kicau",
+    lines: "Burung perkutut burung kutilang,\nTerbang tinggi ke awan-awan."
   },
   {
-    theme: "Diet Gagal",
-    lines: "Pagi lari pagi niat mau ramping,\nMalemnya beli martabak telur dua porsi."
+    theme: "Kelapa & Santan",
+    lines: "Kelapa muda dibikin santan,\nDibikinnya saat waktu petang."
   },
   {
-    theme: "Drama Kantor",
-    lines: "Kerja lembur bagai kuda tiap malam,\nGaji masuk cuma numpang transfer cicilan."
+    theme: "Mancing Santai",
+    lines: "Pagi-pagi mancing ikan,\nDapatnya banyak hati pun senang."
   },
   {
-    theme: "Horor Komedi",
-    lines: "Malam jumat lewat bawah pohon beringin,\nKuntilanak ketawa minta hotspot wifi."
+    theme: "Warung Padang",
+    lines: "Kalau ada sumur di ladang,\nBolehlah kita menimba ember."
   },
   {
-    theme: "Skripsi & Kampus",
-    lines: "Chat dosen pembimbing centang dua abu-abu,\nRevisi bab empat coretannya makin tebal."
+    theme: "Koran & Santai",
+    lines: "Duduk santai membaca koran,\nMembacanya sambil makan petisan."
   },
   {
-    theme: "Warkop & Kopi",
-    lines: "Pesen es teh manis gulanya segunung,\nNongkrong tiga jam bayarnya cuma serebu."
+    theme: "Badak & TikTok",
+    lines: "Sungguhlah besar hewan badak,\nJika berjalan terseok-seok."
   },
   {
-    theme: "Belanja Flash Sale",
-    lines: "Pasang alarm demi diskon sembilan puluh persen,\nPas mau checkout server langsung down."
+    theme: "Tomat & Cerita",
+    lines: "Adik Nia memetik tomat,\nTomat merah dibelah dua."
+  },
+  {
+    theme: "Pohon & Rindang",
+    lines: "Pohon hijau daunnya rindang,\nEnak sekali mata memandang."
+  },
+  {
+    theme: "Kucing & Binatang",
+    lines: "Kucing anggora baru lahir,\nLari-lari ke tengah sawah."
+  },
+  {
+    theme: "Gajah & Hutan",
+    lines: "Pergi ke hutan bertemu gajah,\nGajah lari dikejar kanguru."
+  },
+  {
+    theme: "Minimarket & Roti",
+    lines: "Pergi belanja ke minimarket,\nPulang-pulang beli roti."
+  },
+  {
+    theme: "Bunga & Taman",
+    lines: "Bunga mawar bunga melati,\nCantik mekar di taman kota."
+  },
+  {
+    theme: "Gaming & Nasi",
+    lines: "Memasak nasi di pagi hari,\nSambil menunggu main layangan."
+  },
+  {
+    theme: "Buaya & Rawa",
+    lines: "Ada buaya di rawa-rawa,\nBuayanya sedang berenang kalem."
+  },
+  {
+    theme: "Kota Padang & Kambing",
+    lines: "Jalan-jalan ke Kota Padang,\nAda kambing makan rumput."
   }
 ];
 
@@ -118,21 +150,30 @@ export async function getOrCreateTodayPantun(guildId: string) {
   let theme = pickedTheme;
 
   try {
-    const aiPrompt = `Kamu adalah Maya, AI master pantun humor dan komedi Indonesia yang gaul, cerdas, dan super lucu.
+    const aiPrompt = `Kamu adalah Maya, asisten bot yang jago pantun komedi super receh, pendek, gokil, dan relate ala Gen-Z Indonesia.
 Hari ini adalah tanggal ${todayStr}.
 Tema pantun hari ini: "${pickedTheme}".
 
-TUGAS:
-Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang:
-1. Sangat lucu, fresh, relatable dengan anak muda/warganet Indonesia.
-2. Memiliki rima/sajak akhir yang jelas (misal rima an/an, ar/ar, uh/uh, dsb) agar mudah disambung isi pantunnya.
-3. JANGAN klise seperti pantun buku pelajaran SD (hindari "berlayar ke pulau pinang" dsb).
-4. Buat dalam 2 baris (dipisahkan enter).
+Contoh gaya pantun receh & pendek yang diinginkan (4 baris utuh):
+- Sampiran: "Pergi ke pasar beli tomat, / Sambil belanja bawa sekop." -> Isi: "Sudah tampan tapi pemalas, / Gimana mau jadi top!"
+- Sampiran: "Anak ayam turun sepuluh, / Makan jagung di pinggir jalan." -> Isi: "Katanya jago masak betul, / Tapi mie instan aja keasinan!"
+- Sampiran: "Jalan-jalan ke pinggir empang, / Nemu katak di pinggir empang." -> Isi: "Hati siapa tak bimbang, / Kamu botak minta dikepang."
+- Sampiran: "Kelapa muda dibikin santan, / Dibikinnya saat waktu petang." -> Isi: "Buat apa memikirkan mantan, / Mending kamu ingat utang."
+- Sampiran: "Sungguhlah besar hewan badak, / Jika berjalan terseok-seok." -> Isi: "Nenek tertawa terbahak-bahak, / Melihat kakek bermain TikTok."
+- Sampiran: "Pohon hijau daunnya rindang, / Enak sekali mata memandang." -> Isi: "Ada uang abang kusayang, / Gak ada uang abang ditendang."
+- Sampiran: "Duduk santai membaca koran, / Membacanya sambil makan petisan." -> Isi: "Seenak-enaknya makan di restoran, / Lebih enak makan gratisan."
 
-Format balasan HANYA JSON persis tanpa markdown lain:
+TUGAS KAMU:
+Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang:
+1. Sangat PENDEK, RECEH, LUCU, dan berima sajak jelas (misal rima an/an, at/at, ang/ang, ak/ak, ol/ol, dsb).
+2. Bahasa santai, absurd, atau bertema keseharian anak muda / jokes tongkrongan.
+3. Mudah dan memancing member server untuk membalas dengan isi pantun yang gak kalah receh & kocak.
+4. Tepat 2 baris (dipisahkan baris baru / newline).
+
+Format balasan HANYA JSON persis tanpa markdown codeblock:
 {"theme": "${pickedTheme}", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;
 
-    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, komedian sastra pantun modern.");
+    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, komedian sastra pantun receh modern.");
     const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -425,8 +466,8 @@ ${submissionsText}
 TUGAS PENILAIAN JURI MAYA:
 1. Pilihlah SATU pantun lanjutan terbaik yang:
    - Paling nyambung rimanya dengan sampiran di atas.
-   - Paling lucu, cerdas, kreatif, atau mengandung punchline komedi yang pecah.
-2. Tuliskan alasan apresiasi yang kocak, hangat, dan menghibur khas gaya bicara Maya (1-2 kalimat).
+   - Paling receh, pendek, gokil, lucu, dan punchline-nya paling pecah ala Gen-Z.
+2. Tuliskan alasan apresiasi yang kocak, gaul, dan menghibur khas gaya bicara Maya (1-2 kalimat).
 
 Balas HANYA dalam format JSON persis tanpa markdown lain:
 {
