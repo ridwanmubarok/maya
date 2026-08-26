@@ -10,11 +10,22 @@ import {
   VoiceConnection, 
   VoiceConnectionStatus, 
   entersState, 
-  AudioPlayer 
+  AudioPlayer,
+  NoSubscriberBehavior,
+  StreamType
 } from "@discordjs/voice";
 import axios from "axios";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
+
+// Configure ffmpeg-static binary path for prism-media
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const ffmpegStatic = require("ffmpeg-static");
+  if (ffmpegStatic) {
+    process.env.FFMPEG_PATH = ffmpegStatic;
+  }
+} catch (_) {}
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const googleTTS = require("google-tts-api");
@@ -48,7 +59,8 @@ export class VoiceChatManager {
    * Check if Maya is connected to a voice channel in a guild
    */
   public isConnected(guildId: string): boolean {
-    return this.sessions.has(guildId);
+    const session = this.sessions.get(guildId);
+    return !!session && session.connection.state.status !== VoiceConnectionStatus.Destroyed;
   }
 
   /**
@@ -65,13 +77,13 @@ export class VoiceChatManager {
     const guildId = channel.guild.id;
 
     try {
-      // If already in this channel, return true
+      // If already in this channel and ready, return true
       const existing = this.sessions.get(guildId);
-      if (existing && existing.channelId === channel.id) {
+      if (existing && existing.channelId === channel.id && existing.connection.state.status === VoiceConnectionStatus.Ready) {
         return true;
       }
 
-      // If in another channel, leave first
+      // If in another channel or broken state, leave first
       if (existing) {
         await this.leave(guildId, false);
       }
@@ -84,8 +96,12 @@ export class VoiceChatManager {
         selfMute: false
       });
 
-      const player = createAudioPlayer();
-      connection.subscribe(player);
+      const player = createAudioPlayer({
+        behaviors: {
+          noSubscriber: NoSubscriberBehavior.Play,
+          maxMissedFrames: 250
+        }
+      });
 
       const session: GuildVoiceSession = {
         guildId,
@@ -128,12 +144,21 @@ export class VoiceChatManager {
         this.sessions.delete(guildId);
       });
 
+      // Wait until connection reaches Ready state (UDP socket established)
+      try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+      } catch (err) {
+        logger.warn(`VoiceChatManager: Voice connection in ${channel.name} took too long to become Ready, continuing...`);
+      }
+
+      connection.subscribe(player);
+
       logger.info(`VoiceChatManager: Maya berhasil bergabung di Voice Channel "${channel.name}" (${guildId})`);
 
       // Greet channel members
       setTimeout(() => {
         this.speak(guildId, "Halo semuanya, Maya udah gabung di voice channel nih! Ada yang mau ngobrol?");
-      }, 800);
+      }, 500);
 
       return true;
     } catch (err) {
@@ -206,8 +231,19 @@ export class VoiceChatManager {
         timeout: 10000,
       });
 
-      const response = await axios.get(url, { responseType: "stream", timeout: 10000 });
-      const resource = createAudioResource(response.data);
+      const response = await axios.get(url, { 
+        responseType: "stream", 
+        timeout: 10000,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      });
+
+      const resource = createAudioResource(response.data, {
+        inputType: StreamType.Arbitrary,
+        inlineVolume: true
+      });
+      resource.volume?.setVolume(1.0);
 
       session.player.play(resource);
     } catch (error) {
