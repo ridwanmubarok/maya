@@ -26,6 +26,7 @@ import {
 import axios from "axios";
 import { Readable } from "stream";
 import { askNvidia } from "./aiClient";
+import { voiceReceiverManager } from "./voiceReceiverManager";
 import { logger } from "../utils/logger";
 
 // Configure ffmpeg-static binary path for prism-media
@@ -192,7 +193,7 @@ export class VoiceChatManager {
         channelId: channel.id,
         guildId: channel.guild.id,
         adapterCreator: createDiscordJSAdapter(channel.guild),
-        selfDeaf: true,
+        selfDeaf: false,
         selfMute: false,
         debug: true
       });
@@ -281,10 +282,14 @@ export class VoiceChatManager {
 
         logger.info(`VoiceChatManager: Maya berhasil terhubung (Ready) di Voice Channel "${channel.name}" (${guildId})`);
         
+        // Attach voice receiver for direct voice commands
+        voiceReceiverManager.attach(guildId, connection, channel.client);
+
         // Greet channel members
         this.speak(guildId, "Halo semuanya, Maya udah gabung di voice channel nih! Ada yang mau ngobrol?");
       } catch (err) {
         logger.warn(`VoiceChatManager: Voice connection in ${channel.name} belum mencapai Ready dalam 20s (Status: ${connection.state.status}). Audio akan diputar otomatis saat UDP tersambung.`);
+        voiceReceiverManager.attach(guildId, connection, channel.client);
       }
 
       return true;
