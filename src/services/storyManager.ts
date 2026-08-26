@@ -211,50 +211,60 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
     const rawWordStream = words.map(w => `[User ID: ${w.userId}, Name: ${w.username}] -> "${w.word}"`).join("\n");
     const mvpReward = config?.storyMvpReward ?? 250;
 
-    // AI Synthesis & Automatic MVP Selection with Smart Cocokologi
-    const prompt = `Berikut adalah urutan kalimat-kalimat cerita yang ditulis oleh para member Discord hari ini secara berantai:
+    // AI Synthesis & Automatic MVP Selection with Master Storyteller & Smart Cocokologi
+    const prompt = `Berikut adalah urutan kalimat mentah yang ditulis oleh member Discord secara estafet hari ini:
 
 ${rawWordStream}
 
-TUGAS UTAMA KAMU SEBAGAI MAYA AI (MASTER COCOKOLOGI & PENUTUR DONGENG):
-1. Rangkailah seluruh kalimat di atas menjadi sebuah **Dongeng Petualangan Komedi Singkat yang Utuh, Mengalir Nyambung, dan Sangat Menghibur**.
-2. **TEKNIK COCOKOLOGI CERDAS**: Jika kalimat-kalimat di atas terlihat acak, aneh, atau tidak saling nyambung, gunakan keahlian cocokologi tingkat tinggi kamu untuk menjembatani plotnya! Tambahkan narasi transisi yang lucu, logika komedi absurd, atau plot twist tak terduga sehingga semua peristiwa acak tersebut terasa sebagai satu kesatuan petualangan epik yang utuh dan bikin ngakak.
-3. Selipkan nama-nama member di atas sebagai tokoh/karakter kocak dalam dongeng.
-4. PILIH 1 MEMBER sebagai **MVP / Kontributor Terbaik Hari Ini** yang kalimatnya paling mengubah alur, paling gokil, atau jadi punchline utama.
-5. Buatkan prompt gambar Bahasa Inggris untuk ilustrasi AI visual adegan dongeng tersebut.
+TUGAS UTAMA MAYA (PENULIS DONGENG KOMEDI & MASTER COCOKOLOGI):
+Tulis ulang dan karanglah sebuah **Cerita Petualangan Komedi / Dongeng Satir yang SANGAT NYAMBUNG, RUNTUT, MENGALIR, dan SUPER LUCU** berdasarkan ide-ide kalimat di atas!
+
+PANDUAN PENULISAN:
+1. **JANGAN HANYA MENEMPEL KALIMAT ASLI!** Kamu HARUS mengolahnya secara kreatif:
+   - Hubungkan semua kejadian (meskipun acak) dengan logika komedi yang pas dan masuk akal.
+   - Tambahkan transisi cerita yang halus, narasi penghubung, atau penjelasan konyol kenapa peristiwa tersebut bisa saling terjadi.
+   - Perbaiki tata bahasa agar kalimat mengalir seperti membaca cerpen komedi yang seru (2-3 paragraf padat).
+2. **MASUKKAN NAMA MEMBER SEBAGAI TOKOH**: Jadikan para kontributor di atas sebagai karakter utama dalam cerita dongeng tersebut.
+3. **PILIH 1 MVP**: Tentukan 1 member yang idenya paling gokil, paling kocak, atau paling memicu plot twist cerita.
+4. **PROMPT GAMBAR**: Buatkan 1 kalimat deskripsi prompt visual dalam bahasa Inggris (gaya digital art kartun komedi).
 
 SYARAT FORMAT:
 - DILARANG menggunakan banyak emoji keyboard lebay! Maksimal 1 emoji di judul.
-- Format Output HARUS JSON murni tanpa markdown codeblock:
+- Output HANYA JSON persis tanpa teks pengantar / markdown:
 {
-  "title": "Judul Dongeng Komedi yang Menarik",
-  "storyText": "Teks dongeng komedi utuh hasil cocokologi yang mengalir di sini (2-3 paragraf seru)...",
+  "title": "Judul Cerita Komedi yang Menarik",
+  "storyText": "Teks cerita utuh yang mengalir sangat nyambung dan lucu di sini (2-3 paragraf mengalir)...",
   "mvpUserId": "User ID member pilihanmu",
   "mvpUsername": "Nama member pilihanmu",
-  "mvpReason": "Alasan kocak dan apresiatif kenapa kamu memilih dia sebagai MVP",
-  "imagePrompt": "A humorous digital art illustration of [scene description with lighting and vibrant comedy style]"
+  "mvpReason": "Alasan apresiasi yang lucu kenapa memilih dia sebagai MVP",
+  "imagePrompt": "A humorous vibrant digital art illustration of [scene description in English]"
 }`;
 
-    let title = "Kisah Konyol Warga Server";
+    let title = "Petualangan Konyol Warga Server";
     let storyText = words.map(w => w.word).join(" ");
     let mvpUserId = words[0].userId;
     let mvpUsername = words[0].username;
-    let mvpReason = "Kalimatnya menjadi pembuka kisah yang tak terduga!";
-    let imagePrompt = "A funny cartoon illustration of a funny fantasy adventure";
+    let mvpReason = "Kalimatnya memicu alur cerita yang tak terduga!";
+    let imagePrompt = "A funny cartoon illustration of a humorous adventure";
 
     try {
-      const rawAi = await askNvidia(prompt, "Kamu adalah Maya, AI penutur cerita dongeng komedi cerdas yang jago cocokologi.");
-      const cleaned = rawAi.replace(/```json/gi, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleaned);
-
-      if (parsed.title) title = parsed.title;
-      if (parsed.storyText) storyText = parsed.storyText;
-      if (parsed.mvpUserId) mvpUserId = parsed.mvpUserId;
-      if (parsed.mvpUsername) mvpUsername = parsed.mvpUsername;
-      if (parsed.mvpReason) mvpReason = parsed.mvpReason;
-      if (parsed.imagePrompt) imagePrompt = parsed.imagePrompt;
+      const rawAi = await askNvidia(prompt, "Kamu adalah Maya, novelis dan pendongeng komedi cerdas yang ahli merangkai cerita nyambung dan penuh tawa.");
+      const jsonMatch = rawAi.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.title) title = parsed.title;
+        if (parsed.storyText && parsed.storyText.trim().length > 20) storyText = parsed.storyText.trim();
+        if (parsed.mvpUserId) mvpUserId = parsed.mvpUserId;
+        if (parsed.mvpUsername) mvpUsername = parsed.mvpUsername;
+        if (parsed.mvpReason) mvpReason = parsed.mvpReason;
+        if (parsed.imagePrompt) imagePrompt = parsed.imagePrompt;
+      }
     } catch (err) {
-      logger.error("Error synthesizing story via AI, using fallback:", err);
+      logger.error("StoryManager: Gagal mensintesis cerita AI, menggunakan fallback:", err);
+      // Fallback narrative generation
+      if (words.length > 0) {
+        storyText = `Kisah hari ini dimulai ketika @${words[0].username} mencetuskan: "${words[0].word}". Tak lama kemudian, suasana semakin seru saat anggota server lainnya ikut menyambung alur petualangan ini hingga mencapai akhir kisah yang menggelitik.`;
+      }
     }
 
     // Generate AI Illustration Image
@@ -273,7 +283,8 @@ SYARAT FORMAT:
         update: {
           score: { increment: mvpReward },
           dailyScore: { increment: mvpReward },
-          lastDailyDate: todayStr
+          lastDailyDate: todayStr,
+          username: mvpUsername
         },
         create: {
           guildId: guild.id,
@@ -309,13 +320,13 @@ SYARAT FORMAT:
       .setColor("#5865F2")
       .setDescription(
         `### ${title}\n` +
-        `> *${storyText}*\n\n` +
-        `🏆 **MVP Kontributor Terbaik Pilihan Maya AI**:\n` +
-        `<@${mvpUserId}> (**${mvpUsername}**) — **+${mvpReward} RTK Point**\n` +
-        `*Alasan Maya AI*: "${mvpReason}"\n\n` +
+        `${storyText}\n\n` +
+        `🏆 **MVP Kontributor Terbaik Pilihan Maya**:\n` +
+        `<@${mvpUserId}> (**${mvpUsername}**) — **+${mvpReward} RTK Points**\n` +
+        `💬 *"${mvpReason}"*\n\n` +
         `👥 **Total Kontributor**: **${uniqueUserIds.size} Member** (${words.length} Kalimat)`
       )
-      .setFooter({ text: "Maya Story Engine • Terima kasih telah berkolaborasi hari ini!" })
+      .setFooter({ text: "Maya Story Chain • Terima kasih telah berkolaborasi hari ini!" })
       .setTimestamp();
 
     if (imageUrl) {
