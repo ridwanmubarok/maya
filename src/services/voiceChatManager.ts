@@ -155,8 +155,9 @@ export class VoiceChatManager {
         channelId: channel.id,
         guildId: channel.guild.id,
         adapterCreator: createDiscordJSAdapter(channel.guild),
-        selfDeaf: false,
-        selfMute: false
+        selfDeaf: true,
+        selfMute: false,
+        debug: true
       });
 
       const player = createAudioPlayer({
