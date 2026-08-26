@@ -58,7 +58,7 @@ const CURATED_STARTER_PANTUNS = [
   },
   {
     theme: "Rawa & Binatang",
-    lines: "Jalan-jalan ke rawa-rawa,\nJika lelah duduk di pohon palm."
+    lines: "Jalan-jalan ke rawa-rawa,\nDuduk istirahat di bawah pohon."
   },
   {
     theme: "Empang & Katak",
@@ -82,7 +82,7 @@ const CURATED_STARTER_PANTUNS = [
   },
   {
     theme: "Warung Padang",
-    lines: "Kalau ada sumur di ladang,\nBolehlah kita menimba ember."
+    lines: "Kalau ada sumur di ladang,\nBolehlah kita menumpang mandi."
   },
   {
     theme: "Koran & Santai",
@@ -170,7 +170,7 @@ const CURATED_STARTER_PANTUNS = [
   },
   {
     theme: "Jamu Pagi",
-    lines: "Pagi-pagi minum jamu,\nMinumnya sambil makan combro."
+    lines: "Pagi-pagi minum jamu,\nMinumnya bareng kakek tua."
   },
   {
     theme: "Toko & Gunting",

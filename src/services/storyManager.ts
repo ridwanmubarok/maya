@@ -219,14 +219,17 @@ ${rawWordStream}
 TUGAS UTAMA MAYA (PENULIS DONGENG KOMEDI & MASTER COCOKOLOGI):
 Tulis ulang dan karanglah sebuah **Cerita Petualangan Komedi / Dongeng Satir yang SANGAT NYAMBUNG, RUNTUT, MENGALIR, dan SUPER LUCU** berdasarkan ide-ide kalimat di atas!
 
-PANDUAN PENULISAN:
-1. **JANGAN HANYA MENEMPEL KALIMAT ASLI!** Kamu HARUS mengolahnya secara kreatif:
-   - Hubungkan semua kejadian (meskipun acak) dengan logika komedi yang pas dan masuk akal.
-   - Tambahkan transisi cerita yang halus, narasi penghubung, atau penjelasan konyol kenapa peristiwa tersebut bisa saling terjadi.
-   - Perbaiki tata bahasa agar kalimat mengalir seperti membaca cerpen komedi yang seru (2-3 paragraf padat).
-2. **MASUKKAN NAMA MEMBER SEBAGAI TOKOH**: Jadikan para kontributor di atas sebagai karakter utama dalam cerita dongeng tersebut.
-3. **PILIH 1 MVP**: Tentukan 1 member yang idenya paling gokil, paling kocak, atau paling memicu plot twist cerita.
-4. **PROMPT GAMBAR**: Buatkan 1 kalimat deskripsi prompt visual dalam bahasa Inggris (gaya digital art kartun komedi).
+PANDUAN PENULISAN (WAJIB DIPATUHI):
+1. **ALUR SEBAB-AKIBAT YANG RUNTUT & NYAMBUNG**:
+   - DILARANG hanya menempel kalimat mentah! Kamu HARUS menyusun cerita dengan alur sebab-akibat (kausalitas) yang jelas: Pembuka -> Konflik Konyol -> Plot Twist -> Penutup/Punchline.
+   - Jembatani setiap ide yang acak dengan narasi penghubung yang masuk akal dalam logika komedi, sehingga tidak ada adegan yang terputus atau melompat tanpa konteks.
+   - Cerita harus mengalir luwes, enak dibaca, dan padat (2-3 paragraf).
+2. **JADIKAN MEMBER SEBAGAI TOKOH UTAMA**:
+   - Masukkan nama-nama member kontributor di atas sebagai karakter yang berinteraksi langsung satu sama lain dalam petualangan tersebut.
+3. **PILIH 1 MVP**:
+   - Tentukan 1 member yang idenya paling memicu plot twist atau punchline paling gokil.
+4. **PROMPT GAMBAR**:
+   - Buatkan 1 kalimat deskripsi prompt visual digital art kartun komedi dalam bahasa Inggris.
 
 SYARAT FORMAT:
 - DILARANG menggunakan banyak emoji keyboard lebay! Maksimal 1 emoji di judul.
