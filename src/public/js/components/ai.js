@@ -56,7 +56,7 @@ async function clearAiMemory() {
     showToast('Error', 'Silakan pilih server terlebih dahulu.', 'error');
     return;
   }
-  if (!confirm('Apakah Anda yakin ingin menghapus seluruh memori percakapan AI Maya untuk server ini?')) return;
+  if (!confirm('Apakah Anda yakin ingin menghapus seluruh memori percakapan Maya untuk server ini?')) return;
 
   try {
     const response = await apiFetch(`/api/ai/${selectedGuildId}/history/reset`, {

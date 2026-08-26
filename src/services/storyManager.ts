@@ -151,7 +151,7 @@ export async function announceStorySessionStart(guild: Guild, configuredChannelI
         `• Maksimal **2 kalimat per member** setiap harinya.\n` +
         `• Wajib **gantian** dengan member lain (tidak boleh 2x berurutan).\n` +
         `• Hadiah Langsung: **+${rewardAmount} RTK Point** per kalimat valid!\n\n` +
-        `🏆 **Bonus MVP Pilihan Maya AI**: **+${mvpRewardAmount} RTK Point** untuk kontributor kalimat paling konyol/berpengaruh di akhir hari!`
+        `🏆 **Bonus MVP Pilihan Maya**: **+${mvpRewardAmount} RTK Point** untuk kontributor kalimat paling konyol/berpengaruh di akhir hari!`
       )
       .setFooter({ text: "Maya Story Engine • Sambung ceritamu sekarang!" })
       .setTimestamp();

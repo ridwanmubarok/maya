@@ -134,13 +134,13 @@ const event: BotEvent = {
         };
 
         const embed = new EmbedBuilder()
-          .setTitle(`Maya AI Translator • ${result.flag} ${result.langName}`)
+          .setTitle(`Maya Translator • ${result.flag} ${result.langName}`)
           .setColor(colorMap[targetLang] as any)
           .setDescription(
             `**Teks Asli**:\n> ${result.originalText}\n\n` +
             `**Terjemahan**:\n\`\`\`\n${result.translatedText}\n\`\`\``
           )
-          .setFooter({ text: `Maya AI Universal Translator • Gaya: ${result.style}` })
+          .setFooter({ text: `Maya Universal Translator • Gaya: ${result.style}` })
           .setTimestamp();
 
         if (result.pronunciation) {
@@ -181,7 +181,7 @@ const event: BotEvent = {
         if (!result) return;
 
         const embed = new EmbedBuilder()
-          .setTitle(`Maya AI Image Generator • ${cached.style}`)
+          .setTitle(`Maya Image Generator • ${cached.style}`)
           .setColor("#3B82F6")
           .setDescription(
             `**Prompt**:\n> ${cached.prompt}\n\n` +

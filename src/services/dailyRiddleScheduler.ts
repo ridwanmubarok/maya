@@ -169,7 +169,7 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
     }).format(now);
 
     const embed = new EmbedBuilder()
-      .setTitle("🏆 KLASEMEN HARIAN TEBAK-TEBAKAN MAYA AI")
+      .setTitle("🏆 KLASEMEN HARIAN TEBAK-TEBAKAN MAYA")
       .setDescription(
         `Berikut adalah perolehan skor member tercepat & terhebat hari ini (**${dateFormatted}**):\n\n` +
         (topDailyUsers.length === 0
@@ -187,7 +187,7 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
       .setTimestamp();
 
     await targetChannel.send({
-      content: "📢 @everyone **Rekap Klasemen Tebak-Tebakan Harian Maya AI Hari Ini!** 🎉",
+      content: "📢 @everyone **Rekap Klasemen Tebak-Tebakan Harian Maya Hari Ini!** 🎉",
       embeds: [embed],
     });
 

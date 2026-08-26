@@ -56,7 +56,7 @@ const command: Command = {
     imaginePromptCache.set(cacheKey, { prompt: userPrompt, style });
 
     const embed = new EmbedBuilder()
-      .setTitle(`Maya AI Image Generator • ${style}`)
+      .setTitle(`Maya Image Generator • ${style}`)
       .setColor("#3B82F6")
       .setDescription(
         `**Prompt**:\n> ${userPrompt}\n\n` +

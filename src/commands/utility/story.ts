@@ -135,7 +135,7 @@ const command: Command = {
           .setDescription(
             `*${s.storyText}*\n\n` +
             `🏆 **MVP Kontributor**: <@${s.mvpUserId}> (**${s.mvpUsername}**)\n` +
-            `*Alasan Maya AI*: "${s.mvpReason}"\n\n` +
+            `*Alasan Maya*: "${s.mvpReason}"\n\n` +
             `👥 **Total Kontributor**: **${s.contributorCount} Member** (${s.dateStr})`
           )
           .setColor("#5865F2")

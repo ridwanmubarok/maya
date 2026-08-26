@@ -172,7 +172,7 @@ async function loadActiveStoryLive() {
                 🏆
               </div>
               <div class="text-xs">
-                <div class="font-bold text-amber-400">MVP Pilihan Maya AI: ${escapeHtml(ls.mvpUsername)} (+100 RTK)</div>
+                <div class="font-bold text-amber-400">MVP Pilihan Maya: ${escapeHtml(ls.mvpUsername)}</div>
                 <div class="text-gray-400 text-[11px] italic">"${escapeHtml(ls.mvpReason || '')}"</div>
               </div>
             </div>

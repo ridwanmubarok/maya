@@ -164,7 +164,7 @@ export class TebakManager {
     const question = await this.getUniqueQuestion();
 
     const embed = new EmbedBuilder()
-      .setTitle(`🧩 TEBAK-TEBAKAN MAYA AI (${question.category})`)
+      .setTitle(`🧩 TEBAK-TEBAKAN MAYA (${question.category})`)
       .setDescription(
         `**Pertanyaan**:\n> ${question.question}\n\n` +
         `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul & out of the box!"}\n\n` +
@@ -217,7 +217,7 @@ export class TebakManager {
     const question = await this.getUniqueQuestion();
 
     const embed = new EmbedBuilder()
-      .setTitle(`📢 TEBAK-TEBAKAN HARIAN MAYA AI (${question.category})`)
+      .setTitle(`📢 TEBAK-TEBAKAN HARIAN MAYA (${question.category})`)
       .setDescription(
         `**Pertanyaan Hari Ini**:\n> ${question.question}\n\n` +
         `💡 **Petunjuk**: ${question.clue || "Gunakan logika gaul & out of the box!"}\n\n` +
@@ -236,7 +236,7 @@ export class TebakManager {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(answerButton);
 
     const message = await channel.send({
-      content: "@everyone @here **Tebak-Tebakan Harian Maya AI telah rilis!** Ayo jawab dan kumpulkan poin harian kamu!",
+      content: "@everyone @here **Tebak-Tebakan Harian Maya telah rilis!** Ayo jawab dan kumpulkan poin harian kamu!",
       embeds: [embed],
       components: [row],
     });
@@ -593,7 +593,7 @@ Format JSON wajib:
         `Jawaban yang benar adalah: **${session.question.answer}**.`
       )
       .setColor("#EF4444")
-      .setFooter({ text: "Maya AI Trivia Engine • Gunakan /tebak main untuk mencoba lagi" })
+      .setFooter({ text: "Maya Trivia Engine • Gunakan /tebak main untuk mencoba lagi" })
       .setTimestamp();
 
     const disabledButton = new ButtonBuilder()
