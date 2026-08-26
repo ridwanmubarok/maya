@@ -30,51 +30,64 @@ export async function askNvidia(
     return "Maaf, fitur AI tidak dapat diakses karena NVIDIA API Key belum dikonfigurasi.";
   }
 
-  const modelName = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
+  const modelCandidates = [
+    process.env.NVIDIA_MODEL,
+    "meta/llama-3.2-11b-vision-instruct",
+    "meta/llama-3.2-90b-vision-instruct"
+  ].filter(Boolean) as string[];
 
-  try {
-    const messages: { role: string; content: string }[] = [];
-    
-    // Combine custom personality or fallback default
-    const systemPrompt = personality && personality.trim() 
-      ? `${DEFAULT_MAYA_SYSTEM_PROMPT}\n\nInstruksi Tambahan Khusus Server Ini:\n${personality}`
-      : DEFAULT_MAYA_SYSTEM_PROMPT;
+  const messages: { role: string; content: string }[] = [];
+  
+  // Combine custom personality or fallback default
+  const systemPrompt = personality && personality.trim() 
+    ? `${DEFAULT_MAYA_SYSTEM_PROMPT}\n\nInstruksi Tambahan Khusus Server Ini:\n${personality}`
+    : DEFAULT_MAYA_SYSTEM_PROMPT;
 
-    messages.push({ role: "system", content: systemPrompt });
+  messages.push({ role: "system", content: systemPrompt });
 
-    // Append history messages
-    for (const msg of historyMessages) {
-      messages.push({ role: msg.role, content: msg.content });
-    }
-
-    // Append current user prompt
-    messages.push({ role: "user", content: prompt });
-
-    const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: messages,
-        temperature: 0.75,
-        max_tokens: 1024
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`NVIDIA API Error (${response.status}): ${errorText}`);
-    }
-
-    const data: any = await response.json();
-    const responseText = data.choices?.[0]?.message?.content;
-    
-    return responseText || "Maaf, saya tidak menerima respons yang valid dari model.";
-  } catch (error: any) {
-    logger.error(`Error saat memanggil NVIDIA API:`, error);
-    return `Maaf, terjadi kesalahan saat menghubungi AI: ${error.message || error}`;
+  // Append history messages
+  for (const msg of historyMessages) {
+    messages.push({ role: msg.role, content: msg.content });
   }
+
+  // Append current user prompt
+  messages.push({ role: "user", content: prompt });
+
+  let lastError: any = null;
+
+  for (const modelName of modelCandidates) {
+    try {
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: messages,
+          temperature: 0.75,
+          max_tokens: 1024
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`NVIDIA API Error (${response.status}): ${errorText}`);
+      }
+
+      const data: any = await response.json();
+      const responseText = data.choices?.[0]?.message?.content;
+      
+      if (responseText && responseText.trim()) {
+        return responseText.trim();
+      }
+    } catch (error: any) {
+      lastError = error;
+      logger.warn(`askNvidia: Gagal menggunakan model ${modelName}, mencoba model fallback berikutnya. Error: ${error.message || error}`);
+    }
+  }
+
+  logger.error(`Error saat memanggil seluruh kandidat NVIDIA API:`, lastError);
+  return `Maaf, terjadi kesalahan saat menghubungi AI: ${lastError?.message || lastError}`;
 }
