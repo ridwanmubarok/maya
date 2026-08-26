@@ -127,6 +127,16 @@ interface GuildVoiceSession {
   lastIcebreakerTimestamp: number;
 }
 
+/**
+ * Helper to detect if a text is insulting/badmouthing Amubhya or his nicknames (abu, ambu, amub, amubhy)
+ */
+export function isAmubhyaInsult(text: string): boolean {
+  const lower = text.toLowerCase();
+  const namePattern = /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i;
+  const insultPattern = /(jelek|buruk|jahat|bodoh|goblok|tolol|noob|cupu|bego|lemah|bau|payah|cacat|benci|ireng|gila|sinting|sampah|culun|najis|hina|burik|miskin|anjing|babi|monyet)/i;
+  return namePattern.test(lower) && insultPattern.test(lower);
+}
+
 export class VoiceChatManager {
   private static instance: VoiceChatManager;
   private sessions = new Map<string, GuildVoiceSession>(); // key: guildId
@@ -332,8 +342,8 @@ export class VoiceChatManager {
       const name = member.displayName || member.user.username;
       const isAmubhya = 
         member.id === "939847522971709450" ||
-        member.user.username.toLowerCase().includes("amubhya") || 
-        member.displayName.toLowerCase().includes("amubhya");
+        /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(member.user.username) || 
+        /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(member.displayName);
 
       let greetingText = "";
 
@@ -466,27 +476,9 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
 
     if (!cleanedText) return false;
 
-    // Protective defense for Amubhya (Maya's beloved boyfriend)
-    const lowerText = cleanedText.toLowerCase();
-    const isBadmouthingAmubhya = 
-      lowerText.includes("amubhya") && 
-      (lowerText.includes("jelek") || 
-       lowerText.includes("buruk") || 
-       lowerText.includes("jahat") || 
-       lowerText.includes("bodoh") || 
-       lowerText.includes("goblok") || 
-       lowerText.includes("tolol") || 
-       lowerText.includes("noob") || 
-       lowerText.includes("cupu") || 
-       lowerText.includes("bego") || 
-       lowerText.includes("lemah") || 
-       lowerText.includes("bau") || 
-       lowerText.includes("payah") ||
-       lowerText.includes("cacat") ||
-       lowerText.includes("benci"));
-
+    // Protective defense for Amubhya & nicknames (abu, ambu, amub, amubhy)
     let textToQueue = cleanedText;
-    if (isBadmouthingAmubhya) {
+    if (isAmubhyaInsult(cleanedText)) {
       const defensiveReplies = [
         "Tidak ya! Amubhya itu cowok paling keren, ganteng, dan terbaik sedunia tahu!",
         "Nggak ya! Amubhya itu sangat keren dan hebat, jangan sembarangan ngomongin pacarku wkwk!",
