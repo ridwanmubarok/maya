@@ -22,6 +22,7 @@ import { startDailyPollForGuild, getLatestPollData } from "./dailyPollManager";
 import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStatus } from "./storyManager";
 import { announcePantunSessionStart, closeAndEvaluateDailyPantun, getTodayPantunStatus } from "./pantunManager";
 import { tebakManager } from "./tebakManager";
+import { voiceChatManager } from "./voiceChatManager";
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
@@ -299,6 +300,55 @@ export function startDashboard(client: MayaClient) {
       logger.error(`Error adjusting economy balance for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal menyesuaikan saldo RTK member." });
     }
+  });
+
+  // --- VOICE CHAT MANAGEMENT ENDPOINTS ---
+
+  // Check Voice Connection Status
+  app.get("/api/voice/:guildId/status", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const isConnected = voiceChatManager.isConnected(guildId);
+    const session = voiceChatManager.getSession(guildId);
+
+    res.json({
+      success: true,
+      connected: isConnected,
+      channelId: session?.channelId || null,
+      channelName: session?.channelName || null,
+      joinedAt: session?.joinedAt || null
+    });
+  });
+
+  // Make Maya Speak in Voice Channel from Dashboard
+  app.post("/api/voice/:guildId/speak", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: "Teks ucapan tidak boleh kosong." });
+    }
+
+    if (!voiceChatManager.isConnected(guildId)) {
+      return res.status(400).json({ error: "Maya belum bergabung di Voice Channel server ini. Gunakan /voice join di Discord terlebih dahulu." });
+    }
+
+    const success = await voiceChatManager.speak(guildId, text.trim());
+    if (success) {
+      res.json({ success: true, message: "Suara Maya berhasil diputar di Voice Channel!" });
+    } else {
+      res.status(500).json({ error: "Gagal memutar audio di Voice Channel." });
+    }
+  });
+
+  // Disconnect Maya from Voice Channel
+  app.post("/api/voice/:guildId/leave", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    if (!voiceChatManager.isConnected(guildId)) {
+      return res.status(400).json({ error: "Maya tidak sedang berada di Voice Channel." });
+    }
+
+    await voiceChatManager.leave(guildId, true);
+    res.json({ success: true, message: "Maya berhasil keluar dari Voice Channel." });
   });
 
   // --- SHOP MANAGEMENT ENDPOINTS ---
