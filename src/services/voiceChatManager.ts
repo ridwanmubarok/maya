@@ -15,6 +15,7 @@ import {
   StreamType
 } from "@discordjs/voice";
 import axios from "axios";
+import { Readable } from "stream";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 
@@ -224,22 +225,17 @@ export class VoiceChatManager {
     session.isSpeaking = true;
 
     try {
-      const url = googleTTS.getAudioUrl(textToSpeak, {
+      const base64Audio = await googleTTS.getAudioBase64(textToSpeak, {
         lang: "id",
         slow: false,
         host: "https://translate.google.com",
         timeout: 10000,
       });
 
-      const response = await axios.get(url, { 
-        responseType: "stream", 
-        timeout: 10000,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-      });
+      const audioBuffer = Buffer.from(base64Audio, "base64");
+      const audioStream = Readable.from(audioBuffer);
 
-      const resource = createAudioResource(response.data, {
+      const resource = createAudioResource(audioStream, {
         inputType: StreamType.Arbitrary,
         inlineVolume: true
       });
