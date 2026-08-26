@@ -71,7 +71,37 @@ const QUESTION_BANK: TebakQuestion[] = [
   { id: "q17", category: "Plesetan Musik", question: "Band apa yang paling tidak suka hujan?", answer: "Slank", acceptableAnswers: ["slank", "selang"], clue: "Plesetan dari selang air..." },
   { id: "q18", category: "Teka-Teki Lucu", question: "Kenapa saat lampu merah kendaraan harus berhenti?", answer: "Karena Direm", acceptableAnswers: ["karena direm", "direm", "rem"], clue: "Kalau tidak direm ya nabrak!" },
   { id: "q19", category: "Tebak-Tebakan AI", question: "Sayur apa yang jago bela diri?", answer: "Bayam Choke", acceptableAnswers: ["bayam choke", "bayam", "kangkung kungfu"], clue: "Plesetan dari martial art..." },
-  { id: "q20", category: "Asah Otak", question: "Benda apa yang kalau dipotong malah makin tinggi?", answer: "Celana Panjang", acceptableAnswers: ["celana panjang", "celana"], clue: "Dipotong bagian bawahnya jadi celana pendek/tinggi..." }
+  { id: "q20", category: "Asah Otak", question: "Benda apa yang kalau dipotong malah makin tinggi?", answer: "Celana Panjang", acceptableAnswers: ["celana panjang", "celana"], clue: "Dipotong bagian bawahnya jadi celana pendek/tinggi..." },
+  { id: "q21", category: "Plesetan Gaul", question: "Penyanyi yang selalu gak sabaran dan suka buru-buru?", answer: "Afgan", acceptableAnswers: ["afgan", "afgan buru-buru"], clue: "Plesetan dari 'Ah, buruan gan!'..." },
+  { id: "q22", category: "Teka-Teki Lucu", question: "Bebek apa yang kalau jalan selalu noleh ke kiri?", answer: "Bebek Dikunci Stang", acceptableAnswers: ["bebek dikunci stang", "kunci stang", "motor bebek"], clue: "Bukan sembarang unggas, tapi jenis motor..." },
+  { id: "q23", category: "Plesetan Makanan", question: "Roti apa yang tidak boleh dimakan dan sangat berbahaya?", answer: "Roti Busuk", acceptableAnswers: ["roti busuk", "roti buaya beneran"], clue: "Bisa bikin keracunan perut!" },
+  { id: "q24", category: "Asah Otak Kocak", question: "Jika ada 10 burung di pohon ditembak 1 ekor, sisa berapa burung di pohon?", answer: "Nol", acceptableAnswers: ["nol", "0", "habis", "tidak ada"], clue: "Sisanya kabur semua karena kaget suara tembakan..." },
+  { id: "q25", category: "Tebak-Tebakan Hewan", question: "Kuda apa yang paling bikin capek dan pegal-pegal?", answer: "Kuda-Kudaan", acceptableAnswers: ["kuda-kudaan", "kuda kuda"], clue: "Pose silat atau menahan beban tubuh..." },
+  { id: "q26", category: "Plesetan Minuman", question: "Es apa yang paling ditakuti oleh para jomblo?", answer: "Eskalator", acceptableAnswers: ["eskalator", "es kelapa"], clue: "Karena naiknya bareng pasangan orang lain..." },
+  { id: "q27", category: "Teka-Teki Logika", question: "Punya gigi banyak tapi tidak bisa mengunyah makanan, apakah itu?", answer: "Sisir", acceptableAnswers: ["sisir", "sisir rambut", "gergaji"], clue: "Dipakai buat merapikan rambut setiap pagi." },
+  { id: "q28", category: "Plesetan Nama Kota", question: "Kota di Indonesia yang paling banyak bapak-bapaknya?", answer: "Purwodadi", acceptableAnswers: ["purwodadi", "papa dadi"], clue: "Plesetan 'Purwo dadi (jadi) bapak'..." },
+  { id: "q29", category: "Tebak-Tebakan Gaul", question: "Kenapa pohon mangga di depan rumah harus ditebang?", answer: "Karena Tumbuh", acceptableAnswers: ["karena tumbuh", "tumbuh"], clue: "Kalau tidak tumbuh ya tidak ada pohonnya!" },
+  { id: "q30", category: "Asah Otak", question: "Benda apa yang kalau basah makin berguna dan menyerap air?", answer: "Handuk", acceptableAnswers: ["handuk", "kain handuk", "spons"], clue: "Dipakai sehabis mandi." },
+  { id: "q31", category: "Plesetan Artis", question: "Artis Hollywood yang selalu dingin dan beku?", answer: "Vin Diesel", acceptableAnswers: ["vin diesel", "diesel"], clue: "Bahan bakar solar pendingin..." },
+  { id: "q32", category: "Teka-Teki Santai", question: "Bulan apa yang orang-orang tidur paling sedikit?", answer: "Februari", acceptableAnswers: ["februari", "bulan februari"], clue: "Jumlah harinya paling pendek (28 hari)..." },
+  { id: "q33", category: "Tebak-Tebakan Hewan", question: "Kutu apa yang paling bikin panik dan menakutkan?", answer: "Kutukan", acceptableAnswers: ["kutukan", "kutukan seribu tahun"], clue: "Dari penyihir sakti di dongeng..." },
+  { id: "q34", category: "Plesetan Makanan", question: "Sate apa yang aromanya paling harum dan wangi?", answer: "Satelit", acceptableAnswers: ["satelit", "sate melati"], clue: "Mengorbit di luar angkasa..." },
+  { id: "q35", category: "Teka-Teki Lucu", question: "Hewan apa yang kalau jalan selalu menginjak kepalanya sendiri?", answer: "Ular", acceptableAnswers: ["ular", "cacing"], clue: "Badan dan kepalanya menyatu di tanah..." },
+  { id: "q36", category: "Asah Otak", question: "Makin ditarik makin pendek, apakah itu?", answer: "Rokok", acceptableAnswers: ["rokok", "puntung rokok"], clue: "Dihisap sampai habis jadi puntung..." },
+  { id: "q37", category: "Plesetan Gaul", question: "Jus apa yang rasanya asam dan bikin sedih?", answer: "Just a Friend", acceptableAnswers: ["just a friend", "just friend"], clue: "Status hubungan yang cuma dianggap teman..." },
+  { id: "q38", category: "Teka-Teki Santai", question: "Rumah apa yang paling luas dan tidak punya atap sama sekali?", answer: "Rumah Tangga", acceptableAnswers: ["rumah tangga"], clue: "Dibangun bersama pasangan tercinta..." },
+  { id: "q39", category: "Tebak-Tebakan Hewan", question: "Ayam apa yang paling besar di seluruh dunia?", answer: "Ayam Semesta", acceptableAnswers: ["ayam semesta", "alam semesta"], clue: "Plesetan dari alam semesta..." },
+  { id: "q40", category: "Asah Otak Kocak", question: "Kunci apa yang bisa bikin orang joget gembira?", answer: "Kunci Dangdut", acceptableAnswers: ["kunci dangdut", "kunci nada"], clue: "Kunci nada lagu koplo..." },
+  { id: "q41", category: "Plesetan Makanan", question: "Bakso apa yang warnanya tidak abu-abu dan tidak bulat?", answer: "Bakso Warna-Warni", acceptableAnswers: ["bakso kotak", "baksos", "bakti sosial"], clue: "Plesetan dari kegiatan bakti sosial..." },
+  { id: "q42", category: "Teka-Teki Lucu", question: "Ikan apa yang matanya ada lima puluh?", answer: "Ikan Teri 25 Ekor", acceptableAnswers: ["ikan teri 25 ekor", "ikan teri", "teri"], clue: "Satu ekor punya 2 mata..." },
+  { id: "q43", category: "Plesetan Nama Tokoh", question: "Superhero yang selalu rajin membersihkan kamar mandi?", answer: "Aquaman", acceptableAnswers: ["aquaman", "aqua"], clue: "Penguasa air tujuh samudra..." },
+  { id: "q44", category: "Tebak-Tebakan Gaul", question: "Kenapa hantu pocong jalannya selalu lompat-lompat?", answer: "Kakinya Diikat", acceptableAnswers: ["kakinya diikat", "diikat", "kaki diikat"], clue: "Kain kafannya belum dibuka..." },
+  { id: "q45", category: "Asah Otak", question: "Punya leher tapi tidak punya kepala, apakah itu?", answer: "Baju", acceptableAnswers: ["baju", "kaos", "botol"], clue: "Kerah pakaian atau wadah minuman." },
+  { id: "q46", category: "Plesetan Buah", question: "Buah apa yang paling sopan dan selalu permisi?", answer: "Mangga", acceptableAnswers: ["mangga", "buah mangga"], clue: "Bahasa Sunda untuk 'silakan'..." },
+  { id: "q47", category: "Teka-Teki Santai", question: "Benda apa yang selalu lari tapi tidak punya kaki?", answer: "Waktu", acceptableAnswers: ["waktu", "air", "jam"], clue: "Terus berjalan tanpa henti..." },
+  { id: "q48", category: "Tebak-Tebakan Hewan", question: "Tikus apa yang kalau jalan cuma pakai dua kaki?", answer: "Mickey Mouse", acceptableAnswers: ["mickey mouse", "miki tikus"], clue: "Karakter kartun terkenal Disney..." },
+  { id: "q49", category: "Asah Otak Kocak", question: "Bebek apa yang kalau jalan cuma pakai dua kaki?", answer: "Semua Bebek", acceptableAnswers: ["semua bebek", "bebek memang dua kaki", "bebek"], clue: "Emang bebek kakinya cuma dua!" },
+  { id: "q50", category: "Plesetan Gaul", question: "Sepatu apa yang paling disukai oleh kucing?", answer: "Sepatu Bot", acceptableAnswers: ["sepatu bot", "puss in boots"], clue: "Karakter Puss in Boots..." }
 ];
 
 export class TebakManager {
@@ -103,12 +133,16 @@ export class TebakManager {
 
   private async getUniqueQuestion(): Promise<TebakQuestion> {
     let question = await this.generateAiTebakQuestion();
-    if (!question) {
-      const unused = QUESTION_BANK.filter((q) => !this.askedQuestionHistory.has(q.question.toLowerCase()));
+    if (!question || this.askedQuestionHistory.has(question.question.trim().toLowerCase())) {
+      const unused = QUESTION_BANK.filter((q) => !this.askedQuestionHistory.has(q.question.trim().toLowerCase()));
       const pool = unused.length > 0 ? unused : QUESTION_BANK;
+      // If all questions in pool were exhausted, refresh history
+      if (unused.length === 0) {
+        this.askedQuestionHistory.clear();
+      }
       question = pool[Math.floor(Math.random() * pool.length)];
     }
-    this.askedQuestionHistory.add(question.question.toLowerCase());
+    this.askedQuestionHistory.add(question.question.trim().toLowerCase());
     return question;
   }
 

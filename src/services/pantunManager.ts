@@ -127,11 +127,63 @@ const CURATED_STARTER_PANTUNS = [
   {
     theme: "Kota Padang & Kambing",
     lines: "Jalan-jalan ke Kota Padang,\nAda kambing makan rumput."
+  },
+  {
+    theme: "Kota Lama & Baju",
+    lines: "Beli baju di kota lama,\nPakai uang hasil memetik."
+  },
+  {
+    theme: "Pasar Malam & Sepatu",
+    lines: "Ke pasar malam beli sepatu,\nBeli baju untuk pesta."
+  },
+  {
+    theme: "Pantai & Angin",
+    lines: "Duduk bersila di tengah pantai,\nMelihat angin kencang bertiup."
+  },
+  {
+    theme: "Kedondong Asam",
+    lines: "Buah kedondong rasanya asam,\nBeli di pasar murah harganya."
+  },
+  {
+    theme: "Gunung Berliku",
+    lines: "Pegunungan jalan berliku,\nUdara pegunungan sungguh enak."
+  },
+  {
+    theme: "Kali & Beruk",
+    lines: "Di kampung ada kali,\nDi sana ada banyak beruk."
+  },
+  {
+    theme: "Liburan ke Bali",
+    lines: "Pak Bagas liburan ke Bali,\nMenonton bule sedang menari-nari."
+  },
+  {
+    theme: "Berenang Ikan",
+    lines: "Berenang jauh para ikan,\nMereka bebas hatinya senang."
+  },
+  {
+    theme: "Belimbing & Manggis",
+    lines: "Buah belimbing buah manggis,\nBuah coklat sebesar mempelam."
+  },
+  {
+    theme: "Jalan ke Surabaya",
+    lines: "Jalan-jalan ke Surabaya,\nJangan lupa beli oleh-olehnya."
+  },
+  {
+    theme: "Jamu Pagi",
+    lines: "Pagi-pagi minum jamu,\nMinumnya sambil makan combro."
+  },
+  {
+    theme: "Toko & Gunting",
+    lines: "Ke toko membeli gunting,\nTidak lupa membeli peta."
+  },
+  {
+    theme: "Layang-layang",
+    lines: "Pulang sekolah main layang-layang,\nMainnya bersama kawan-kawan."
   }
 ];
 
 /**
- * Generate or retrieve today's starter pantun for a guild
+ * Generate or retrieve today's starter pantun for a guild (guaranteed unique & fresh every day)
  */
 export async function getOrCreateTodayPantun(guildId: string) {
   const todayStr = getWibDateString();
@@ -142,9 +194,20 @@ export async function getOrCreateTodayPantun(guildId: string) {
 
   if (pantun) return pantun;
 
-  // Pick a fresh theme based on date hash
-  const dayIndex = Math.abs(todayStr.split("-").reduce((acc, part) => acc + parseInt(part, 10), 0)) % PANTUN_THEMES.length;
-  const pickedTheme = PANTUN_THEMES[dayIndex];
+  // Fetch past pantun starter lines from DB to prevent repetition
+  const pastPantuns = await prisma.dailyPantun.findMany({
+    where: { guildId },
+    select: { starterLines: true },
+    orderBy: { id: "desc" },
+    take: 60
+  });
+
+  const usedLinesSet = new Set(pastPantuns.map(p => p.starterLines.trim().toLowerCase()));
+  const historySnippet = pastPantuns.slice(0, 15).map(p => `"${p.starterLines.replace(/\n/g, ' / ')}"`).join(", ");
+
+  // Pick a fresh theme based on date hash and past count
+  const daySeed = Math.abs(todayStr.split("-").reduce((acc, part) => acc + parseInt(part, 10), 0) + pastPantuns.length);
+  const pickedTheme = PANTUN_THEMES[daySeed % PANTUN_THEMES.length];
 
   let starterLines = "";
   let theme = pickedTheme;
@@ -153,6 +216,10 @@ export async function getOrCreateTodayPantun(guildId: string) {
     const aiPrompt = `Kamu adalah Maya, asisten bot yang jago pantun komedi super receh, pendek, gokil, dan relate ala Gen-Z Indonesia.
 Hari ini adalah tanggal ${todayStr}.
 Tema pantun hari ini: "${pickedTheme}".
+
+PENTING ANTI-DUPLIKASI:
+DILARANG KERAS membuat pantun yang sama atau mirip dengan pantun yang sudah pernah dipakai baru-baru ini berikut:
+[${historySnippet || "Belum ada riwayat"}]
 
 Contoh gaya pantun receh & pendek yang diinginkan (4 baris utuh):
 - Sampiran: "Pergi ke pasar beli tomat, / Sambil belanja bawa sekop." -> Isi: "Sudah tampan tapi pemalas, / Gimana mau jadi top!"
@@ -164,7 +231,7 @@ Contoh gaya pantun receh & pendek yang diinginkan (4 baris utuh):
 - Sampiran: "Duduk santai membaca koran, / Membacanya sambil makan petisan." -> Isi: "Seenak-enaknya makan di restoran, / Lebih enak makan gratisan."
 
 TUGAS KAMU:
-Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang:
+Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang BARU, FRESH, dan BELUM PERNAH DIGUNAKAN:
 1. Sangat PENDEK, RECEH, LUCU, dan berima sajak jelas (misal rima an/an, at/at, ang/ang, ak/ak, ol/ol, dsb).
 2. Bahasa santai, absurd, atau bertema keseharian anak muda / jokes tongkrongan.
 3. Mudah dan memancing member server untuk membalas dengan isi pantun yang gak kalah receh & kocak.
@@ -173,23 +240,30 @@ Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang:
 Format balasan HANYA JSON persis tanpa markdown codeblock:
 {"theme": "${pickedTheme}", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;
 
-    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, komedian sastra pantun receh modern.");
+    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, komedian sastra pantun receh modern yang selalu membuat bait orisinal.");
     const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       if (parsed.lines && parsed.lines.trim() && parsed.lines.includes("\n")) {
-        starterLines = parsed.lines.trim();
-        theme = parsed.theme || theme;
+        const candidate = parsed.lines.trim();
+        // Ensure AI candidate is not in usedLinesSet
+        if (!usedLinesSet.has(candidate.toLowerCase())) {
+          starterLines = candidate;
+          theme = parsed.theme || theme;
+        }
       }
     }
   } catch (err) {
     logger.warn("PantunManager: Gagal membuat bait AI, menggunakan kurasi fallback:", err);
   }
 
+  // Fallback to unused curated pantun
   if (!starterLines) {
-    const fallback = CURATED_STARTER_PANTUNS[dayIndex % CURATED_STARTER_PANTUNS.length];
-    starterLines = fallback.lines;
-    theme = fallback.theme;
+    const unusedCurated = CURATED_STARTER_PANTUNS.filter(p => !usedLinesSet.has(p.lines.trim().toLowerCase()));
+    const pool = unusedCurated.length > 0 ? unusedCurated : CURATED_STARTER_PANTUNS;
+    const picked = pool[daySeed % pool.length];
+    starterLines = picked.lines;
+    theme = picked.theme;
   }
 
   pantun = await prisma.dailyPantun.create({
