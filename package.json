@@ -15,9 +15,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1115.0",
     "@discordjs/opus": "^0.10.0",
-    "@discordjs/voice": "^0.18.0",
+    "@discordjs/voice": "^0.19.2",
     "@noble/ciphers": "^2.3.0",
     "@prisma/client": "^5.14.0",
+    "@snazzah/davey": "^0.1.12",
     "@stablelib/xchacha20poly1305": "^2.0.1",
     "axios": "^1.18.1",
     "cheerio": "^1.2.0",

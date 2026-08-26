@@ -1,10 +1,10 @@
 # Build Stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Install openssl so that prisma generate can correctly detect the openssl version
-RUN apk add --no-cache openssl
+# Install build tools and openssl for native modules and Prisma
+RUN apk add --no-cache openssl python3 make g++
 
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm prune --omit=dev
 
 # Production Stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /usr/src/app
 
