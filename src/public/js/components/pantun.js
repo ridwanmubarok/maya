@@ -6,26 +6,38 @@ function populatePantunChannels(channels, selectedChannelId) {
   const select = document.getElementById('pantun-channel');
   if (!select) return;
 
-  select.innerHTML = `<option value="">Pilih Channel Target (Contoh: #pantun / #berbalas-pantun)</option>` +
+  select.innerHTML = `<option value="">Pilih Channel (Default: Channel Utama / Trivia / System)</option>` +
     channels.map(c => `
       <option value="${c.id}" ${c.id === selectedChannelId ? 'selected' : ''}>#${escapeHtml(c.name)}</option>
     `).join('');
+}
+
+function populatePantunHourDropdowns(startHour, closeHour) {
+  const startSelect = document.getElementById('pantun-start-hour');
+  const closeSelect = document.getElementById('pantun-close-hour');
+
+  const hours = Array.from({ length: 24 }, (_, i) => {
+    const formatted = String(i).padStart(2, '0') + ':00 WIB';
+    return { value: i, label: formatted };
+  });
+
+  if (startSelect) {
+    startSelect.innerHTML = hours.map(h => `
+      <option value="${h.value}" ${h.value === (startHour ?? 9) ? 'selected' : ''}>${h.label}</option>
+    `).join('');
+  }
+
+  if (closeSelect) {
+    closeSelect.innerHTML = hours.map(h => `
+      <option value="${h.value}" ${h.value === (closeHour ?? 23) ? 'selected' : ''}>${h.label}</option>
+    `).join('');
+  }
 }
 
 async function loadPantunConfig(config, channels) {
   const enabledCheckbox = document.getElementById('pantun-enabled');
   if (enabledCheckbox) {
     enabledCheckbox.checked = config.pantunEnabled !== false;
-  }
-
-  const startHourInput = document.getElementById('pantun-start-hour');
-  if (startHourInput) {
-    startHourInput.value = config.pantunStartHour ?? 9;
-  }
-
-  const closeHourInput = document.getElementById('pantun-close-hour');
-  if (closeHourInput) {
-    closeHourInput.value = config.pantunCloseHour ?? 23;
   }
 
   const rewardInput = document.getElementById('pantun-reward-amount');
@@ -39,6 +51,7 @@ async function loadPantunConfig(config, channels) {
   }
 
   populatePantunChannels(channels, config.pantunChannelId);
+  populatePantunHourDropdowns(config.pantunStartHour, config.pantunCloseHour);
   await fetchPantunData();
 
   if (pantunPollInterval) clearInterval(pantunPollInterval);
@@ -244,7 +257,7 @@ async function triggerClosePantun() {
     const data = await res.json().catch(() => ({}));
 
     if (res.ok) {
-      showToast('Sesi Ditutup & Dinilai', data.message || 'Sesi pantun berhasil dinilai oleh Maya AI!', 'success');
+      showToast('Sesi Ditutup & Dinilai', data.message || 'Sesi pantun berhasil dinilai oleh Maya!', 'success');
       setTimeout(fetchPantunData, 1000);
     } else {
       showToast('Gagal Menutup Sesi', data.error || 'Gagal menutup sesi pantun.', 'error');

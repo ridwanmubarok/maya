@@ -1342,7 +1342,7 @@
             <div class="flex justify-between items-center">
               <div>
                 <h3 class="font-outfit text-xl font-bold text-white">Maya Lanjutkan Pantun</h3>
-                <p class="text-xs text-gray-400">Fitur interaktif berbalas pantun harian: Maya AI membuat 2 baris sampiran, member melanjutkan isi dengan rima yang pas (Buka 09:00 - Tutup 23:00 WIB)</p>
+                <p class="text-xs text-gray-400">Fitur interaktif berbalas pantun harian: Maya membuat 2 baris sampiran, member melanjutkan isi dengan rima yang pas (Buka 09:00 - Tutup 23:00 WIB)</p>
               </div>
             </div>
 
@@ -1360,7 +1360,7 @@
             <div class="flex flex-col gap-2">
               <label for="pantun-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Pantun</label>
               <select id="pantun-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
-                <option value="">Pilih Channel Target (Contoh: #pantun / #berbalas-pantun)</option>
+                <option value="">Pilih Channel (Default: Channel Utama / Trivia / System)</option>
               </select>
             </div>
 
@@ -1368,13 +1368,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="flex flex-col gap-2">
                 <label for="pantun-start-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Buka Sesi (WIB)</label>
-                <input type="number" id="pantun-start-hour" min="0" max="23" value="9" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
-                <span class="text-[10px] text-gray-500">Default: 09:00 WIB (Maya membuka sesi & bait pembuka)</span>
+                <select id="pantun-start-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                  <!-- Populated dynamically via JS -->
+                </select>
+                <span class="text-[10px] text-gray-500">Default: 09:00 WIB (Maya membuka sesi &amp; bait pembuka)</span>
               </div>
               <div class="flex flex-col gap-2">
-                <label for="pantun-close-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Tutup & Review AI (WIB)</label>
-                <input type="number" id="pantun-close-hour" min="0" max="23" value="23" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
-                <span class="text-[10px] text-gray-500">Default: 23:00 WIB / 11 Malam (Maya AI memilih MVP Pantun)</span>
+                <label for="pantun-close-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Tutup &amp; Review (WIB)</label>
+                <select id="pantun-close-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                  <!-- Populated dynamically via JS -->
+                </select>
+                <span class="text-[10px] text-gray-500">Default: 23:00 WIB / 11 Malam (Maya memilih MVP Pantun)</span>
               </div>
             </div>
 
@@ -1385,9 +1389,9 @@
                 <span class="text-[10px] text-gray-500">Diberikan instan ke setiap member saat pantun dikirim</span>
               </div>
               <div class="flex flex-col gap-2">
-                <label for="pantun-mvp-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Bonus MVP Pantun AI (RTK Points)</label>
+                <label for="pantun-mvp-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Bonus MVP Pantun (RTK Points)</label>
                 <input type="number" id="pantun-mvp-reward" min="10" max="1000" value="150" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
-                <span class="text-[10px] text-gray-500">Bonus untuk 1 member dengan pantun paling kreatif & berima</span>
+                <span class="text-[10px] text-gray-500">Bonus untuk 1 member dengan pantun paling kreatif &amp; berima</span>
               </div>
             </div>
 
@@ -1408,7 +1412,7 @@
               <div class="flex justify-between items-center">
                 <div>
                   <h4 class="font-outfit text-lg font-bold text-white">Sesi Pantun Hari Ini &amp; Feed Kiriman Member</h4>
-                  <p class="text-xs text-gray-400">Pantau bait pembuka Maya AI dan kiriman pantun lanjutan member server</p>
+                  <p class="text-xs text-gray-400">Pantau bait pembuka Maya dan kiriman pantun lanjutan member server</p>
                 </div>
                 <span id="pantun-submission-count" class="text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full font-bold">
                   0 Pantun

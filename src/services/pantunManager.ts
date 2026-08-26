@@ -165,7 +165,7 @@ Format balasan HANYA JSON persis tanpa markdown lain:
 }
 
 /**
- * Announce pantun session start (Runs at 09:00 WIB)
+ * Announce pantun session start (Runs at configured startHour, default 09:00 WIB)
  */
 export async function announcePantunSessionStart(guild: Guild, configuredChannelId?: string): Promise<boolean> {
   try {
@@ -173,10 +173,24 @@ export async function announcePantunSessionStart(guild: Guild, configuredChannel
     if (!config || !config.pantunEnabled) return false;
 
     const channelId = configuredChannelId || config.pantunChannelId;
-    if (!channelId) return false;
+    let targetChannel: TextChannel | null = null;
 
-    const channel = (guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null)) as TextChannel;
-    if (!channel || !channel.isTextBased()) return false;
+    if (channelId) {
+      targetChannel = (guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null))) as TextChannel;
+    }
+
+    if (!targetChannel) {
+      try {
+        const fetchedChannels = await guild.channels.fetch();
+        targetChannel = (fetchedChannels.find(
+          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("trivia") || c.name.includes("tebak") || c.name.includes("pantun") || c.name.includes("general") || c.name.includes("chat"))
+        ) || guild.systemChannel) as TextChannel;
+      } catch (_) {
+        targetChannel = guild.systemChannel as TextChannel;
+      }
+    }
+
+    if (!targetChannel || !("send" in targetChannel)) return false;
 
     const todayStr = getWibDateString();
     const pantun = await getOrCreateTodayPantun(guild.id);
@@ -185,7 +199,7 @@ export async function announcePantunSessionStart(guild: Guild, configuredChannel
       .setTitle("🎭 MAYA LANJUTKAN PANTUN • SESI HARI INI DIBUKA!")
       .setColor("#F59E0B")
       .setDescription(
-        `Selamat pagi warga **${guild.name}**! Sesi **Lanjutkan Pantun** hari ini telah dibuka.\n` +
+        `Selamat pagi warga **${guild.name}**! Sesi **Lanjutkan Pantun** hari ini telah resmi dibuka.\n` +
         `Yuk lanjutkan 2 baris isi pantun di bawah ini dengan rima yang pas, lucu, dan kreatif!`
       )
       .addFields(
@@ -199,14 +213,17 @@ export async function announcePantunSessionStart(guild: Guild, configuredChannel
           value:
             "• **1 Kesempatan / Hari**: Setiap member hanya boleh mengirim 1 pantun lanjutan per hari.\n" +
             `• **Reward Langsung**: Kiriman valid otomatis mendapat **+${config.pantunRewardAmount ?? 15} RTK Points**.\n` +
-            `• **Penutupan & MVP**: Sesi ditutup jam **${config.pantunCloseHour ?? 23}:00 WIB**. Maya AI akan memilih **1 MVP Pantun Terbaik (+${config.pantunMvpReward ?? 150} RTK Points)**!`,
+            `• **Penutupan & MVP**: Sesi ditutup jam **${config.pantunCloseHour ?? 23}:00 WIB**. Maya akan memilih **1 MVP Pantun Terbaik (+${config.pantunMvpReward ?? 150} RTK Points)**!`,
           inline: false
         }
       )
-      .setFooter({ text: "Maya Lanjutkan Pantun • Sesi Aktif Hingga 23:00 WIB", iconURL: guild.client.user?.displayAvatarURL() })
+      .setFooter({ text: `Maya Lanjutkan Pantun • Sesi Aktif Hingga ${config.pantunCloseHour ?? 23}:00 WIB`, iconURL: guild.client.user?.displayAvatarURL() })
       .setTimestamp();
 
-    await channel.send({ embeds: [embed] });
+    await targetChannel.send({
+      content: "📢 @everyone @here **MAYA LANJUTKAN PANTUN HARI INI TELAH DIBUKA!** Ayo lanjutkan pantunnya di channel ini dan raih RTK Points!",
+      embeds: [embed]
+    });
 
     // Update persistent start date
     await prisma.guildConfig.update({
@@ -341,10 +358,24 @@ export async function closeAndEvaluateDailyPantun(guild: Guild, configuredChanne
     if (!config || !config.pantunEnabled) return false;
 
     const channelId = configuredChannelId || config.pantunChannelId;
-    if (!channelId) return false;
+    let targetChannel: TextChannel | null = null;
 
-    const channel = (guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null)) as TextChannel;
-    if (!channel || !channel.isTextBased()) return false;
+    if (channelId) {
+      targetChannel = (guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null))) as TextChannel;
+    }
+
+    if (!targetChannel) {
+      try {
+        const fetchedChannels = await guild.channels.fetch();
+        targetChannel = (fetchedChannels.find(
+          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("trivia") || c.name.includes("tebak") || c.name.includes("pantun") || c.name.includes("general") || c.name.includes("chat"))
+        ) || guild.systemChannel) as TextChannel;
+      } catch (_) {
+        targetChannel = guild.systemChannel as TextChannel;
+      }
+    }
+
+    if (!targetChannel || !("send" in targetChannel)) return false;
 
     const todayStr = getWibDateString();
     const activePantun = await prisma.dailyPantun.findFirst({
@@ -372,7 +403,7 @@ export async function closeAndEvaluateDailyPantun(guild: Guild, configuredChanne
         .setDescription("Sesi pantun hari ini telah berakhir. Belum ada kiriman pantun dari member. Sampai jumpa di sesi berikutnya besok jam 09:00 WIB!")
         .setTimestamp();
 
-      await channel.send({ embeds: [emptyEmbed] });
+      await targetChannel.send({ embeds: [emptyEmbed] });
 
       await prisma.guildConfig.update({
         where: { guildId: guild.id },
@@ -494,7 +525,10 @@ Balas HANYA dalam format JSON persis tanpa markdown lain:
       .setFooter({ text: "Maya Lanjutkan Pantun • Sesi Buka Kembali Besok Jam 09:00 WIB", iconURL: guild.client.user?.displayAvatarURL() })
       .setTimestamp();
 
-    await channel.send({ embeds: [closeEmbed] });
+    await targetChannel.send({
+      content: "🏆 @everyone **REKAP JUARA MAYA LANJUTKAN PANTUN HARI INI!**",
+      embeds: [closeEmbed]
+    });
 
     // Update persistent close date
     await prisma.guildConfig.update({

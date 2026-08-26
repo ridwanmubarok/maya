@@ -494,7 +494,7 @@ export function startDashboard(client: MayaClient) {
 
       const success = await closeAndEvaluateDailyPantun(guild);
       if (success) {
-        res.json({ success: true, message: "Sesi Pantun berhasil ditutup dan dinilai oleh Maya AI!" });
+        res.json({ success: true, message: "Sesi Pantun berhasil ditutup dan dinilai oleh Maya!" });
       } else {
         res.status(400).json({ error: "Gagal menutup sesi pantun." });
       }
