@@ -20,7 +20,7 @@ const command: Command = {
         .addStringOption((opt) =>
           opt
             .setName("judul")
-            .setDescription("Judul lagu atau URL YouTube / Spotify yang ingin diputar")
+            .setDescription("Judul lagu atau URL YouTube yang ingin diputar")
             .setRequired(true)
         )
     )
@@ -101,7 +101,7 @@ const command: Command = {
           { name: "⏱️ Durasi", value: track.duration || "N/A", inline: true },
           { name: "👤 Pemesan", value: track.requestedBy, inline: true }
         )
-        .setFooter({ text: "Maya Music Companion • play-dl HD Audio", iconURL: interaction.client.user?.displayAvatarURL() })
+        .setFooter({ text: "Maya Music Companion • YouTube HQ Audio", iconURL: interaction.client.user?.displayAvatarURL() })
         .setTimestamp();
 
       if (track.thumbnail) {

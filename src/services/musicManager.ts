@@ -17,7 +17,7 @@ export interface SongTrack {
   thumbnail?: string;
   requestedBy: string;
   channelTitle?: string;
-  sourceType?: "youtube" | "soundcloud" | "spotify";
+  sourceType?: "youtube";
 }
 
 export interface GuildMusicQueue {
@@ -32,31 +32,14 @@ export interface GuildMusicQueue {
 export class MusicManager {
   private static instance: MusicManager;
   private queues = new Map<string, GuildMusicQueue>(); // key: guildId
-  private soundCloudInitialized = false;
 
-  private constructor() {
-    this.initSoundCloud();
-  }
+  private constructor() {}
 
   public static getInstance(): MusicManager {
     if (!MusicManager.instance) {
       MusicManager.instance = new MusicManager();
     }
     return MusicManager.instance;
-  }
-
-  private async initSoundCloud() {
-    if (this.soundCloudInitialized) return;
-    try {
-      const clientId = await play.getFreeClientID();
-      if (clientId) {
-        await play.setToken({ soundcloud: { client_id: clientId } });
-        this.soundCloudInitialized = true;
-        logger.info(`MusicManager: SoundCloud Client ID berhasil diaktifkan: ${clientId}`);
-      }
-    } catch (err) {
-      logger.warn("MusicManager: Gagal inisialisasi SoundCloud Client ID:", err);
-    }
   }
 
   public getQueue(guildId: string): GuildMusicQueue | undefined {
@@ -80,7 +63,7 @@ export class MusicManager {
   }
 
   /**
-   * Search and enqueue a song (Supports SoundCloud & YouTube)
+   * Search and enqueue a song (YouTube only, highest quality)
    */
   public async play(
     guildId: string, 
@@ -89,7 +72,6 @@ export class MusicManager {
     voiceChannel?: VoiceBasedChannel
   ): Promise<{ success: boolean; message: string; track?: SongTrack }> {
     const queue = this.getOrCreateQueue(guildId);
-    await this.initSoundCloud();
 
     // If bot not connected and voice channel provided, join
     if (!voiceChatManager.isConnected(guildId) && voiceChannel) {
@@ -102,74 +84,55 @@ export class MusicManager {
     try {
       let trackInfo: SongTrack | null = null;
 
-      // 1. Check if direct URL
+      // 1. Check if direct YouTube URL
       if (query.startsWith("http://") || query.startsWith("https://")) {
         const validation = await play.validate(query);
         if (validation === "yt_video") {
           const info = await play.video_info(query);
+          const videoUrl = info.video_details.url;
+          if (!videoUrl || !videoUrl.startsWith("http")) {
+            return { success: false, message: "URL YouTube tidak valid atau video tidak tersedia!" };
+          }
           trackInfo = {
             title: info.video_details.title || "Unknown Title",
-            url: info.video_details.url,
+            url: videoUrl,
             duration: info.video_details.durationRaw || "0:00",
             thumbnail: info.video_details.thumbnails[0]?.url,
             requestedBy: user.displayName || user.username,
             channelTitle: info.video_details.channel?.name || "YouTube",
             sourceType: "youtube",
           };
-        } else if (validation === "so_track") {
-          const info = await play.soundcloud(query) as any;
-          trackInfo = {
-            title: info.name || info.title || "Unknown Title",
-            url: info.url,
-            duration: info.durationRaw || "0:00",
-            thumbnail: info.thumbnail,
-            requestedBy: user.displayName || user.username,
-            channelTitle: info.user?.name || "SoundCloud",
-            sourceType: "soundcloud",
-          };
+        } else {
+          return { success: false, message: "Hanya URL YouTube yang didukung. Masukkan link YouTube yang valid!" };
         }
       }
 
-      // 2. Search SoundCloud first for 100% reliable streaming
+      // 2. Search YouTube (try up to 5 results to find one with valid URL)
       if (!trackInfo) {
-        try {
-          const scResults = await play.search(query, { source: { soundcloud: "tracks" }, limit: 1 });
-          if (scResults && scResults.length > 0) {
-            const res = scResults[0] as any;
-            trackInfo = {
-              title: res.name || res.title || query,
-              url: res.url,
-              duration: res.durationRaw || "3:30",
-              thumbnail: res.thumbnail,
-              requestedBy: user.displayName || user.username,
-              channelTitle: res.user?.name || "SoundCloud",
-              sourceType: "soundcloud",
-            };
-          }
-        } catch (scErr) {
-          logger.warn("MusicManager: SoundCloud search failed, falling back to YouTube:", scErr);
-        }
-      }
-
-      // 3. Fallback to YouTube Search
-      if (!trackInfo) {
-        const ytResults = await play.search(query, { limit: 1 });
+        const ytResults = await play.search(query, { source: { youtube: "video" }, limit: 5 });
         if (ytResults && ytResults.length > 0) {
-          const res = ytResults[0];
-          trackInfo = {
-            title: res.title || query,
-            url: res.url,
-            duration: res.durationRaw || "0:00",
-            thumbnail: res.thumbnails[0]?.url,
-            requestedBy: user.displayName || user.username,
-            channelTitle: res.channel?.name || "YouTube",
-            sourceType: "youtube",
-          };
+          for (const res of ytResults) {
+            // Validate URL before using — play-dl can return undefined URL on some results
+            if (!res.url || !res.url.startsWith("http")) {
+              logger.warn(`MusicManager: Hasil pencarian "${res.title}" memiliki URL tidak valid, melewati...`);
+              continue;
+            }
+            trackInfo = {
+              title: res.title || query,
+              url: res.url,
+              duration: res.durationRaw || "0:00",
+              thumbnail: res.thumbnails[0]?.url,
+              requestedBy: user.displayName || user.username,
+              channelTitle: res.channel?.name || "YouTube",
+              sourceType: "youtube",
+            };
+            break;
+          }
         }
       }
 
       if (!trackInfo) {
-        return { success: false, message: `Lagu dengan judul "${query}" tidak ditemukan!` };
+        return { success: false, message: `Lagu dengan judul "${query}" tidak ditemukan di YouTube!` };
       }
 
       // If already playing, add to queue
@@ -199,7 +162,7 @@ export class MusicManager {
   }
 
   /**
-   * Stream audio track to session player with automatic SoundCloud fallback
+   * Stream YouTube audio track with highest quality (quality: 0 = best available)
    */
   private async streamTrack(guildId: string, track: SongTrack) {
     const queue = this.getOrCreateQueue(guildId);
@@ -208,26 +171,25 @@ export class MusicManager {
     if (!session) {
       logger.warn(`MusicManager: Sesi voice tidak ditemukan untuk guild ${guildId}`);
       queue.isPlaying = false;
+      queue.currentTrack = null;
+      return;
+    }
+
+    // Guard: URL harus valid sebelum di-stream
+    if (!track.url || !track.url.startsWith("http")) {
+      logger.error(`MusicManager: URL tidak valid untuk "${track.title}" (url=${track.url}), melewati lagu ini.`);
+      queue.currentTrack = null;
+      queue.isPlaying = false;
+      await this.playNext(guildId);
       return;
     }
 
     try {
-      let stream: any = null;
-
-      try {
-        stream = await play.stream(track.url);
-      } catch (streamErr) {
-        logger.warn(`MusicManager: Stream langsung gagal untuk "${track.title}", mencoba fallback SoundCloud...`, streamErr);
-        // Search & stream on SoundCloud as resilient fallback
-        const scResults = await play.search(track.title, { source: { soundcloud: "tracks" }, limit: 1 });
-        if (scResults && scResults.length > 0) {
-          stream = await play.stream(scResults[0].url);
-        } else {
-          throw streamErr;
-        }
-      }
+      // quality: 0 = highest quality available (prefers Opus/WebM ~160kbps, falls back to m4a 128kbps)
+      const stream = await play.stream(track.url, { quality: 0 });
 
       const resource = createAudioResource(stream.stream, {
+        // If stream is already Opus, pass through directly (no re-encoding = best quality)
         inputType: stream.type === "opus" ? StreamType.Opus : StreamType.Arbitrary,
         inlineVolume: true,
       });
@@ -238,10 +200,13 @@ export class MusicManager {
       queue.isInterruptedByVoice = false;
 
       session.player.play(resource);
-      logger.info(`MusicManager: Sedang memutar lagu "${track.title}" di guild ${guildId}`);
-    } catch (err) {
-      logger.error(`MusicManager: Gagal streaming track "${track.title}":`, err);
-      this.playNext(guildId);
+      logger.info(`MusicManager: Memutar "${track.title}" [YouTube HQ] di guild ${guildId}`);
+    } catch (err: any) {
+      logger.error(`MusicManager: Gagal streaming "${track.title}" — ${err.message}. Melewati lagu...`);
+      // Reset state agar tidak stuck, lalu coba lagu berikutnya
+      queue.isPlaying = false;
+      queue.currentTrack = null;
+      await this.playNext(guildId);
     }
   }
 
