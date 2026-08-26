@@ -129,7 +129,19 @@ export class VoiceChatManager {
         this.processQueue(guildId);
       });
 
-      // Handle Connection state
+      player.on("stateChange", (oldState, newState) => {
+        logger.info(`[Audio Player] ${channel.name}: ${oldState.status} -> ${newState.status}`);
+      });
+
+      // Handle Connection events & state changes
+      connection.on("stateChange", (oldState, newState) => {
+        logger.info(`[Voice Connection] ${channel.name}: ${oldState.status} -> ${newState.status}`);
+      });
+
+      connection.on("debug", (msg) => {
+        logger.info(`[Voice Debug] ${channel.name}: ${msg}`);
+      });
+
       connection.on(VoiceConnectionStatus.Disconnected, async () => {
         try {
           await Promise.race([
@@ -145,21 +157,18 @@ export class VoiceChatManager {
         this.sessions.delete(guildId);
       });
 
-      // Wait until connection reaches Ready state (UDP socket established)
-      try {
-        await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
-      } catch (err) {
-        logger.warn(`VoiceChatManager: Voice connection in ${channel.name} took too long to become Ready, continuing...`);
-      }
-
       connection.subscribe(player);
 
-      logger.info(`VoiceChatManager: Maya berhasil bergabung di Voice Channel "${channel.name}" (${guildId})`);
-
-      // Greet channel members
-      setTimeout(() => {
+      // Wait until connection reaches Ready state (UDP socket established)
+      try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+        logger.info(`VoiceChatManager: Maya berhasil terhubung (Ready) di Voice Channel "${channel.name}" (${guildId})`);
+        
+        // Greet channel members
         this.speak(guildId, "Halo semuanya, Maya udah gabung di voice channel nih! Ada yang mau ngobrol?");
-      }, 500);
+      } catch (err) {
+        logger.warn(`VoiceChatManager: Voice connection in ${channel.name} belum mencapai Ready dalam 20s (Status: ${connection.state.status}). Audio akan diputar otomatis saat UDP tersambung.`);
+      }
 
       return true;
     } catch (err) {
@@ -219,6 +228,18 @@ export class VoiceChatManager {
     const session = this.sessions.get(guildId);
     if (!session || session.isSpeaking || session.queue.length === 0) return;
 
+    // Check if voice connection is ready; if still connecting, wait for Ready
+    if (session.connection.state.status !== VoiceConnectionStatus.Ready) {
+      logger.info(`VoiceChatManager: Menunggu koneksi UDP Ready (status saat ini: ${session.connection.state.status})...`);
+      try {
+        await entersState(session.connection, VoiceConnectionStatus.Ready, 20_000);
+        logger.info(`VoiceChatManager: Voice Connection berhasil Ready! Memulai pemutaran audio...`);
+      } catch (err) {
+        logger.warn(`VoiceChatManager: Voice Connection belum Ready (status: ${session.connection.state.status}). Menunda pemutaran antrean.`);
+        return;
+      }
+    }
+
     const textToSpeak = session.queue.shift();
     if (!textToSpeak) return;
 
@@ -242,6 +263,7 @@ export class VoiceChatManager {
       resource.volume?.setVolume(1.0);
 
       session.player.play(resource);
+      logger.info(`VoiceChatManager: Memutar vokal suara untuk: "${textToSpeak}"`);
     } catch (error) {
       logger.error(`VoiceChatManager: Gagal memutar TTS untuk "${textToSpeak}":`, error);
       session.isSpeaking = false;
