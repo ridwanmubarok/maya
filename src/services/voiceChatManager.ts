@@ -6,7 +6,8 @@ import {
   GatewayDispatchEvents,
   GatewayVoiceServerUpdateDispatchData,
   GatewayVoiceStateUpdateDispatchData,
-  Status
+  Status,
+  VoiceState
 } from "discord.js";
 import { 
   joinVoiceChannel, 
@@ -38,6 +39,25 @@ try {
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const googleTTS = require("google-tts-api");
+
+// --- CASUAL GREETING & ICEBREAKER TEMPLATES ---
+const GREETING_TEMPLATES = [
+  "Haloo {name}! Selamat datang di voice channel, sini ngobrol santai bareng Maya wkwk",
+  "Yoo {name}! Masuk juga akhirnya haha, lagi santai apa lagi sibuk nih?",
+  "Haloo {name}! Welcome to the voice channel, apa kabar nih hari ini?",
+  "Ehh ada {name}, haloo! Sini gabung ngobrol bareng haha",
+  "Haloo {name}! Selamat bergabung, gimana harimu sejauh ini?"
+];
+
+const ICEBREAKER_TOPICS = [
+  "Kok sepi banget nih tongkrongan wkwk, ada yang lagi main game seru gak akhir-akhir ini?",
+  "Hening banget dah haha, spill dong kalian lagi sibuk apa atau lagi dengerin lagu apaan nih?",
+  "Waduh pada fokus ya wkwk, btw ada yang punya rekomendasi cemilan enak gak buat nemenin malam ini?",
+  "Sepi amat kayak kuburan haha, santai dulu guys, jangan tegang-tegang amat wkwk",
+  "Btw guys, kalau kalian bisa milih liburan gratis ke mana aja sekarang, kalian mau ke mana nih?",
+  "Hening gini enaknya dengerin musik apa ya? Spill lagu favorit kalian dong!",
+  "Lagi pada nugas atau lagi melamun nih wkwk? Santai dulu lah, jangan lupa minum air putih ya!"
+];
 
 // --- RESILIENT DISCORD.JS VOICE GATEWAY ADAPTER ---
 const adapters = new Map<string, DiscordGatewayAdapterLibraryMethods>();
@@ -97,19 +117,26 @@ interface GuildVoiceSession {
   guildId: string;
   channelId: string;
   channelName: string;
+  channel: VoiceBasedChannel;
   connection: VoiceConnection;
   player: AudioPlayer;
   isSpeaking: boolean;
   queue: string[];
   joinedAt: number;
+  lastActivityTimestamp: number;
+  lastIcebreakerTimestamp: number;
 }
 
 export class VoiceChatManager {
   private static instance: VoiceChatManager;
   private sessions = new Map<string, GuildVoiceSession>(); // key: guildId
   private voiceHistory = new Map<string, { role: string; content: string }[]>(); // key: guildId
+  private userGreetingCooldown = new Map<string, number>(); // key: userId, val: timestamp
+  private icebreakerTimer: NodeJS.Timeout | null = null;
 
-  private constructor() {}
+  private constructor() {
+    this.startIcebreakerScheduler();
+  }
 
   public static getInstance(): VoiceChatManager {
     if (!VoiceChatManager.instance) {
@@ -171,11 +198,14 @@ export class VoiceChatManager {
         guildId,
         channelId: channel.id,
         channelName: channel.name,
+        channel,
         connection,
         player,
         isSpeaking: false,
         queue: [],
-        joinedAt: Date.now()
+        joinedAt: Date.now(),
+        lastActivityTimestamp: Date.now(),
+        lastIcebreakerTimestamp: Date.now()
       };
 
       this.sessions.set(guildId, session);
@@ -279,11 +309,99 @@ export class VoiceChatManager {
   }
 
   /**
+   * Handle user joining a voice channel where Maya is present
+   */
+  public handleMemberJoin(oldState: VoiceState, newState: VoiceState) {
+    const member = newState.member;
+    if (!member || member.user.bot) return;
+
+    const guildId = newState.guild.id;
+    const session = this.sessions.get(guildId);
+    if (!session || session.connection.state.status !== VoiceConnectionStatus.Ready) return;
+
+    // Check if member joined or switched into Maya's active voice channel
+    if (newState.channelId === session.channelId && oldState.channelId !== newState.channelId) {
+      const now = Date.now();
+      const lastGreet = this.userGreetingCooldown.get(member.id) || 0;
+      // 60 seconds cooldown per user
+      if (now - lastGreet < 60_000) return;
+
+      this.userGreetingCooldown.set(member.id, now);
+      session.lastActivityTimestamp = now;
+
+      const name = member.displayName || member.user.username;
+      const template = GREETING_TEMPLATES[Math.floor(Math.random() * GREETING_TEMPLATES.length)];
+      const greetingText = template.replace("{name}", name);
+
+      logger.info(`VoiceChatManager: Menyapa member baru masuk ${name} di guild ${guildId}`);
+      setTimeout(() => {
+        this.speak(guildId, greetingText);
+      }, 1000);
+    }
+  }
+
+  /**
+   * Start background scheduler to detect prolonged silence and break the ice
+   */
+  private startIcebreakerScheduler() {
+    if (this.icebreakerTimer) return;
+    this.icebreakerTimer = setInterval(() => {
+      this.checkAllSessionsForIcebreaker();
+    }, 45_000); // Check every 45s
+  }
+
+  /**
+   * Check all active voice sessions for icebreaker opportunities during prolonged silence
+   */
+  private checkAllSessionsForIcebreaker() {
+    const now = Date.now();
+
+    for (const [guildId, session] of this.sessions.entries()) {
+      if (session.connection.state.status !== VoiceConnectionStatus.Ready || session.isSpeaking || session.queue.length > 0) {
+        continue;
+      }
+
+      const channel = session.channel;
+      if (!channel) continue;
+
+      // Filter members who are NOT bots, NOT muted (server/self), and NOT deafened (server/self)
+      const eligibleMembers = channel.members.filter((m) => {
+        if (m.user.bot) return false;
+        const voice = m.voice;
+        const isMuted = Boolean(voice.mute || voice.selfMute);
+        const isDeafened = Boolean(voice.deaf || voice.selfDeaf);
+        return !isMuted && !isDeafened;
+      });
+
+      // Require at least 1 eligible unmuted and undeafened member
+      if (eligibleMembers.size === 0) continue;
+
+      // Check silence duration: 2.5 minutes (150,000 ms)
+      const silenceDuration = now - session.lastActivityTimestamp;
+      if (silenceDuration < 150_000) continue;
+
+      // Check icebreaker cooldown: at least 6 minutes (360,000 ms)
+      const icebreakerCooldown = now - session.lastIcebreakerTimestamp;
+      if (icebreakerCooldown < 360_000) continue;
+
+      session.lastIcebreakerTimestamp = now;
+      session.lastActivityTimestamp = now;
+
+      const icebreaker = ICEBREAKER_TOPICS[Math.floor(Math.random() * ICEBREAKER_TOPICS.length)];
+      logger.info(`VoiceChatManager: Suasana hening terdeteksi di channel "${session.channelName}" (${eligibleMembers.size} member aktif). Maya mencairkan suasana: "${icebreaker}"`);
+
+      this.speak(guildId, icebreaker);
+    }
+  }
+
+  /**
    * Speak text in voice channel (Queued & Clean)
    */
   public async speak(guildId: string, text: string): Promise<boolean> {
     const session = this.sessions.get(guildId);
     if (!session) return false;
+
+    session.lastActivityTimestamp = Date.now();
 
     const cleanedText = text
       .replace(/[*_~`#>]/g, "")
@@ -358,6 +476,10 @@ export class VoiceChatManager {
   ): Promise<string> {
     const session = this.sessions.get(guildId);
     const username = user.displayName || user.username;
+
+    if (session) {
+      session.lastActivityTimestamp = Date.now();
+    }
 
     // Maintain conversation context
     let history = this.voiceHistory.get(guildId) || [];
