@@ -6,7 +6,6 @@ import {
   EmbedBuilder, 
   MessageFlags 
 } from "discord.js";
-import play from "play-dl";
 import { Command } from "../../types";
 import { 
   musicManager, 
@@ -14,20 +13,21 @@ import {
   createNowPlayingEmbed,
   LoopMode 
 } from "../../services/musicManager";
+import { spotifyClient } from "../../services/spotifyClient";
 import { voiceChatManager } from "../../services/voiceChatManager";
 
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("music")
-    .setDescription("Putar musik berkualitas tinggi bersama Maya di Voice Channel 🎵")
+    .setDescription("Putar musik berkualitas tinggi dari Spotify bersama Maya di Voice Channel 🟢🎵")
     .addSubcommand((sub) =>
       sub
         .setName("play")
-        .setDescription("Putar lagu atau tambahkan ke antrean musik")
+        .setDescription("Putar lagu Spotify atau masukkan URL Spotify/YouTube ke antrean")
         .addStringOption((opt) =>
           opt
             .setName("judul")
-            .setDescription("Judul lagu atau URL YouTube yang ingin diputar")
+            .setDescription("Judul lagu Spotify atau link Spotify/YouTube")
             .setRequired(true)
             .setAutocomplete(true)
         )
@@ -64,27 +64,27 @@ const command: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("shuffle")
-        .setDescription("Acak urutan antrean lagu yang ada 🔀")
+        .setDescription("Acak urutan antrean lagu yang ada")
     )
     .addSubcommand((sub) =>
       sub
         .setName("skip")
-        .setDescription("Lewati lagu yang sedang diputar")
+        .setDescription("Lewati lagu yang sedang diputar ke antrean berikutnya")
     )
     .addSubcommand((sub) =>
       sub
         .setName("pause")
-        .setDescription("Jeda lagu yang sedang diputar")
+        .setDescription("Jeda sementara pemutaran musik")
     )
     .addSubcommand((sub) =>
       sub
         .setName("resume")
-        .setDescription("Lanjutkan kembali lagu yang dijeda")
+        .setDescription("Lanjutkan pemutaran musik yang dijeda")
     )
     .addSubcommand((sub) =>
       sub
         .setName("stop")
-        .setDescription("Hentikan pemutaran musik dan kosongkan antrean")
+        .setDescription("Hentikan musik dan bersihkan seluruh antrean")
     )
     .addSubcommand((sub) =>
       sub
@@ -107,17 +107,15 @@ const command: Command = {
       }
 
       try {
-        const results = await play.search(query, { source: { youtube: "video" }, limit: 5 });
-        const choices = results
-          .filter((r) => r.title && r.url)
-          .map((r) => {
-            const title = (r.title || "Unknown").slice(0, 80);
-            const duration = r.durationRaw ? ` [${r.durationRaw}]` : "";
-            return {
-              name: `${title}${duration}`.slice(0, 100),
-              value: r.url
-            };
-          });
+        const results = await spotifyClient.searchTracks(query, 5);
+        const choices = results.map((r) => {
+          const title = `${r.name} - ${r.artists}`.slice(0, 85);
+          const duration = r.durationRaw ? ` [${r.durationRaw}]` : "";
+          return {
+            name: `🟢 ${title}${duration}`.slice(0, 100),
+            value: r.url || `${r.name} ${r.artists}`
+          };
+        });
         await interaction.respond(choices);
       } catch (_) {
         await interaction.respond([]);
@@ -168,7 +166,7 @@ const command: Command = {
         return;
       }
 
-      const embed = createNowPlayingEmbed(queue, result.message);
+      const embed = createNowPlayingEmbed(queue, result.track);
       const components = createMusicControlButtons(queue);
 
       await interaction.editReply({ embeds: [embed], components });

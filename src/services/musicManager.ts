@@ -11,20 +11,22 @@ import {
   StreamType,
   AudioResource
 } from "@discordjs/voice";
-import play from "play-dl";
 import { voiceChatManager } from "./voiceChatManager";
+import { spotifyClient, SpotifyTrackInfo } from "./spotifyClient";
+import { audioStreamer } from "./audioStreamer";
 import { logger } from "../utils/logger";
 
 export type LoopMode = "off" | "track" | "queue";
 
 export interface SongTrack {
   title: string;
+  artist?: string;
   url: string;
   duration: string;
   thumbnail?: string;
   requestedBy: string;
   channelTitle?: string;
-  sourceType?: "youtube";
+  sourceType?: "spotify" | "youtube";
 }
 
 export interface GuildMusicQueue {
@@ -76,14 +78,14 @@ export class MusicManager {
   }
 
   /**
-   * Search and enqueue a song (YouTube only, highest quality)
+   * Search and enqueue a song (Spotify Priority, Full Audio Streaming)
    */
   public async play(
     guildId: string, 
     query: string, 
     user: User, 
     voiceChannel?: VoiceBasedChannel
-  ): Promise<{ success: boolean; message: string; track?: SongTrack; queue?: GuildMusicQueue }> {
+  ): Promise<{ success: boolean; message: string; track?: SongTrack; queue?: GuildMusicQueue; playlistCount?: number }> {
     const queue = this.getOrCreateQueue(guildId);
 
     // If bot not connected and voice channel provided, join
@@ -95,65 +97,179 @@ export class MusicManager {
     }
 
     try {
+      const trimmed = query.trim();
+
+      // 1. Handle Spotify Playlist / Album / Track URLs
+      if (trimmed.includes("spotify.com/playlist/")) {
+        const match = trimmed.match(/playlist\/([a-zA-Z0-9]+)/);
+        if (match) {
+          const pl = await spotifyClient.getPlaylist(match[1]);
+          if (!pl || pl.tracks.length === 0) {
+            return { success: false, message: "Playlist Spotify tidak ditemukan atau kosong!" };
+          }
+
+          const addedTracks: SongTrack[] = pl.tracks.map((t) => ({
+            title: t.name,
+            artist: t.artists,
+            url: t.url,
+            duration: t.durationRaw,
+            thumbnail: t.albumArt,
+            requestedBy: user.displayName || user.username,
+            channelTitle: t.artists,
+            sourceType: "spotify"
+          }));
+
+          const first = addedTracks.shift()!;
+          for (const track of addedTracks) {
+            queue.tracks.push(track);
+          }
+
+          if (queue.isPlaying || queue.currentTrack) {
+            queue.tracks.unshift(first);
+            return {
+              success: true,
+              message: `Memuat playlist Spotify **${pl.title}** (${pl.tracks.length} lagu) ke antrean! 🎵`,
+              track: first,
+              queue,
+              playlistCount: pl.tracks.length
+            };
+          } else {
+            queue.currentTrack = first;
+            await this.streamTrack(guildId, first);
+            return {
+              success: true,
+              message: `Memutar playlist Spotify **${pl.title}** (${pl.tracks.length} lagu)! 🎵`,
+              track: first,
+              queue,
+              playlistCount: pl.tracks.length
+            };
+          }
+        }
+      }
+
+      if (trimmed.includes("spotify.com/album/")) {
+        const match = trimmed.match(/album\/([a-zA-Z0-9]+)/);
+        if (match) {
+          const album = await spotifyClient.getAlbum(match[1]);
+          if (!album || album.tracks.length === 0) {
+            return { success: false, message: "Album Spotify tidak ditemukan atau kosong!" };
+          }
+
+          const addedTracks: SongTrack[] = album.tracks.map((t) => ({
+            title: t.name,
+            artist: t.artists,
+            url: t.url,
+            duration: t.durationRaw,
+            thumbnail: t.albumArt,
+            requestedBy: user.displayName || user.username,
+            channelTitle: t.artists,
+            sourceType: "spotify"
+          }));
+
+          const first = addedTracks.shift()!;
+          for (const track of addedTracks) {
+            queue.tracks.push(track);
+          }
+
+          if (queue.isPlaying || queue.currentTrack) {
+            queue.tracks.unshift(first);
+            return {
+              success: true,
+              message: `Memuat album Spotify **${album.title}** (${album.tracks.length} lagu) ke antrean! 🎵`,
+              track: first,
+              queue,
+              playlistCount: album.tracks.length
+            };
+          } else {
+            queue.currentTrack = first;
+            await this.streamTrack(guildId, first);
+            return {
+              success: true,
+              message: `Memutar album Spotify **${album.title}** (${album.tracks.length} lagu)! 🎵`,
+              track: first,
+              queue,
+              playlistCount: album.tracks.length
+            };
+          }
+        }
+      }
+
+      if (trimmed.includes("spotify.com/track/")) {
+        const match = trimmed.match(/track\/([a-zA-Z0-9]+)/);
+        if (match) {
+          const t = await spotifyClient.getTrack(match[1]);
+          if (t) {
+            const trackInfo: SongTrack = {
+              title: t.name,
+              artist: t.artists,
+              url: t.url,
+              duration: t.durationRaw,
+              thumbnail: t.albumArt,
+              requestedBy: user.displayName || user.username,
+              channelTitle: t.artists,
+              sourceType: "spotify"
+            };
+
+            if (queue.isPlaying || queue.currentTrack) {
+              queue.tracks.push(trackInfo);
+              return {
+                success: true,
+                message: `Lagu **${trackInfo.title}** oleh **${trackInfo.artist}** berhasil ditambahkan ke antrean! (Posisi: #${queue.tracks.length})`,
+                track: trackInfo,
+                queue
+              };
+            }
+
+            queue.currentTrack = trackInfo;
+            await this.streamTrack(guildId, trackInfo);
+            return {
+              success: true,
+              message: `Memutar lagu Spotify: **${trackInfo.title}** - ${trackInfo.artist} 🎶`,
+              track: trackInfo,
+              queue
+            };
+          }
+        }
+      }
+
+      // 2. Search via Spotify Web API
+      const spotifyResults = await spotifyClient.searchTracks(trimmed, 5);
       let trackInfo: SongTrack | null = null;
 
-      // 1. Check if direct YouTube URL
-      if (query.startsWith("http://") || query.startsWith("https://")) {
-        const validation = await play.validate(query);
-        if (validation === "yt_video") {
-          const info = await play.video_info(query);
-          const videoUrl = info.video_details.url;
-          if (!videoUrl || !videoUrl.startsWith("http")) {
-            return { success: false, message: "URL YouTube tidak valid atau video tidak tersedia!" };
-          }
-          trackInfo = {
-            title: info.video_details.title || "Unknown Title",
-            url: videoUrl,
-            duration: info.video_details.durationRaw || "0:00",
-            thumbnail: info.video_details.thumbnails[0]?.url,
-            requestedBy: user.displayName || user.username,
-            channelTitle: info.video_details.channel?.name || "YouTube",
-            sourceType: "youtube",
-          };
-        } else {
-          return { success: false, message: "Hanya URL YouTube yang didukung. Masukkan link YouTube yang valid!" };
-        }
-      }
-
-      // 2. Search YouTube (try up to 5 results to find one with valid URL)
-      if (!trackInfo) {
-        const ytResults = await play.search(query, { source: { youtube: "video" }, limit: 5 });
-        if (ytResults && ytResults.length > 0) {
-          for (const res of ytResults) {
-            if (!res.url || !res.url.startsWith("http")) {
-              logger.warn(`MusicManager: Hasil pencarian "${res.title}" memiliki URL tidak valid, melewati...`);
-              continue;
-            }
-            trackInfo = {
-              title: res.title || query,
-              url: res.url,
-              duration: res.durationRaw || "0:00",
-              thumbnail: res.thumbnails[0]?.url,
-              requestedBy: user.displayName || user.username,
-              channelTitle: res.channel?.name || "YouTube",
-              sourceType: "youtube",
-            };
-            break;
-          }
-        }
+      if (spotifyResults.length > 0) {
+        const sp = spotifyResults[0];
+        trackInfo = {
+          title: sp.name,
+          artist: sp.artists,
+          url: sp.url,
+          duration: sp.durationRaw,
+          thumbnail: sp.albumArt,
+          requestedBy: user.displayName || user.username,
+          channelTitle: sp.artists,
+          sourceType: "spotify"
+        };
+      } else {
+        // Fallback title query
+        trackInfo = {
+          title: trimmed,
+          url: trimmed,
+          duration: "Unknown",
+          requestedBy: user.displayName || user.username,
+          sourceType: "spotify"
+        };
       }
 
       if (!trackInfo) {
-        return { success: false, message: `Lagu dengan judul "${query}" tidak ditemukan di YouTube!` };
+        return { success: false, message: `Lagu "${query}" tidak ditemukan di Spotify!` };
       }
 
       // If already playing, add to queue
       if (queue.isPlaying || queue.currentTrack) {
         queue.tracks.push(trackInfo);
-        logger.info(`MusicManager: Menambahkan ke antrean (${guildId}): "${trackInfo.title}"`);
+        logger.info(`MusicManager: Menambahkan ke antrean (${guildId}): "${trackInfo.title}" - ${trackInfo.artist || ""}`);
         return { 
           success: true, 
-          message: `Lagu **${trackInfo.title}** berhasil ditambahkan ke antrean! (Posisi: #${queue.tracks.length})`, 
+          message: `Lagu **${trackInfo.title}** ${trackInfo.artist ? `oleh **${trackInfo.artist}**` : ""} berhasil ditambahkan ke antrean! (Posisi: #${queue.tracks.length})`, 
           track: trackInfo,
           queue
         };
@@ -165,7 +281,7 @@ export class MusicManager {
 
       return { 
         success: true, 
-        message: `Memutar lagu: **${trackInfo.title}** 🎶`, 
+        message: `Memutar lagu: **${trackInfo.title}** ${trackInfo.artist ? `- ${trackInfo.artist}` : ""} 🎶`, 
         track: trackInfo,
         queue
       };
@@ -176,7 +292,7 @@ export class MusicManager {
   }
 
   /**
-   * Stream YouTube audio track with highest quality (quality: 0 = best available)
+   * Stream audio track to Discord Voice with volume control
    */
   private async streamTrack(guildId: string, track: SongTrack) {
     const queue = this.getOrCreateQueue(guildId);
@@ -190,22 +306,12 @@ export class MusicManager {
       return;
     }
 
-    // Guard: URL harus valid sebelum di-stream
-    if (!track.url || !track.url.startsWith("http")) {
-      logger.error(`MusicManager: URL tidak valid untuk "${track.title}" (url=${track.url}), melewati lagu ini.`);
-      queue.currentTrack = null;
-      queue.isPlaying = false;
-      queue.currentResource = null;
-      await this.playNext(guildId);
-      return;
-    }
-
     try {
-      // quality: 0 = highest quality available (prefers Opus/WebM ~160kbps, falls back to m4a 128kbps)
-      const stream = await play.stream(track.url, { quality: 0 });
+      const searchTarget = track.artist ? `${track.title} ${track.artist}` : track.title;
+      const audioStream = await audioStreamer.getAudioStream(searchTarget);
 
-      const resource = createAudioResource(stream.stream, {
-        inputType: stream.type === "opus" ? StreamType.Opus : StreamType.Arbitrary,
+      const resource = createAudioResource(audioStream, {
+        inputType: StreamType.Arbitrary,
         inlineVolume: true,
       });
       resource.volume?.setVolume(queue.volume / 100);
@@ -216,7 +322,7 @@ export class MusicManager {
       queue.isInterruptedByVoice = false;
 
       session.player.play(resource);
-      logger.info(`MusicManager: Memutar "${track.title}" [YouTube HQ | Vol: ${queue.volume}%] di guild ${guildId}`);
+      logger.info(`MusicManager: Memutar "${track.title}" [Spotify Engine | Vol: ${queue.volume}%] di guild ${guildId}`);
     } catch (err: any) {
       logger.error(`MusicManager: Gagal streaming "${track.title}" — ${err.message}. Melewati lagu...`);
       queue.isPlaying = false;
@@ -249,47 +355,15 @@ export class MusicManager {
     if (queue.tracks.length > 0) {
       const nextTrack = queue.tracks.shift()!;
       queue.currentTrack = nextTrack;
+      logger.info(`MusicManager: Memutar lagu berikutnya dari antrean: "${nextTrack.title}"`);
       await this.streamTrack(guildId, nextTrack);
     } else {
+      logger.info(`MusicManager: Antrean musik selesai di guild ${guildId}`);
       queue.currentTrack = null;
-      queue.currentResource = null;
       queue.isPlaying = false;
       queue.isPaused = false;
-      queue.isInterruptedByVoice = false;
-      logger.info(`MusicManager: Antrean musik selesai di guild ${guildId}`);
+      queue.currentResource = null;
     }
-  }
-
-  /**
-   * Skip current song
-   */
-  public async skip(guildId: string): Promise<boolean> {
-    const queue = this.queues.get(guildId);
-    if (!queue || !queue.currentTrack) return false;
-
-    const skippedTitle = queue.currentTrack.title;
-    logger.info(`MusicManager: Melewati lagu "${skippedTitle}" di guild ${guildId}`);
-
-    // If loop is "track", temporarily bypass so it plays next track
-    if (queue.loopMode === "track") {
-      if (queue.tracks.length > 0) {
-        const nextTrack = queue.tracks.shift()!;
-        queue.currentTrack = nextTrack;
-        await this.streamTrack(guildId, nextTrack);
-        return true;
-      } else {
-        queue.currentTrack = null;
-        queue.currentResource = null;
-        queue.isPlaying = false;
-        queue.isPaused = false;
-        const session = voiceChatManager.getSession(guildId);
-        session?.player.stop();
-        return true;
-      }
-    }
-
-    await this.playNext(guildId);
-    return true;
   }
 
   /**
@@ -298,10 +372,11 @@ export class MusicManager {
   public pause(guildId: string): boolean {
     const queue = this.queues.get(guildId);
     const session = voiceChatManager.getSession(guildId);
-    if (!queue || !queue.isPlaying || !session) return false;
+    if (!queue || !session || !queue.isPlaying || queue.isPaused) return false;
 
     session.player.pause();
     queue.isPaused = true;
+    logger.info(`MusicManager: Musik dijeda di guild ${guildId}`);
     return true;
   }
 
@@ -311,10 +386,30 @@ export class MusicManager {
   public resume(guildId: string): boolean {
     const queue = this.queues.get(guildId);
     const session = voiceChatManager.getSession(guildId);
-    if (!queue || !queue.isPaused || !session) return false;
+    if (!queue || !session || !queue.isPaused) return false;
 
     session.player.unpause();
     queue.isPaused = false;
+    logger.info(`MusicManager: Musik dilanjutkan di guild ${guildId}`);
+    return true;
+  }
+
+  /**
+   * Skip current song
+   */
+  public async skip(guildId: string): Promise<boolean> {
+    const queue = this.queues.get(guildId);
+    const session = voiceChatManager.getSession(guildId);
+    if (!queue || !session || !queue.currentTrack) return false;
+
+    logger.info(`MusicManager: Melewati lagu "${queue.currentTrack.title}" di guild ${guildId}`);
+    const tempLoop = queue.loopMode;
+    if (queue.loopMode === "track") queue.loopMode = "off";
+
+    session.player.stop();
+    await this.playNext(guildId);
+
+    if (tempLoop === "track") queue.loopMode = "track";
     return true;
   }
 
@@ -328,68 +423,34 @@ export class MusicManager {
 
     queue.tracks = [];
     queue.currentTrack = null;
-    queue.currentResource = null;
     queue.isPlaying = false;
     queue.isPaused = false;
-    queue.isInterruptedByVoice = false;
+    queue.currentResource = null;
 
     if (session) {
       session.player.stop();
     }
+    logger.info(`MusicManager: Musik dihentikan & antrean dikosongkan di guild ${guildId}`);
     return true;
   }
 
   /**
-   * Set or toggle Loop Mode ("off" | "track" | "queue")
-   */
-  public setLoop(guildId: string, mode?: LoopMode): LoopMode {
-    const queue = this.getOrCreateQueue(guildId);
-    if (mode) {
-      queue.loopMode = mode;
-    } else {
-      // Cycle: off -> track -> queue -> off
-      if (queue.loopMode === "off") queue.loopMode = "track";
-      else if (queue.loopMode === "track") queue.loopMode = "queue";
-      else queue.loopMode = "off";
-    }
-    logger.info(`MusicManager: Loop mode guild ${guildId} diubah menjadi: ${queue.loopMode}`);
-    return queue.loopMode;
-  }
-
-  /**
-   * Shuffle queue tracks using Fisher-Yates
-   */
-  public shuffle(guildId: string): boolean {
-    const queue = this.queues.get(guildId);
-    if (!queue || queue.tracks.length <= 1) return false;
-
-    for (let i = queue.tracks.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [queue.tracks[i], queue.tracks[j]] = [queue.tracks[j], queue.tracks[i]];
-    }
-
-    logger.info(`MusicManager: Berhasil mengacak ${queue.tracks.length} lagu di antrean guild ${guildId}`);
-    return true;
-  }
-
-  /**
-   * Set volume (1 - 100) with live adjustment
+   * Set volume (1 - 100)
    */
   public setVolume(guildId: string, volume: number): number {
     const queue = this.getOrCreateQueue(guildId);
-    const clamped = Math.max(1, Math.min(100, Math.round(volume)));
-    queue.volume = clamped;
+    const safeVol = Math.max(1, Math.min(100, Math.round(volume)));
+    queue.volume = safeVol;
 
     if (queue.currentResource && queue.currentResource.volume) {
-      queue.currentResource.volume.setVolume(clamped / 100);
+      queue.currentResource.volume.setVolume(safeVol / 100);
     }
-
-    logger.info(`MusicManager: Volume guild ${guildId} diatur ke ${clamped}%`);
-    return clamped;
+    logger.info(`MusicManager: Volume diatur ke ${safeVol}% di guild ${guildId}`);
+    return safeVol;
   }
 
   /**
-   * Adjust volume by delta (e.g. +10, -10)
+   * Increment or decrement volume by delta (e.g. +10 or -10)
    */
   public changeVolume(guildId: string, delta: number): number {
     const queue = this.getOrCreateQueue(guildId);
@@ -397,63 +458,147 @@ export class MusicManager {
   }
 
   /**
-   * Called when Maya starts speaking TTS (Voice Greeting / Answer / Icebreaker)
+   * Set loop mode (off, track, queue)
+   */
+  public setLoopMode(guildId: string, mode: LoopMode): LoopMode {
+    const queue = this.getOrCreateQueue(guildId);
+    queue.loopMode = mode;
+    logger.info(`MusicManager: Loop mode diatur ke "${mode}" di guild ${guildId}`);
+    return mode;
+  }
+
+  public setLoop(guildId: string, mode?: LoopMode): LoopMode {
+    const queue = this.getOrCreateQueue(guildId);
+    if (!mode) {
+      const cycle: Record<LoopMode, LoopMode> = {
+        off: "track",
+        track: "queue",
+        queue: "off"
+      };
+      mode = cycle[queue.loopMode] || "off";
+    }
+    return this.setLoopMode(guildId, mode);
+  }
+
+  /**
+   * Duck/pause music when Maya starts speaking in voice
    */
   public onMayaSpeechStart(guildId: string) {
     const queue = this.queues.get(guildId);
-    if (queue && queue.isPlaying && queue.currentTrack && !queue.isPaused) {
+    const session = voiceChatManager.getSession(guildId);
+    if (queue && queue.isPlaying && !queue.isPaused && session) {
       queue.isInterruptedByVoice = true;
-      logger.info(`MusicManager: Maya berbicara. Menjeda musik "${queue.currentTrack.title}" sementara...`);
+      session.player.pause();
+      logger.info(`MusicManager: Musik dijeda sementara karena Maya berbicara di guild ${guildId}`);
     }
   }
 
   /**
-   * Called when Maya finishes speaking TTS -> Auto Resume Music
+   * Resume music when Maya finishes speaking
    */
-  public async onMayaSpeechEnd(guildId: string) {
+  public onMayaSpeechEnd(guildId: string) {
     const queue = this.queues.get(guildId);
-    if (queue && queue.isInterruptedByVoice && queue.currentTrack) {
+    const session = voiceChatManager.getSession(guildId);
+    if (queue && queue.isPlaying && queue.isInterruptedByVoice && session) {
       queue.isInterruptedByVoice = false;
-      logger.info(`MusicManager: Maya selesai berbicara. Melanjutkan pemutaran musik "${queue.currentTrack.title}"...`);
-      await this.streamTrack(guildId, queue.currentTrack);
+      session.player.unpause();
+      logger.info(`MusicManager: Musik dilanjutkan kembali setelah Maya selesai berbicara di guild ${guildId}`);
     }
+  }
+
+  /**
+   * Shuffle remaining queue
+   */
+  public shuffle(guildId: string): boolean {
+    const queue = this.queues.get(guildId);
+    if (!queue || queue.tracks.length < 2) return false;
+
+    for (let i = queue.tracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [queue.tracks[i], queue.tracks[j]] = [queue.tracks[j], queue.tracks[i]];
+    }
+    logger.info(`MusicManager: Antrean musik diacak di guild ${guildId} (${queue.tracks.length} lagu)`);
+    return true;
   }
 }
 
 export const musicManager = MusicManager.getInstance();
 
 /**
- * Helper to create rich interactive Button Controller ActionRows
+ * Helper to create Now Playing Embed with Spotify Branding
+ */
+export function createNowPlayingEmbed(queue: GuildMusicQueue, trackParam?: SongTrack): EmbedBuilder {
+  const track = trackParam || queue.currentTrack;
+  if (!track) {
+    return new EmbedBuilder()
+      .setColor(0x1DB954)
+      .setTitle("🎵 Pemutar Musik Spotify Maya")
+      .setDescription("Tidak ada lagu yang sedang diputar saat ini.\nGunakan `/music play [judul]` untuk memutar lagu!");
+  }
+
+  const loopIcons = {
+    off: "❌ Nonaktif",
+    track: "🔂 Ulang Lagu (Track)",
+    queue: "🔁 Ulang Antrean (Queue)"
+  };
+
+  const statusText = queue.isPaused 
+    ? "⏸️ Dijeda (Paused)" 
+    : (queue.isInterruptedByVoice ? "🎙️ Sedang Maya Berbicara" : "▶️ Sedang Diputar");
+
+  const embed = new EmbedBuilder()
+    .setColor(0x1DB954)
+    .setTitle("🟢 SPOTIFY • Sedang Diputar")
+    .setDescription(
+      `### [${track.title}](${track.url})\n` +
+      (track.artist ? `**Artis:** \`${track.artist}\`\n` : "") +
+      `**Durasi:** \`${track.duration}\` • **Status:** \`${statusText}\`\n` +
+      `**Dipinta oleh:** <@${track.requestedBy}> • **Volume:** \`${queue.volume}%\`\n` +
+      `**Mode Loop:** \`${loopIcons[queue.loopMode]}\``
+    )
+    .addFields({
+      name: "📋 Antrean Berikutnya",
+      value: queue.tracks.length > 0 
+        ? `**${queue.tracks.length} lagu** menunggu di antrean (Ketik \`/music queue\` untuk melihat daftar)` 
+        : "*Antrean kosong. Lagu ini adalah yang terakhir.*"
+    })
+    .setFooter({ text: "Maya Spotify Player • High-Fidelity Audio Stream" })
+    .setTimestamp();
+
+  if (track.thumbnail) {
+    embed.setThumbnail(track.thumbnail);
+  }
+
+  return embed;
+}
+
+/**
+ * Helper to create Interactive Button Controls
  */
 export function createMusicControlButtons(queue: GuildMusicQueue): ActionRowBuilder<ButtonBuilder>[] {
-  const isPaused = queue.isPaused;
-  const loopMode = queue.loopMode;
-
-  const loopLabel = loopMode === "track" ? "🔂 Loop: Track" : loopMode === "queue" ? "🔁 Loop: Queue" : "🔁 Loop: Off";
-  const loopStyle = loopMode !== "off" ? ButtonStyle.Success : ButtonStyle.Secondary;
-
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId("music_ctrl:pause_resume")
-      .setEmoji(isPaused ? "▶️" : "⏸️")
-      .setLabel(isPaused ? "Resume" : "Pause")
-      .setStyle(isPaused ? ButtonStyle.Success : ButtonStyle.Primary),
+      .setCustomId("music_btn:pause_resume")
+      .setEmoji(queue.isPaused ? "▶️" : "⏸️")
+      .setLabel(queue.isPaused ? "Resume" : "Pause")
+      .setStyle(queue.isPaused ? ButtonStyle.Success : ButtonStyle.Primary),
     new ButtonBuilder()
-      .setCustomId("music_ctrl:skip")
+      .setCustomId("music_btn:skip")
       .setEmoji("⏭️")
       .setLabel("Skip")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId("music_ctrl:loop")
-      .setLabel(loopLabel)
-      .setStyle(loopStyle),
+      .setCustomId("music_btn:loop")
+      .setEmoji("🔁")
+      .setLabel(`Loop: ${queue.loopMode.toUpperCase()}`)
+      .setStyle(queue.loopMode !== "off" ? ButtonStyle.Success : ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId("music_ctrl:shuffle")
+      .setCustomId("music_btn:shuffle")
       .setEmoji("🔀")
       .setLabel("Shuffle")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId("music_ctrl:stop")
+      .setCustomId("music_btn:stop")
       .setEmoji("⏹️")
       .setLabel("Stop")
       .setStyle(ButtonStyle.Danger)
@@ -461,60 +606,21 @@ export function createMusicControlButtons(queue: GuildMusicQueue): ActionRowBuil
 
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId("music_ctrl:vol_down")
+      .setCustomId("music_btn:vol_down")
       .setEmoji("🔉")
       .setLabel("-10%")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId("music_ctrl:vol_up")
+      .setCustomId("music_btn:vol_up")
       .setEmoji("🔊")
       .setLabel("+10%")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId("music_ctrl:queue")
+      .setCustomId("music_btn:queue")
       .setEmoji("📜")
-      .setLabel(`Antrean (${queue.tracks.length})`)
+      .setLabel("Lihat Antrean")
       .setStyle(ButtonStyle.Secondary)
   );
 
   return [row1, row2];
-}
-
-/**
- * Helper to create rich Now Playing embed
- */
-export function createNowPlayingEmbed(queue: GuildMusicQueue, customMessage?: string): EmbedBuilder {
-  const track = queue.currentTrack;
-
-  const loopLabel = queue.loopMode === "track" 
-    ? "🔂 Ulang Lagu Ini" 
-    : queue.loopMode === "queue" 
-    ? "🔁 Ulang Seluruh Antrean" 
-    : "❌ Nonaktif";
-
-  const statusLabel = queue.isPaused ? "⏸️ Dijeda" : "▶️ Sedang Memutar";
-
-  const embed = new EmbedBuilder()
-    .setColor(0xF472B6)
-    .setTitle("🎵 Maya Music Player")
-    .setDescription(customMessage || (track ? `[**${track.title}**](${track.url})` : "Tidak ada lagu yang sedang diputar."))
-    .setFooter({ text: "Maya Music Companion • YouTube HQ Audio", iconURL: "https://i.imgur.com/8Q5F5W4.png" })
-    .setTimestamp();
-
-  if (track) {
-    embed.addFields(
-      { name: "⏱️ Durasi", value: `\`${track.duration}\``, inline: true },
-      { name: "👤 Pemesan", value: track.requestedBy, inline: true },
-      { name: "📊 Status", value: statusLabel, inline: true },
-      { name: "🔊 Volume", value: `\`${queue.volume}%\``, inline: true },
-      { name: "🔁 Mode Loop", value: `\`${loopLabel}\``, inline: true },
-      { name: "📋 Sisa Antrean", value: `\`${queue.tracks.length} lagu\``, inline: true }
-    );
-
-    if (track.thumbnail) {
-      embed.setThumbnail(track.thumbnail);
-    }
-  }
-
-  return embed;
 }
