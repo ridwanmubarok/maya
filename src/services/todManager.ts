@@ -45,6 +45,58 @@ export class TodManager {
   }
 
   /**
+   * Start Truth or Dare session directly from voice speech command
+   */
+  public async startSessionFromVoice(
+    guildId: string,
+    user: User
+  ): Promise<boolean> {
+    const voiceSession = voiceChatManager.getSession(guildId);
+    if (!voiceSession || !voiceSession.channel) {
+      voiceChatManager.speak(guildId, "Maya harus berada di Voice Channel dulu untuk main Truth or Dare!");
+      return false;
+    }
+
+    const voiceChannel = voiceSession.channel;
+    const guild = voiceChannel.guild;
+    let targetTextChannel: TextBasedChannel | null = null;
+
+    if (voiceChannel.isTextBased && typeof voiceChannel.isTextBased === "function" && voiceChannel.isTextBased()) {
+      targetTextChannel = voiceChannel as unknown as TextBasedChannel;
+    } else if (guild) {
+      targetTextChannel = (guild.systemChannel || 
+        guild.channels.cache.find((c: any) => c.isTextBased() && !c.isVoiceBased()) || 
+        null) as unknown as TextBasedChannel;
+    }
+
+    if (!targetTextChannel) {
+      voiceChatManager.speak(guildId, "Maya tidak menemukan text channel untuk menampilkan papan Truth or Dare!");
+      return false;
+    }
+
+    const res = await this.startSession(
+      guildId,
+      targetTextChannel,
+      voiceChannel,
+      "casual",
+      user
+    );
+
+    if (res.success && res.embed && "send" in targetTextChannel) {
+      try {
+        await (targetTextChannel as any).send({
+          embeds: [res.embed],
+          components: res.components || []
+        });
+      } catch (err) {
+        logger.warn("TodManager: Gagal mengirim embed ke text channel:", err);
+      }
+    }
+
+    return res.success;
+  }
+
+  /**
    * Start a new Truth or Dare session in voice channel
    */
   public async startSession(

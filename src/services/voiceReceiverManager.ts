@@ -256,29 +256,51 @@ DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, hah
     }
 
     // 4. Truth or Dare Voice Intents
+    // a. Start TOD via voice ("maya ayo main truth or dare", "maya main tod yuk", "maya mulai truth or dare")
+    if (
+      /(?:main|mulai|ayo|yuk)\s+(?:game\s+)?(?:truth\s+or\s+dare|tod|jujur\s+atau\s+berani)/i.test(commandText) || 
+      /(?:truth\s+or\s+dare|tod|jujur\s+atau\s+berani)\s+(?:yuk|dong|gas|kuy)/i.test(commandText) ||
+      /^(?:truth\s+or\s+dare|tod)$/i.test(commandText)
+    ) {
+      const existingSession = todManager.getSession(guildId);
+      if (existingSession) {
+        voiceChatManager.speak(guildId, "Sesi Truth or Dare sudah berjalan kok! Yuk putar botolnya!");
+        return;
+      }
+      logger.info(`VoiceReceiverManager: Voice Trigger Start TOD dari ${user.username}: "${commandText}"`);
+      await todManager.startSessionFromVoice(guildId, user);
+      return;
+    }
+
     const todSession = todManager.getSession(guildId);
     if (todSession) {
-      // a. Spin bottle voice command
-      if (/(?:putar\s+botol|spin\s+botol|acak\s+pemain|lanjut\s+putar)/i.test(commandText)) {
+      // b. Spin bottle voice command
+      if (/(?:putar\s+botol|spin\s+botol|acak\s+pemain|lanjut\s+putar|\bputar\b)/i.test(commandText)) {
         await todManager.spinBottle(guildId, user);
         return;
       }
 
-      // b. Choose Truth voice command
+      // c. Choose Truth voice command
       if (todSession.status === "awaiting_choice" && /(?:pilih\s+truth|mau\s+truth|aku\s+truth|\btruth\b)/i.test(commandText)) {
         await todManager.chooseType(guildId, "truth", user);
         return;
       }
 
-      // c. Choose Dare voice command
+      // d. Choose Dare voice command
       if (todSession.status === "awaiting_choice" && /(?:pilih\s+dare|mau\s+dare|aku\s+dare|\bdare\b)/i.test(commandText)) {
         await todManager.chooseType(guildId, "dare", user);
         return;
       }
 
-      // d. Complete turn voice command
-      if (todSession.status === "awaiting_completion" && /(?:sudah\s+selesai|udah\s+selesai|selesai\s+dare|selesai\s+truth|lolos)/i.test(commandText)) {
+      // e. Complete turn voice command
+      if (todSession.status === "awaiting_completion" && /(?:sudah\s+selesai|udah\s+selesai|selesai\s+dare|selesai\s+truth|lolos|\bselesai\b)/i.test(commandText)) {
         await todManager.completeTurn(guildId, user);
+        return;
+      }
+
+      // f. End game voice command
+      if (/(?:berhenti\s+tod|stop\s+tod|selesai\s+tod|akhiri\s+truth\s+or\s+dare|stop\s+truth\s+or\s+dare|tutup\s+tod)/i.test(commandText)) {
+        todManager.endSession(guildId);
         return;
       }
     }
