@@ -13,6 +13,7 @@ import { generateFreeImage } from "../services/imageGenService";
 import { imaginePromptCache } from "../commands/utility/imagine";
 import { handlePollVoteInteraction } from "../services/dailyPollManager";
 import { musicManager, createMusicControlButtons, createNowPlayingEmbed } from "../services/musicManager";
+import { todManager } from "../services/todManager";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -20,6 +21,93 @@ const event: BotEvent = {
     // Handle Button Interactions
     if (interaction.isButton()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("tod_btn:")) {
+        const action = customId.split(":")[1];
+        const guildId = interaction.guildId;
+        const member = interaction.member as GuildMember;
+
+        if (!guildId || !member) {
+          await interaction.reply({ content: "Tombol ini hanya dapat digunakan di server!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const voiceChannel = member.voice?.channel;
+        if (!voiceChannel) {
+          await interaction.reply({ content: "Kamu harus berada di Voice Channel untuk bermain Truth or Dare!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const session = todManager.getSession(guildId);
+        if (!session) {
+          await interaction.reply({ content: "Sesi Truth or Dare telah berakhir atau tidak ditemukan!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        if (action === "spin") {
+          await interaction.deferUpdate();
+          const res = await todManager.spinBottle(guildId, interaction.user);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "choice_truth" || action === "choice_dare") {
+          const type = action === "choice_truth" ? "truth" : "dare";
+
+          if (session.targetUserId && interaction.user.id !== session.targetUserId) {
+            await interaction.reply({
+              content: `⚠️ Hanya <@${session.targetUserId}> yang dapat memilih Truth atau Dare di gilirannya!`,
+              flags: MessageFlags.Ephemeral
+            });
+            return;
+          }
+
+          await interaction.deferUpdate();
+          const res = await todManager.chooseType(guildId, type, interaction.user);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "reroll") {
+          if (!session.currentPromptType) {
+            await interaction.reply({ content: "Belum ada jenis tantangan yang dipilih!", flags: MessageFlags.Ephemeral });
+            return;
+          }
+          await interaction.deferUpdate();
+          const res = await todManager.chooseType(guildId, session.currentPromptType, interaction.user);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          }
+          return;
+        }
+
+        if (action === "done") {
+          await interaction.deferUpdate();
+          const res = await todManager.completeTurn(guildId, interaction.user);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          }
+          return;
+        }
+
+        if (action === "end") {
+          todManager.endSession(guildId);
+          await interaction.update({
+            content: `🛑 Permainan Truth or Dare telah diakhiri oleh **${member.displayName || interaction.user.username}**.`,
+            embeds: [],
+            components: []
+          });
+          return;
+        }
+      }
 
       if (customId.startsWith("music_ctrl:")) {
         const action = customId.split(":")[1];

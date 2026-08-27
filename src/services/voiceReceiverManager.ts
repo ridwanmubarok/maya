@@ -8,6 +8,7 @@ import { transcribeAudio } from "./sttClient";
 import { askNvidia } from "./aiClient";
 import { voiceChatManager, isAmubhyaInsult } from "./voiceChatManager";
 import { musicManager } from "./musicManager";
+import { todManager } from "./todManager";
 import { logger } from "../utils/logger";
 
 /**
@@ -252,6 +253,34 @@ DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, hah
       musicManager.stop(guildId);
       voiceChatManager.speak(guildId, "Sip, musiknya sudah Maya berhentiin ya!");
       return;
+    }
+
+    // 4. Truth or Dare Voice Intents
+    const todSession = todManager.getSession(guildId);
+    if (todSession) {
+      // a. Spin bottle voice command
+      if (/(?:putar\s+botol|spin\s+botol|acak\s+pemain|lanjut\s+putar)/i.test(commandText)) {
+        await todManager.spinBottle(guildId, user);
+        return;
+      }
+
+      // b. Choose Truth voice command
+      if (todSession.status === "awaiting_choice" && /(?:pilih\s+truth|mau\s+truth|aku\s+truth|\btruth\b)/i.test(commandText)) {
+        await todManager.chooseType(guildId, "truth", user);
+        return;
+      }
+
+      // c. Choose Dare voice command
+      if (todSession.status === "awaiting_choice" && /(?:pilih\s+dare|mau\s+dare|aku\s+dare|\bdare\b)/i.test(commandText)) {
+        await todManager.chooseType(guildId, "dare", user);
+        return;
+      }
+
+      // d. Complete turn voice command
+      if (todSession.status === "awaiting_completion" && /(?:sudah\s+selesai|udah\s+selesai|selesai\s+dare|selesai\s+truth|lolos)/i.test(commandText)) {
+        await todManager.completeTurn(guildId, user);
+        return;
+      }
     }
 
     // Process general question/chat via AI and speak answer
