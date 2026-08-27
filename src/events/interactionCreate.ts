@@ -14,6 +14,7 @@ import { imaginePromptCache } from "../commands/utility/imagine";
 import { handlePollVoteInteraction } from "../services/dailyPollManager";
 import { musicManager, createMusicControlButtons, createNowPlayingEmbed } from "../services/musicManager";
 import { todManager } from "../services/todManager";
+import { werewolfManager } from "../services/werewolfManager";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -21,6 +22,271 @@ const event: BotEvent = {
     // Handle Button Interactions
     if (interaction.isButton()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("ww_btn:")) {
+        const parts = customId.split(":");
+        const action = parts[1];
+        const extraArg = parts[2];
+        const guildId = interaction.guildId;
+        const member = interaction.member as GuildMember;
+
+        if (!guildId || !member) {
+          await interaction.reply({ content: "Tombol ini hanya dapat digunakan di server!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const session = werewolfManager.getSession(guildId);
+        if (!session) {
+          await interaction.reply({ content: "Permainan Werewolf tidak sedang aktif!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        if (action === "join") {
+          const res = werewolfManager.joinLobby(guildId, interaction.user);
+          if (res.success && res.embed) {
+            await interaction.update({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.reply({ content: `⚠️ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "leave") {
+          const res = werewolfManager.leaveLobby(guildId, interaction.user.id);
+          if (res.success) {
+            if (res.embed) {
+              await interaction.update({ embeds: [res.embed], components: res.components || [] });
+            } else {
+              await interaction.update({ content: res.message, embeds: [], components: [] });
+            }
+          } else {
+            await interaction.reply({ content: `⚠️ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "start") {
+          if (session.hostId !== interaction.user.id) {
+            await interaction.reply({ content: "Hanya Host yang dapat memulai permainan!", flags: MessageFlags.Ephemeral });
+            return;
+          }
+          await interaction.deferUpdate();
+          const res = await werewolfManager.startGame(guildId, interaction.user, interaction.client);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "end") {
+          werewolfManager.endGame(guildId);
+          await interaction.update({
+            content: `🛑 Permainan Werewolf telah dihentikan oleh **${member.displayName || interaction.user.username}**.`,
+            embeds: [],
+            components: []
+          });
+          return;
+        }
+
+        if (action === "night_action_menu") {
+          const player = session.players.get(interaction.user.id);
+          if (!player || !player.isAlive) {
+            await interaction.reply({ content: "Kamu tidak berhak melakukan aksi malam karena sudah gugur atau bukan peserta!", flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          if (player.role === "villager") {
+            await interaction.reply({
+              content: "😴 **Sebagai Warga Desa biasa**, kamu tertidur lelap malam ini tanpa kekuatan supranatural. Tunggu hingga pagi tiba!",
+              flags: MessageFlags.Ephemeral
+            });
+            return;
+          }
+
+          const alivePlayers = Array.from(session.players.values()).filter((p) => p.isAlive && p.userId !== interaction.user.id);
+
+          if (player.role === "werewolf") {
+            const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+            let currentRow = new ActionRowBuilder<ButtonBuilder>();
+
+            alivePlayers.forEach((target, index) => {
+              if (index > 0 && index % 5 === 0) {
+                rows.push(currentRow);
+                currentRow = new ActionRowBuilder<ButtonBuilder>();
+              }
+              currentRow.addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`ww_btn:night_kill:${target.userId}`)
+                  .setLabel(target.displayName.slice(0, 20))
+                  .setEmoji("🐺")
+                  .setStyle(ButtonStyle.Danger)
+              );
+            });
+            if (currentRow.components.length > 0) rows.push(currentRow);
+
+            await interaction.reply({
+              content: "🐺 **PILIH MANGSA SERIGALA MALAM INI:**\nPilih 1 warga yang ingin kamu habisi malam ini:",
+              components: rows,
+              flags: MessageFlags.Ephemeral
+            });
+            return;
+          }
+
+          if (player.role === "seer") {
+            const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+            let currentRow = new ActionRowBuilder<ButtonBuilder>();
+
+            alivePlayers.forEach((target, index) => {
+              if (index > 0 && index % 5 === 0) {
+                rows.push(currentRow);
+                currentRow = new ActionRowBuilder<ButtonBuilder>();
+              }
+              currentRow.addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`ww_btn:night_check:${target.userId}`)
+                  .setLabel(target.displayName.slice(0, 20))
+                  .setEmoji("🔮")
+                  .setStyle(ButtonStyle.Primary)
+              );
+            });
+            if (currentRow.components.length > 0) rows.push(currentRow);
+
+            await interaction.reply({
+              content: "🔮 **TERAWANG IDENTITAS WARGA:**\nPilih 1 pemain untuk melihat apakah ia Werewolf atau Warga Baik:",
+              components: rows,
+              flags: MessageFlags.Ephemeral
+            });
+            return;
+          }
+
+          if (player.role === "doctor") {
+            const allAlive = Array.from(session.players.values()).filter((p) => p.isAlive);
+            const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+            let currentRow = new ActionRowBuilder<ButtonBuilder>();
+
+            allAlive.forEach((target, index) => {
+              if (index > 0 && index % 5 === 0) {
+                rows.push(currentRow);
+                currentRow = new ActionRowBuilder<ButtonBuilder>();
+              }
+              currentRow.addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`ww_btn:night_heal:${target.userId}`)
+                  .setLabel(target.displayName.slice(0, 20))
+                  .setEmoji("💉")
+                  .setStyle(ButtonStyle.Success)
+              );
+            });
+            if (currentRow.components.length > 0) rows.push(currentRow);
+
+            await interaction.reply({
+              content: "💉 **BERIKAN RAMUAN PERLINDUNGAN:**\nPilih 1 warga (boleh dirimu sendiri) untuk diselamatkan malam ini:",
+              components: rows,
+              flags: MessageFlags.Ephemeral
+            });
+            return;
+          }
+        }
+
+        if (action === "night_kill") {
+          const targetId = extraArg;
+          const res = await werewolfManager.handleNightAction(guildId, interaction.user, "kill", targetId);
+          await interaction.update({ content: res.message, components: [] });
+          return;
+        }
+
+        if (action === "night_check") {
+          const targetId = extraArg;
+          const res = await werewolfManager.handleNightAction(guildId, interaction.user, "check", targetId);
+          await interaction.update({ content: res.message, components: [] });
+          return;
+        }
+
+        if (action === "night_heal") {
+          const targetId = extraArg;
+          const res = await werewolfManager.handleNightAction(guildId, interaction.user, "heal", targetId);
+          await interaction.update({ content: res.message, components: [] });
+          return;
+        }
+
+        if (action === "advance_day") {
+          await interaction.deferUpdate();
+          const res = await werewolfManager.advanceToDay(guildId);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "vote_menu") {
+          const player = session.players.get(interaction.user.id);
+          if (!player || !player.isAlive) {
+            await interaction.reply({ content: "Kamu tidak berhak voting karena sudah gugur!", flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          const alivePlayers = Array.from(session.players.values()).filter((p) => p.isAlive);
+          const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+          let currentRow = new ActionRowBuilder<ButtonBuilder>();
+
+          alivePlayers.forEach((target, index) => {
+            if (index > 0 && index % 5 === 0) {
+              rows.push(currentRow);
+              currentRow = new ActionRowBuilder<ButtonBuilder>();
+            }
+            currentRow.addComponents(
+              new ButtonBuilder()
+                .setCustomId(`ww_btn:vote_cast:${target.userId}`)
+                .setLabel(target.displayName.slice(0, 20))
+                .setEmoji("🎯")
+                .setStyle(ButtonStyle.Danger)
+            );
+          });
+
+          // Add Skip Button
+          if (currentRow.components.length >= 5) {
+            rows.push(currentRow);
+            currentRow = new ActionRowBuilder<ButtonBuilder>();
+          }
+          currentRow.addComponents(
+            new ButtonBuilder()
+              .setCustomId("ww_btn:vote_cast:skip")
+              .setLabel("Lewati (Skip Vote)")
+              .setEmoji("🚫")
+              .setStyle(ButtonStyle.Secondary)
+          );
+          rows.push(currentRow);
+
+          await interaction.reply({
+            content: "🗳️ **PILIH SIAPA YANG KAMU CURIGAI SEBAGAI WEREWOLF:**",
+            components: rows,
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        if (action === "vote_cast") {
+          const targetId = extraArg;
+          const res = werewolfManager.castVote(guildId, interaction.user, targetId);
+          await interaction.update({ content: res.message, components: [] });
+          return;
+        }
+
+        if (action === "execute_votes") {
+          await interaction.deferUpdate();
+          const res = await werewolfManager.executeVoteResults(guildId);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+      }
 
       if (customId.startsWith("tod_btn:")) {
         const action = customId.split(":")[1];

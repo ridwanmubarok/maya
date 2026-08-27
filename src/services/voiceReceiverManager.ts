@@ -9,6 +9,7 @@ import { askNvidia } from "./aiClient";
 import { voiceChatManager, isAmubhyaInsult } from "./voiceChatManager";
 import { musicManager } from "./musicManager";
 import { todManager } from "./todManager";
+import { werewolfManager } from "./werewolfManager";
 import { logger } from "../utils/logger";
 
 /**
@@ -301,6 +302,30 @@ DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, hah
       // f. End game voice command
       if (/(?:berhenti\s+tod|stop\s+tod|selesai\s+tod|akhiri\s+truth\s+or\s+dare|stop\s+truth\s+or\s+dare|tutup\s+tod)/i.test(commandText)) {
         todManager.endSession(guildId);
+        return;
+      }
+    }
+
+    // 5. Werewolf Voice Intents
+    if (
+      /(?:main|mulai|ayo|yuk)\s+(?:game\s+)?(?:werewolf|mafia)/i.test(commandText) || 
+      /(?:werewolf|mafia)\s+(?:yuk|dong|gas|kuy)/i.test(commandText) ||
+      /^(?:werewolf|mafia)$/i.test(commandText)
+    ) {
+      const existingWw = werewolfManager.getSession(guildId);
+      if (existingWw) {
+        voiceChatManager.speak(guildId, "Lobby Werewolf sudah dibuka kok! Silakan klik tombol gabung di chat ya!");
+        return;
+      }
+      logger.info(`VoiceReceiverManager: Voice Trigger Start Werewolf dari ${user.username}: "${commandText}"`);
+      await werewolfManager.startLobbyFromVoice(guildId, user);
+      return;
+    }
+
+    const wwSession = werewolfManager.getSession(guildId);
+    if (wwSession) {
+      if (/(?:berhenti\s+werewolf|stop\s+werewolf|selesai\s+werewolf|tutup\s+werewolf)/i.test(commandText)) {
+        werewolfManager.endGame(guildId);
         return;
       }
     }
