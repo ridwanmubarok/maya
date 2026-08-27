@@ -43,7 +43,7 @@ const event: BotEvent = {
         }
 
         if (action === "join") {
-          const charClass = (extraArg || "warrior") as DndClass;
+          const charClass = (extraArg || "pendekar") as DndClass;
           const res = dndManager.joinParty(guildId, interaction.user, charClass);
           if (res.success && res.embed) {
             await interaction.update({ embeds: [res.embed], components: res.components || [] });
@@ -69,7 +69,7 @@ const event: BotEvent = {
         }
 
         if (action === "act") {
-          const actionType = extraArg as "attack" | "spell" | "stealth" | "heal";
+          const actionType = extraArg as "sabetan" | "santet" | "halimun" | "rukyah";
           await interaction.deferUpdate();
           const res = await dndManager.executeAction(guildId, interaction.user, actionType);
           if (res.success && res.embed) {

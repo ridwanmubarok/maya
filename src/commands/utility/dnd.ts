@@ -10,21 +10,21 @@ import { dndManager, DndTheme } from "../../services/dndManager";
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("dnd")
-    .setDescription("🐉 Petualangan D&D (Dungeons & Dragons) dipandu oleh Maya sebagai Dungeon Master di Voice!")
+    .setDescription("🐉 Petualangan D&D Fantasi Nusantara dipandu Maya sebagai Dalang di Voice Channel!")
     .addSubcommand((sub) =>
       sub
         .setName("start")
-        .setDescription("Mulai petualangan RPG D&D bersama party di Voice Channel")
+        .setDescription("Mulai petualangan D&D Nusantara bersama rombongan pendekar di Voice Channel")
         .addStringOption((opt) =>
           opt
             .setName("tema")
-            .setDescription("Pilih tema petualangan & boss dungeon")
+            .setDescription("Pilih babad petualangan & musuh gaib Nusantara")
             .setRequired(false)
             .addChoices(
-              { name: "🏰 Reruntuhan Kuno & Raja Goblin", value: "dungeon" },
-              { name: "🌋 Puncak Gunung Berapi & Naga Merah", value: "dragon" },
-              { name: "🦇 Kastil Kegelapan & Lord Vampir", value: "vampire" },
-              { name: "🌲 Hutan Terlarang & Ratu Penyihir", value: "dark_forest" }
+              { name: "🌲 Alas Roban Angker & Raja Genderuwo Hitam", value: "alas_roban" },
+              { name: "🌊 Segara Kidul & Panglima Siluman Buaya Putih", value: "pantai_selatan" },
+              { name: "🌋 Kawah Keramat Merapi & Raja Banaspati Purba", value: "gunung_merapi" },
+              { name: "🏯 Candi Terbengkalai & Ratu Rangda Calon Arang", value: "candi_leak" }
             )
         )
     )
