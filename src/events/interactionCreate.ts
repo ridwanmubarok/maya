@@ -15,6 +15,7 @@ import { handlePollVoteInteraction } from "../services/dailyPollManager";
 import { musicManager, createMusicControlButtons, createNowPlayingEmbed } from "../services/musicManager";
 import { todManager } from "../services/todManager";
 import { werewolfManager } from "../services/werewolfManager";
+import { dndManager, DndClass } from "../services/dndManager";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -22,6 +23,73 @@ const event: BotEvent = {
     // Handle Button Interactions
     if (interaction.isButton()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("dnd_btn:")) {
+        const parts = customId.split(":");
+        const action = parts[1];
+        const extraArg = parts[2];
+        const guildId = interaction.guildId;
+        const member = interaction.member as GuildMember;
+
+        if (!guildId || !member) {
+          await interaction.reply({ content: "Tombol ini hanya dapat digunakan di server!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const session = dndManager.getSession(guildId);
+        if (!session) {
+          await interaction.reply({ content: "Sesi D&D telah berakhir atau tidak ditemukan!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        if (action === "join") {
+          const charClass = (extraArg || "warrior") as DndClass;
+          const res = dndManager.joinParty(guildId, interaction.user, charClass);
+          if (res.success && res.embed) {
+            await interaction.update({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.reply({ content: `⚠️ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "start") {
+          if (session.hostId !== interaction.user.id) {
+            await interaction.reply({ content: "Hanya Host yang dapat memulai petualangan!", flags: MessageFlags.Ephemeral });
+            return;
+          }
+          await interaction.deferUpdate();
+          const res = await dndManager.startAdventure(guildId, interaction.user);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "act") {
+          const actionType = extraArg as "attack" | "spell" | "stealth" | "heal";
+          await interaction.deferUpdate();
+          const res = await dndManager.executeAction(guildId, interaction.user, actionType);
+          if (res.success && res.embed) {
+            await interaction.editReply({ embeds: [res.embed], components: res.components || [] });
+          } else {
+            await interaction.followUp({ content: `⚠️ ${res.message}`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        if (action === "end") {
+          dndManager.endSession(guildId);
+          await interaction.update({
+            content: `🛑 Petualangan D&D telah diakhiri oleh **${member.displayName || interaction.user.username}**.`,
+            embeds: [],
+            components: []
+          });
+          return;
+        }
+      }
 
       if (customId.startsWith("ww_btn:")) {
         const parts = customId.split(":");

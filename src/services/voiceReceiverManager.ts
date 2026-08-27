@@ -10,6 +10,7 @@ import { voiceChatManager, isAmubhyaInsult } from "./voiceChatManager";
 import { musicManager } from "./musicManager";
 import { todManager } from "./todManager";
 import { werewolfManager } from "./werewolfManager";
+import { dndManager } from "./dndManager";
 import { logger } from "../utils/logger";
 
 /**
@@ -326,6 +327,46 @@ DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, hah
     if (wwSession) {
       if (/(?:berhenti\s+werewolf|stop\s+werewolf|selesai\s+werewolf|tutup\s+werewolf)/i.test(commandText)) {
         werewolfManager.endGame(guildId);
+        return;
+      }
+    }
+
+    // 6. D&D (Dungeons & Dragons) Voice Intents
+    // a. Roll dice voice command (e.g. "maya lempar dadu d20", "maya roll d20", "maya lempar dadu")
+    if (/(?:lempar|kocok|roll|putar)\s+dadu(?:\s+(d\d+))?/i.test(commandText) || /^(?:roll\s+dice|lempar\s+dadu)$/i.test(commandText)) {
+      const match = commandText.match(/(?:dadu|dice)\s+(d\d+)/i);
+      const diceType = match ? match[1] : "d20";
+      const res = dndManager.rollDice(diceType);
+      
+      let voiceReply = `Dadu ${diceType.toUpperCase()} keluar angka ${res.roll}!`;
+      if (diceType.toLowerCase() === "d20") {
+        if (res.roll === 20) voiceReply = "Natural 20! Critical hit sempurna luar biasa!";
+        else if (res.roll === 1) voiceReply = "Natural 1! Kritis gagal total!";
+      }
+      voiceChatManager.speak(guildId, voiceReply);
+      return;
+    }
+
+    // b. Start D&D adventure lobby
+    if (
+      /(?:main|mulai|ayo|yuk)\s+(?:game\s+)?(?:dnd|dungeons\s+and\s+dragons|rpg)/i.test(commandText) || 
+      /(?:dnd|dungeons\s+and\s+dragons|rpg)\s+(?:yuk|dong|gas|kuy)/i.test(commandText) ||
+      /^(?:dnd|rpg)$/i.test(commandText)
+    ) {
+      const existingDnd = dndManager.getSession(guildId);
+      if (existingDnd) {
+        voiceChatManager.speak(guildId, "Sesi DND sudah aktif! Silakan pilih kelas karaktermu di chat ya!");
+        return;
+      }
+      logger.info(`VoiceReceiverManager: Voice Trigger Start D&D dari ${user.username}: "${commandText}"`);
+      await dndManager.startFromVoice(guildId, user);
+      return;
+    }
+
+    const dndSession = dndManager.getSession(guildId);
+    if (dndSession) {
+      if (/(?:berhenti\s+dnd|stop\s+dnd|selesai\s+dnd|tutup\s+dnd)/i.test(commandText)) {
+        dndManager.endSession(guildId);
         return;
       }
     }
