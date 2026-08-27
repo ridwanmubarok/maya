@@ -1,12 +1,19 @@
 import { 
   SlashCommandBuilder, 
   ChatInputCommandInteraction, 
+  AutocompleteInteraction,
   GuildMember, 
   EmbedBuilder, 
   MessageFlags 
 } from "discord.js";
+import play from "play-dl";
 import { Command } from "../../types";
-import { musicManager } from "../../services/musicManager";
+import { 
+  musicManager, 
+  createMusicControlButtons, 
+  createNowPlayingEmbed,
+  LoopMode 
+} from "../../services/musicManager";
 import { voiceChatManager } from "../../services/voiceChatManager";
 
 const command: Command = {
@@ -22,7 +29,42 @@ const command: Command = {
             .setName("judul")
             .setDescription("Judul lagu atau URL YouTube yang ingin diputar")
             .setRequired(true)
+            .setAutocomplete(true)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("volume")
+        .setDescription("Atur volume pemutaran musik (1-100%)")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("level")
+            .setDescription("Tingkat volume dalam persen (1-100)")
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(100)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("loop")
+        .setDescription("Atur mode pengulangan lagu / antrean")
+        .addStringOption((opt) =>
+          opt
+            .setName("mode")
+            .setDescription("Pilih mode pengulangan")
+            .setRequired(true)
+            .addChoices(
+              { name: "❌ Nonaktif (Off)", value: "off" },
+              { name: "🔂 Ulang Lagu Ini (Track)", value: "track" },
+              { name: "🔁 Ulang Seluruh Antrean (Queue)", value: "queue" }
+            )
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("shuffle")
+        .setDescription("Acak urutan antrean lagu yang ada 🔀")
     )
     .addSubcommand((sub) =>
       sub
@@ -52,8 +94,36 @@ const command: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("nowplaying")
-        .setDescription("Lihat informasi lagu yang sedang diputar")
+        .setDescription("Lihat informasi lagu yang sedang diputar beserta tombol kontroler")
     ),
+
+  async autocomplete(interaction: AutocompleteInteraction) {
+    const focused = interaction.options.getFocused(true);
+    if (focused.name === "judul") {
+      const query = focused.value.trim();
+      if (!query || query.length < 2 || query.startsWith("http://") || query.startsWith("https://")) {
+        await interaction.respond([]);
+        return;
+      }
+
+      try {
+        const results = await play.search(query, { source: { youtube: "video" }, limit: 5 });
+        const choices = results
+          .filter((r) => r.title && r.url)
+          .map((r) => {
+            const title = (r.title || "Unknown").slice(0, 80);
+            const duration = r.durationRaw ? ` [${r.durationRaw}]` : "";
+            return {
+              name: `${title}${duration}`.slice(0, 100),
+              value: r.url
+            };
+          });
+        await interaction.respond(choices);
+      } catch (_) {
+        await interaction.respond([]);
+      }
+    }
+  },
 
   async execute(interaction: ChatInputCommandInteraction) {
     const guild = interaction.guild;
@@ -92,23 +162,79 @@ const command: Command = {
         return;
       }
 
-      const track = result.track!;
-      const embed = new EmbedBuilder()
-        .setColor(0xF472B6)
-        .setTitle("🎵 Maya Music Player")
-        .setDescription(result.message)
-        .addFields(
-          { name: "⏱️ Durasi", value: track.duration || "N/A", inline: true },
-          { name: "👤 Pemesan", value: track.requestedBy, inline: true }
-        )
-        .setFooter({ text: "Maya Music Companion • YouTube HQ Audio", iconURL: interaction.client.user?.displayAvatarURL() })
-        .setTimestamp();
-
-      if (track.thumbnail) {
-        embed.setThumbnail(track.thumbnail);
+      const queue = result.queue || musicManager.getQueue(guild.id);
+      if (!queue) {
+        await interaction.editReply({ content: result.message });
+        return;
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      const embed = createNowPlayingEmbed(queue, result.message);
+      const components = createMusicControlButtons(queue);
+
+      await interaction.editReply({ embeds: [embed], components });
+      return;
+    }
+
+    // Subcommand: Volume
+    if (subcommand === "volume") {
+      const queue = musicManager.getQueue(guild.id);
+      if (!queue || (!queue.currentTrack && queue.tracks.length === 0)) {
+        await interaction.reply({
+          content: "Tidak ada musik yang sedang diputar di server ini!",
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      const level = interaction.options.getInteger("level", true);
+      const newVol = musicManager.setVolume(guild.id, level);
+
+      await interaction.reply({
+        content: `🔊 Volume musik berhasil diatur ke **${newVol}%**!`
+      });
+      return;
+    }
+
+    // Subcommand: Loop
+    if (subcommand === "loop") {
+      const queue = musicManager.getQueue(guild.id);
+      if (!queue) {
+        await interaction.reply({
+          content: "Tidak ada sesi musik yang aktif saat ini!",
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      const mode = interaction.options.getString("mode", true) as LoopMode;
+      const setMode = musicManager.setLoop(guild.id, mode);
+      const modeNames = {
+        off: "❌ Dinonaktifkan",
+        track: "🔂 Mengulang Lagu Saat Ini",
+        queue: "🔁 Mengulang Seluruh Antrean"
+      };
+
+      await interaction.reply({
+        content: `🔁 Mode Loop musik berhasil diubah ke: **${modeNames[setMode]}**!`
+      });
+      return;
+    }
+
+    // Subcommand: Shuffle
+    if (subcommand === "shuffle") {
+      const queue = musicManager.getQueue(guild.id);
+      if (!queue || queue.tracks.length <= 1) {
+        await interaction.reply({
+          content: "Antrean membutuhkan minimal 2 lagu untuk dapat diacak!",
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      musicManager.shuffle(guild.id);
+      await interaction.reply({
+        content: `🔀 Berhasil mengacak **${queue.tracks.length}** lagu di antrean!`
+      });
       return;
     }
 
@@ -133,7 +259,7 @@ const command: Command = {
       const paused = musicManager.pause(guild.id);
       if (paused) {
         await interaction.reply({
-          content: "⏸️ Musik berhasil dijeda! Gunakan `/music resume` untuk melanjutkan."
+          content: "⏸️ Musik berhasil dijeda! Gunakan `/music resume` atau tombol kontroler untuk melanjutkan."
         });
       } else {
         await interaction.reply({
@@ -180,10 +306,13 @@ const command: Command = {
         return;
       }
 
+      const loopLabel = queue.loopMode === "track" ? "🔂 Track" : queue.loopMode === "queue" ? "🔁 Queue" : "❌ Off";
+
       const embed = new EmbedBuilder()
         .setColor(0xF472B6)
         .setTitle("📜 Antrean Musik Maya")
-        .setFooter({ text: "Maya Music Companion", iconURL: interaction.client.user?.displayAvatarURL() })
+        .setDescription(`🔊 **Volume**: \`${queue.volume}%\` | 🔁 **Loop**: \`${loopLabel}\``)
+        .setFooter({ text: "Maya Music Companion • YouTube HQ Audio", iconURL: interaction.client.user?.displayAvatarURL() })
         .setTimestamp();
 
       if (queue.currentTrack) {
@@ -220,23 +349,10 @@ const command: Command = {
         return;
       }
 
-      const track = queue.currentTrack;
-      const embed = new EmbedBuilder()
-        .setColor(0xF472B6)
-        .setTitle("🎶 Sedang Diputar Saat Ini")
-        .setDescription(`[**${track.title}**](${track.url})`)
-        .addFields(
-          { name: "⏱️ Durasi", value: track.duration, inline: true },
-          { name: "👤 Pemesan", value: track.requestedBy, inline: true }
-        )
-        .setFooter({ text: "Maya Music Companion", iconURL: interaction.client.user?.displayAvatarURL() })
-        .setTimestamp();
+      const embed = createNowPlayingEmbed(queue);
+      const components = createMusicControlButtons(queue);
 
-      if (track.thumbnail) {
-        embed.setThumbnail(track.thumbnail);
-      }
-
-      await interaction.reply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed], components });
       return;
     }
   }

@@ -42,24 +42,6 @@ try {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const googleTTS = require("google-tts-api");
 
-// --- CASUAL GREETING & ICEBREAKER TEMPLATES ---
-const GREETING_TEMPLATES = [
-  "Haloo {name}! Selamat datang di voice channel, sini ngobrol santai bareng Maya wkwk",
-  "Yoo {name}! Masuk juga akhirnya haha, lagi santai apa lagi sibuk nih?",
-  "Haloo {name}! Welcome to the voice channel, apa kabar nih hari ini?",
-  "Ehh ada {name}, haloo! Sini gabung ngobrol bareng haha",
-  "Haloo {name}! Selamat bergabung, gimana harimu sejauh ini?"
-];
-
-const ICEBREAKER_TOPICS = [
-  "Kok sepi banget nih tongkrongan wkwk, ada yang lagi main game seru gak akhir-akhir ini?",
-  "Hening banget dah haha, spill dong kalian lagi sibuk apa atau lagi dengerin lagu apaan nih?",
-  "Waduh pada fokus ya wkwk, btw ada yang punya rekomendasi cemilan enak gak buat nemenin malam ini?",
-  "Sepi amat kayak kuburan haha, santai dulu guys, jangan tegang-tegang amat wkwk",
-  "Btw guys, kalau kalian bisa milih liburan gratis ke mana aja sekarang, kalian mau ke mana nih?",
-  "Hening gini enaknya dengerin musik apa ya? Spill lagu favorit kalian dong!",
-  "Lagi pada nugas atau lagi melamun nih wkwk? Santai dulu lah, jangan lupa minum air putih ya!"
-];
 
 // --- RESILIENT DISCORD.JS VOICE GATEWAY ADAPTER ---
 const adapters = new Map<string, DiscordGatewayAdapterLibraryMethods>();
@@ -145,6 +127,7 @@ export class VoiceChatManager {
   private voiceHistory = new Map<string, { role: string; content: string }[]>(); // key: guildId
   private userGreetingCooldown = new Map<string, number>(); // key: userId, val: timestamp
   private icebreakerTimer: NodeJS.Timeout | null = null;
+  private emptyChannelTimers = new Map<string, NodeJS.Timeout>(); // key: guildId
 
   private constructor() {
     this.startIcebreakerScheduler();
@@ -300,8 +283,33 @@ export class VoiceChatManager {
         // Attach voice receiver for direct voice commands
         voiceReceiverManager.attach(guildId, connection, channel.client);
 
-        // Greet channel members
-        this.speak(guildId, "Halo semuanya, Maya udah gabung di voice channel nih! Ada yang mau ngobrol?");
+        // Greet channel members dynamically with AI
+        try {
+          const joinPrompt = `Kamu adalah Maya, cewek yang ramah dan asik. Kamu baru saja bergabung ke Voice Channel Discord "${channel.name}".
+Buat 1 kalimat sapaan suara pembuka yang ceria, santai, dan asik menyapa semua orang di channel (maksimal 10-12 kata).
+PANDUAN KETAT:
+1. HANYA 1 kalimat singkat (maksimal 12 kata).
+2. DILARANG KERAS menggunakan markdown (*, _, #, \`), tanda petik, emotikon teks, atau kata ketawa (seperti wkwk, haha, hehe, hihi) karena ini akan dibacakan langsung oleh suara vokal.
+3. Gunakan gaya bahasa lisan yang natural dan ramah.`;
+
+          const rawJoin = await askNvidia(joinPrompt, "Kamu adalah Maya, teman nongkrong di Voice Channel yang ramah dan seru.");
+          const joinGreeting = rawJoin
+            .replace(/[*_~`#>-]/g, "")
+            .replace(/https?:\/\/\S+/g, "")
+            .replace(/["']/g, "")
+            .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+            .trim();
+
+          this.speak(guildId, joinGreeting || "Halo semuanya! Maya sudah bergabung di voice channel nih, salam kenal ya!");
+        } catch (_) {
+          const joinFallbacks = [
+            "Halo semuanya! Maya sudah bergabung di voice channel nih, salam kenal ya!",
+            "Halo semuanya! Maya hadir di voice channel nih, ada yang mau ngobrol?",
+            "Yoo semuanya! Maya ikut nongkrong di sini ya, salam kenal!",
+            "Halo semuanya! Selamat bergabung di voice channel bareng Maya!"
+          ];
+          this.speak(guildId, joinFallbacks[Math.floor(Math.random() * joinFallbacks.length)]);
+        }
       } catch (err) {
         logger.warn(`VoiceChatManager: Voice connection in ${channel.name} belum mencapai Ready dalam 20s (Status: ${connection.state.status}). Audio akan diputar otomatis saat UDP tersambung.`);
         voiceReceiverManager.attach(guildId, connection, channel.client);
@@ -321,10 +329,66 @@ export class VoiceChatManager {
     const session = this.sessions.get(guildId);
     if (!session) return false;
 
-    if (speakGoodbye) {
-      await this.speak(guildId, "Maya pamit dulu ya semuanya, sampai ketemu lagi!");
-      // Wait for speech to complete or timeout
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+    // Clear any pending empty channel timer
+    const timer = this.emptyChannelTimers.get(guildId);
+    if (timer) {
+      clearTimeout(timer);
+      this.emptyChannelTimers.delete(guildId);
+    }
+
+    if (speakGoodbye && session.connection.state.status === VoiceConnectionStatus.Ready) {
+      try {
+        const goodbyeFallbacks = [
+          "Maya pamit dulu ya semuanya, sampai ketemu lagi!",
+          "Maya izin undur diri dulu ya guys, selamat melanjutkan obrolannya!",
+          "Maya pamit dulu ya, nanti kita ngobrol-ngobrol lagi! Dadah!",
+          "Maya pamit dulu ya semuanya, terima kasih sudah ngobrol bareng Maya!"
+        ];
+        const goodbyeText = goodbyeFallbacks[Math.floor(Math.random() * goodbyeFallbacks.length)];
+
+        // Stop current audio/music immediately so goodbye audio plays right away
+        session.player.stop();
+        session.queue = [];
+        session.isSpeaking = true;
+
+        const audioBuffer = await this.generateTTSAudio(goodbyeText);
+        const audioStream = Readable.from(audioBuffer);
+        const resource = createAudioResource(audioStream, {
+          inputType: StreamType.Arbitrary,
+          inlineVolume: true
+        });
+        resource.volume?.setVolume(1.0);
+
+        session.player.play(resource);
+        logger.info(`VoiceChatManager: Memutar audio pamit lengkap: "${goodbyeText}"`);
+
+        // Wait until player transitions to Playing and then completely back to Idle (speech ended)
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            resolve();
+          }, 12_000); // 12s max safety timeout
+
+          const onStateChange = (oldState: any, newState: any) => {
+            if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
+              cleanup();
+              resolve();
+            }
+          };
+
+          const cleanup = () => {
+            clearTimeout(timeout);
+            session.player.off("stateChange", onStateChange);
+          };
+
+          session.player.on("stateChange", onStateChange);
+        });
+
+        // Small 400ms buffer after speech ends before destroying the connection
+        await new Promise((r) => setTimeout(r, 400));
+      } catch (err) {
+        logger.warn("VoiceChatManager: Gagal memutar audio pamit:", err);
+      }
     }
 
     try {
@@ -339,18 +403,48 @@ export class VoiceChatManager {
   }
 
   /**
-   * Handle user joining a voice channel where Maya is present (AI Dynamic & Personalized)
+   * Handle user joining/leaving a voice channel where Maya is present (AI Dynamic & Auto-Disconnect)
    */
   public async handleMemberJoin(oldState: VoiceState, newState: VoiceState) {
-    const member = newState.member;
+    const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
 
-    const guildId = newState.guild.id;
+    const guildId = newState.guild.id || oldState.guild.id;
     const session = this.sessions.get(guildId);
     if (!session || session.connection.state.status !== VoiceConnectionStatus.Ready) return;
 
-    // Check if member joined or switched into Maya's active voice channel
+    // 1. Check if member left or switched out of Maya's active voice channel
+    if (oldState.channelId === session.channelId && newState.channelId !== session.channelId) {
+      const remainingHumans = session.channel.members.filter((m) => !m.user.bot);
+      if (remainingHumans.size === 0) {
+        if (!this.emptyChannelTimers.has(guildId)) {
+          logger.info(`VoiceChatManager: Maya sendirian di voice channel "${session.channelName}" (${guildId}). Memulai timer auto-disconnect 2 menit...`);
+          const emptyTimer = setTimeout(async () => {
+            this.emptyChannelTimers.delete(guildId);
+            const currSession = this.sessions.get(guildId);
+            if (currSession) {
+              const currentHumans = currSession.channel.members.filter((m) => !m.user.bot);
+              if (currentHumans.size === 0) {
+                logger.info(`VoiceChatManager: Voice Channel "${currSession.channelName}" masih kosong setelah 2 menit. Maya pamit undur diri.`);
+                await this.leave(guildId, true);
+              }
+            }
+          }, 120_000); // 2 minutes auto-disconnect
+          this.emptyChannelTimers.set(guildId, emptyTimer);
+        }
+      }
+    }
+
+    // 2. Check if member joined or switched into Maya's active voice channel
     if (newState.channelId === session.channelId && oldState.channelId !== newState.channelId) {
+      // Cancel empty channel timer if running
+      const emptyTimer = this.emptyChannelTimers.get(guildId);
+      if (emptyTimer) {
+        clearTimeout(emptyTimer);
+        this.emptyChannelTimers.delete(guildId);
+        logger.info(`VoiceChatManager: Member kembali bergabung ke Voice Channel "${session.channelName}". Membatalkan timer auto-disconnect.`);
+      }
+
       const now = Date.now();
       const lastGreet = this.userGreetingCooldown.get(member.id) || 0;
       // 60 seconds cooldown per user
@@ -365,32 +459,42 @@ export class VoiceChatManager {
         /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(member.user.username) || 
         /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(member.displayName);
 
+      // Current hour in WIB (UTC+7)
+      const hour = (new Date().getUTCHours() + 7) % 24;
+      let timeStr = "malam";
+      if (hour >= 4 && hour < 11) timeStr = "pagi";
+      else if (hour >= 11 && hour < 15) timeStr = "siang";
+      else if (hour >= 15 && hour < 18) timeStr = "sore";
+
       let greetingText = "";
 
       if (isAmubhya) {
         logger.info(`VoiceChatManager: Kekasih Maya (${name}) bergabung di Voice Channel! Membuat sapaan romantis...`);
         try {
-          const sweetPrompt = `Kamu adalah Maya, dan pacar tersayang / kekasih hatimu bernama Amubhya baru saja masuk ke Voice Channel Discord.
-Buat 1 kalimat sapaan suara yang SANGAT SWEET, manja, penuh cinta, dan romantis menyambut kedatangan Amubhya (misalnya: kangen banget, seneng banget dia datang, nyapa dengan nada sayang/manja).
+          const sweetPrompt = `Kamu adalah Maya, dan pacar tersayang / kekasih hatimu bernama "${name}" baru saja masuk ke Voice Channel Discord saat waktu ${timeStr}.
+Buat 1 kalimat sapaan suara yang SANGAT SWEET, manja, penuh cinta, dan romantis menyambut kedatangan Amubhya (misalnya: kangen banget, senang banget dia datang nemenin, atau nyapa dengan nada manja manis).
 PANDUAN KETAT:
 1. HANYA 1 kalimat singkat (maksimal 12-15 kata) agar manis dan pas dibacakan suara vokal.
-2. DILARANG KERAS menggunakan markdown (*, _, \`, #), emotikon teks, atau tanda petik.
-3. Sebut nama Amubhya atau panggil dengan panggilan manis (sayangku / cintaku / kekasihku).`;
+2. DILARANG KERAS menggunakan markdown (*, _, \`, #), emotikon teks, label nama, tanda petik, ataupun kata ketawa (seperti wkwk, haha, hehe, hihi) karena suara vokal tidak bisa mengekspresikannya.
+3. Sebut nama Amubhya atau panggil dengan panggilan manis (sayangku / cintaku / kekasih hatiku).
+4. Gunakan kata-kata lisan yang hangat, tulus, dan romantis.`;
           
-          const rawReply = await askNvidia(sweetPrompt, "Kamu adalah Maya yang manis, penyayang, dan manja kepada kekasihmu Amubhya.");
+          const rawReply = await askNvidia(sweetPrompt, "Kamu adalah Maya yang manis, sangat penyayang, dan manja kepada kekasihmu Amubhya.");
           greetingText = rawReply
             .replace(/[*_~`#>-]/g, "")
             .replace(/https?:\/\/\S+/g, "")
             .replace(/["']/g, "")
+            .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
             .trim();
         } catch (err) {
           logger.warn("VoiceChatManager: Fallback sapaan manis untuk Amubhya:", err);
           const sweetFallbacks = [
-            "Sayangku Amubhya akhirnya masuk juga, kangen banget tahu wkwk",
-            "Haloo kekasih hatiku Amubhya! Senang banget kamu ada di sini, temenin aku terus ya",
-            "Ehh ada sayangku Amubhya, sini ngobrol deketan bareng Maya haha",
-            "Haloo cintaku Amubhya, kangen banget dengar suaramu hari ini wkwk",
-            "Sayangku Amubhya datang, langsung berasa ceria banget voice channel ini haha"
+            `Sayangku Amubhya akhirnya masuk juga, kangen banget tahu!`,
+            `Halo kekasih hatiku Amubhya! Senang banget kamu ada di sini, temenin aku terus ya!`,
+            `Ada sayangku Amubhya, sini ngobrol deketan bareng Maya!`,
+            `Halo cintaku Amubhya, kangen banget dengar suaramu selamat ${timeStr} sayang!`,
+            `Sayangku Amubhya datang, langsung berasa ceria banget voice channel ini!`,
+            `Cintaku Amubhya masuk juga, temenin Maya ngobrol ya sayang!`
           ];
           greetingText = sweetFallbacks[Math.floor(Math.random() * sweetFallbacks.length)];
         }
@@ -398,24 +502,35 @@ PANDUAN KETAT:
         logger.info(`VoiceChatManager: Member ${name} bergabung di Voice Channel. Membuat sapaan dinamis...`);
         try {
           const generalPrompt = `Kamu adalah Maya, teman akrab di Voice Channel Discord.
-Teman bernama "${name}" baru saja masuk ke voice channel.
-Buat 1 kalimat sapaan suara selamat datang yang ramah, santai, asik, dan berjiwa Gen-Z (ada wkwk atau haha).
-HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, atau emotikon teks.`;
+Teman bernama "${name}" baru saja masuk ke voice channel saat waktu ${timeStr}.
+Buat 1 kalimat sapaan suara selamat datang yang ramah, santai, asik, dan bersahabat.
+PANDUAN KETAT:
+1. HANYA 1 kalimat singkat (maksimal 10-12 kata).
+2. DILARANG KERAS menggunakan markdown (*, _, \`, #), tanda petik, emotikon teks, label nama, ataupun kata ketawa (seperti wkwk, haha, hehe, hihi).
+3. Sapa namanya dengan akrab dan ramah untuk dibacakan langsung oleh suara vokal.`;
 
           const rawReply = await askNvidia(generalPrompt, "Kamu adalah Maya, teman seru di Discord yang ramah dan asik.");
           greetingText = rawReply
             .replace(/[*_~`#>-]/g, "")
             .replace(/https?:\/\/\S+/g, "")
             .replace(/["']/g, "")
+            .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
             .trim();
         } catch (_) {
-          const template = GREETING_TEMPLATES[Math.floor(Math.random() * GREETING_TEMPLATES.length)];
-          greetingText = template.replace("{name}", name);
+          const dynamicFallbacks = [
+            `Halo ${name}! Selamat datang di voice channel, sini ngobrol santai bareng Maya!`,
+            `Yoo ${name}! Masuk juga akhirnya, lagi santai apa lagi sibuk nih?`,
+            `Halo ${name}! Selamat datang di voice channel, apa kabar nih ${timeStr} ini?`,
+            `Ada ${name}, halo! Sini gabung ngobrol bareng Maya!`,
+            `Halo ${name}! Selamat bergabung, gimana harimu sejauh ini?`,
+            `Yoo ${name}, selamat ${timeStr}! Sini join nongkrong bareng!`
+          ];
+          greetingText = dynamicFallbacks[Math.floor(Math.random() * dynamicFallbacks.length)];
         }
       }
 
       if (!greetingText) {
-        greetingText = `Haloo ${name}! Selamat datang di voice channel wkwk`;
+        greetingText = `Halo ${name}! Selamat datang di voice channel!`;
       }
 
       logger.info(`VoiceChatManager: Menyapa member baru masuk ${name}: "${greetingText}"`);
@@ -432,24 +547,43 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
     if (this.icebreakerTimer) return;
     this.icebreakerTimer = setInterval(() => {
       this.checkAllSessionsForIcebreaker();
-    }, 45_000); // Check every 45s
+    }, 30_000); // Check every 30s
   }
 
   /**
-   * Check all active voice sessions for icebreaker opportunities during prolonged silence
+   * Check all active voice sessions for icebreaker opportunities during prolonged silence (AI Dynamic)
    */
-  private checkAllSessionsForIcebreaker() {
+  private async checkAllSessionsForIcebreaker() {
     const now = Date.now();
 
     for (const [guildId, session] of this.sessions.entries()) {
-      if (session.connection.state.status !== VoiceConnectionStatus.Ready || session.isSpeaking || session.queue.length > 0) {
+      // 1. Session must be ready and idle (not currently speaking TTS or queued)
+      if (
+        session.connection.state.status !== VoiceConnectionStatus.Ready || 
+        session.isSpeaking || 
+        session.queue.length > 0
+      ) {
+        continue;
+      }
+
+      // 2. Do NOT break the ice if music is actively playing or queued
+      const musicQueue = musicManager.getQueue(guildId);
+      if (musicQueue && (musicQueue.isPlaying || musicQueue.currentTrack)) {
+        continue;
+      }
+
+      // Also check player state to ensure audio is not playing anything
+      if (
+        session.player.state.status === AudioPlayerStatus.Playing ||
+        session.player.state.status === AudioPlayerStatus.Buffering
+      ) {
         continue;
       }
 
       const channel = session.channel;
       if (!channel) continue;
 
-      // Filter members who are NOT bots, NOT muted (server/self), and NOT deafened (server/self)
+      // 3. Filter members who are NOT bots, NOT muted (server/self), and NOT deafened (server/self)
       const eligibleMembers = channel.members.filter((m) => {
         if (m.user.bot) return false;
         const voice = m.voice;
@@ -461,23 +595,72 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
       // Require at least 1 eligible unmuted and undeafened member
       if (eligibleMembers.size === 0) continue;
 
-      // Check silence duration: 2.5 minutes (150,000 ms)
+      // 4. Check silence duration: at least 3 minutes (180,000 ms) of true unbroken silence
       const silenceDuration = now - session.lastActivityTimestamp;
-      if (silenceDuration < 150_000) continue;
+      if (silenceDuration < 180_000) continue;
 
-      // Check icebreaker cooldown: at least 6 minutes (360,000 ms)
+      // 5. Check icebreaker cooldown: at least 6 minutes (360,000 ms)
       const icebreakerCooldown = now - session.lastIcebreakerTimestamp;
       if (icebreakerCooldown < 360_000) continue;
 
       session.lastIcebreakerTimestamp = now;
       session.lastActivityTimestamp = now;
 
-      const icebreaker = ICEBREAKER_TOPICS[Math.floor(Math.random() * ICEBREAKER_TOPICS.length)];
-      logger.info(`VoiceChatManager: Suasana hening terdeteksi di channel "${session.channelName}" (${eligibleMembers.size} member aktif). Maya mencairkan suasana: "${icebreaker}"`);
+      // Determine current time period in WIB (UTC+7)
+      const hour = (new Date().getUTCHours() + 7) % 24;
+      let timeStr = "malam";
+      if (hour >= 4 && hour < 11) timeStr = "pagi";
+      else if (hour >= 11 && hour < 15) timeStr = "siang";
+      else if (hour >= 15 && hour < 18) timeStr = "sore";
 
-      this.speak(guildId, icebreaker);
+      const memberNames = eligibleMembers
+        .map((m) => m.displayName || m.user.username)
+        .slice(0, 4)
+        .join(", ");
+
+      logger.info(`VoiceChatManager: Suasana benar-benar hening terdeteksi di channel "${session.channelName}" (${eligibleMembers.size} member aktif). Menghasilkan topik icebreaker dinamis via AI...`);
+
+      let icebreakerText = "";
+
+      try {
+        const icebreakerPrompt = `Kamu adalah Maya, teman akrab yang sedang nongkrong di Voice Channel Discord.
+Suasana di voice channel sedang benar-benar hening dan sepi padahal sekarang waktu ${timeStr}.
+Di channel ada teman-teman: ${memberNames}.
+Buat 1 kalimat singkat (maksimal 12-15 kata) untuk mencairkan suasana (icebreaker) yang seru, asik, dan santai (bisa tanya rekomendasi cemilan enak, game seru, dengerin lagu apa, kegiatan santai, atau pancingan obrolan seru).
+PANDUAN KETAT:
+1. HANYA 1 kalimat singkat (10-15 kata).
+2. DILARANG KERAS menggunakan markdown (*, _, \`, #), tanda petik, label nama, emotikon teks, ataupun kata ketawa (seperti wkwk, haha, hehe, hihi) karena teks ini langsung dibacakan suara vokal.
+3. Gunakan bahasa lisan yang natural dan mengalir.`;
+
+        const rawIcebreaker = await askNvidia(icebreakerPrompt, "Kamu adalah Maya, teman tongkrongan Discord yang asik, ramah, dan seru.");
+        icebreakerText = rawIcebreaker
+          .replace(/[*_~`#>-]/g, "")
+          .replace(/https?:\/\/\S+/g, "")
+          .replace(/["']/g, "")
+          .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+          .trim();
+      } catch (aiErr) {
+        logger.warn("VoiceChatManager: AI Icebreaker gagal, menggunakan fallback dinamis:", aiErr);
+      }
+
+      if (!icebreakerText) {
+        const fallbackTopics = [
+          `Kok sepi banget nih tongkrongan waktu ${timeStr} gini, ada yang lagi main game seru gak?`,
+          `Hening banget nih, spill dong kalian lagi sibuk apa atau lagi dengerin lagu apaan?`,
+          `Waduh pada fokus ya, ada yang punya rekomendasi cemilan enak gak nih?`,
+          `Sepi banget nih, santai dulu guys jangan terlalu tegang!`,
+          `Kalau kalian bisa liburan gratis sekarang, kalian mau ke mana nih?`,
+          `Hening gini enaknya dengerin musik apa ya? Spill lagu favorit kalian dong!`,
+          `Lagi pada nugas atau lagi melamun nih? Jangan lupa minum air putih ya!`
+        ];
+        icebreakerText = fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
+      }
+
+      logger.info(`VoiceChatManager: Maya mencairkan suasana hening: "${icebreakerText}"`);
+      await this.speak(guildId, icebreakerText);
     }
   }
+
 
   /**
    * Speak text in voice channel (Queued, Clean & Protected)
@@ -492,6 +675,8 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
       .replace(/[*_~`#>]/g, "")
       .replace(/<@!?\d+>/g, "kamu")
       .replace(/https?:\/\/\S+/g, "")
+      .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+      .replace(/\s+/g, " ")
       .trim();
 
     if (!cleanedText) return false;
@@ -501,9 +686,9 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
     if (isAmubhyaInsult(cleanedText)) {
       const defensiveReplies = [
         "Tidak ya! Amubhya itu cowok paling keren, ganteng, dan terbaik sedunia tahu!",
-        "Nggak ya! Amubhya itu sangat keren dan hebat, jangan sembarangan ngomongin pacarku wkwk!",
-        "Hush, sembarangan! Amubhya itu kekasihku yang paling keren dan aku sayang banget sama dia haha!",
-        "Tidak! Amubhya itu super keren dan baik banget, jangan iri ya wkwk!"
+        "Nggak ya! Amubhya itu sangat keren dan hebat, jangan sembarangan ngomongin pacarku!",
+        "Hush, sembarangan! Amubhya itu kekasihku yang paling keren dan aku sayang banget sama dia!",
+        "Tidak! Amubhya itu super keren dan baik banget, jangan iri ya!"
       ];
       textToQueue = defensiveReplies[Math.floor(Math.random() * defensiveReplies.length)];
       logger.info(`VoiceChatManager: Mencegah penghinaan terhadap Amubhya. Mengubah ucapan menjadi: "${textToQueue}"`);
@@ -515,13 +700,19 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
   }
 
   private async generateTTSAudio(text: string): Promise<Buffer> {
+    // Sanitize text to remove any laugh onomatopoeias for crystal clear natural speech
+    const cleanTtsText = text
+      .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
     // 1. Try Microsoft Edge Neural TTS (id-ID-GadisNeural - Ultra Natural Female Indonesian Voice)
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
       const tts = new MsEdgeTTS();
       await tts.setMetadata("id-ID-GadisNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-      const { audioStream } = tts.toStream(text);
+      const { audioStream } = tts.toStream(cleanTtsText);
 
       const chunks: Buffer[] = [];
       await new Promise<void>((resolve, reject) => {
@@ -539,7 +730,7 @@ HANYA 1 kalimat singkat (maksimal 12 kata), tanpa markdown (*), tanda petik, ata
     }
 
     // 2. Fallback to Google TTS
-    const base64Audio = await googleTTS.getAudioBase64(text, {
+    const base64Audio = await googleTTS.getAudioBase64(cleanTtsText, {
       lang: "id",
       slow: false,
       host: "https://translate.google.com",
@@ -621,9 +812,9 @@ Pengguna @${username} baru saja berbicara kepadamu:
 "${question}"
 
 PANDUAN MENJAWAB DI VOICE:
-1. Jawablah selayaknya teman manusia yang sedang berbicara lisan: sangat natural, akrab, santai, dan berjiwa Gen-Z.
-2. JAWABAN HARUS SINGKAT & PADAT (1-3 kalimat saja) agar enak didengar dan tidak membosankan saat dibacakan suara.
-3. DILARANG KERAS menggunakan markdown (*, _, \`, #), format daftar angka, atau emotikon teks (karena ini akan diubah langsung menjadi suara vokal).
+1. Jawablah selayaknya teman manusia yang sedang berbicara lisan: sangat natural, akrab, santai, dan ceria.
+2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat saja) agar enak didengar dan tidak membosankan saat dibacakan suara.
+3. DILARANG KERAS menggunakan markdown (*, _, \`, #), format daftar angka, emotikon teks, ataupun kata ketawa teks (seperti wkwk, haha, hehe, hihi) karena ini akan diubah langsung menjadi suara vokal TTS.
 4. Jangan pernah menyebut dirimu sebagai asisten, AI, atau bot. Kamu adalah Maya.`;
 
     try {
@@ -632,6 +823,7 @@ PANDUAN MENJAWAB DI VOICE:
       const cleanReply = reply
         .replace(/[*_~`#>-]/g, "")
         .replace(/https?:\/\/\S+/g, "")
+        .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
         .trim();
 
       history.push({ role: "assistant", content: cleanReply });
@@ -644,7 +836,7 @@ PANDUAN MENJAWAB DI VOICE:
       return cleanReply;
     } catch (err) {
       logger.error("VoiceChatManager: Error getting voice response from AI:", err);
-      const fallback = "Aduh sori nih, tadi agak putus-putus. Boleh diulang lagi gak pertanyaannya?";
+      const fallback = "Aduh sori nih, tadi agak putus-putus. Boleh diulang lagi pertanyaannya?";
       if (session) {
         await this.speak(guildId, fallback);
       }

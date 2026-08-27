@@ -1,14 +1,21 @@
 import { 
   VoiceBasedChannel,
-  User 
+  User,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } from "discord.js";
 import { 
   createAudioResource, 
-  StreamType 
+  StreamType,
+  AudioResource
 } from "@discordjs/voice";
 import play from "play-dl";
 import { voiceChatManager } from "./voiceChatManager";
 import { logger } from "../utils/logger";
+
+export type LoopMode = "off" | "track" | "queue";
 
 export interface SongTrack {
   title: string;
@@ -27,6 +34,9 @@ export interface GuildMusicQueue {
   isPlaying: boolean;
   isPaused: boolean;
   isInterruptedByVoice: boolean;
+  loopMode: LoopMode;
+  volume: number; // 1 - 100
+  currentResource: AudioResource | null;
 }
 
 export class MusicManager {
@@ -56,6 +66,9 @@ export class MusicManager {
         isPlaying: false,
         isPaused: false,
         isInterruptedByVoice: false,
+        loopMode: "off",
+        volume: 85,
+        currentResource: null
       };
       this.queues.set(guildId, queue);
     }
@@ -70,7 +83,7 @@ export class MusicManager {
     query: string, 
     user: User, 
     voiceChannel?: VoiceBasedChannel
-  ): Promise<{ success: boolean; message: string; track?: SongTrack }> {
+  ): Promise<{ success: boolean; message: string; track?: SongTrack; queue?: GuildMusicQueue }> {
     const queue = this.getOrCreateQueue(guildId);
 
     // If bot not connected and voice channel provided, join
@@ -112,7 +125,6 @@ export class MusicManager {
         const ytResults = await play.search(query, { source: { youtube: "video" }, limit: 5 });
         if (ytResults && ytResults.length > 0) {
           for (const res of ytResults) {
-            // Validate URL before using — play-dl can return undefined URL on some results
             if (!res.url || !res.url.startsWith("http")) {
               logger.warn(`MusicManager: Hasil pencarian "${res.title}" memiliki URL tidak valid, melewati...`);
               continue;
@@ -142,7 +154,8 @@ export class MusicManager {
         return { 
           success: true, 
           message: `Lagu **${trackInfo.title}** berhasil ditambahkan ke antrean! (Posisi: #${queue.tracks.length})`, 
-          track: trackInfo 
+          track: trackInfo,
+          queue
         };
       }
 
@@ -153,7 +166,8 @@ export class MusicManager {
       return { 
         success: true, 
         message: `Memutar lagu: **${trackInfo.title}** 🎶`, 
-        track: trackInfo 
+        track: trackInfo,
+        queue
       };
     } catch (err: any) {
       logger.error(`MusicManager: Error saat memutar lagu di guild ${guildId}:`, err);
@@ -172,6 +186,7 @@ export class MusicManager {
       logger.warn(`MusicManager: Sesi voice tidak ditemukan untuk guild ${guildId}`);
       queue.isPlaying = false;
       queue.currentTrack = null;
+      queue.currentResource = null;
       return;
     }
 
@@ -180,6 +195,7 @@ export class MusicManager {
       logger.error(`MusicManager: URL tidak valid untuk "${track.title}" (url=${track.url}), melewati lagu ini.`);
       queue.currentTrack = null;
       queue.isPlaying = false;
+      queue.currentResource = null;
       await this.playNext(guildId);
       return;
     }
@@ -189,40 +205,54 @@ export class MusicManager {
       const stream = await play.stream(track.url, { quality: 0 });
 
       const resource = createAudioResource(stream.stream, {
-        // If stream is already Opus, pass through directly (no re-encoding = best quality)
         inputType: stream.type === "opus" ? StreamType.Opus : StreamType.Arbitrary,
         inlineVolume: true,
       });
-      resource.volume?.setVolume(0.85);
+      resource.volume?.setVolume(queue.volume / 100);
 
+      queue.currentResource = resource;
       queue.isPlaying = true;
       queue.isPaused = false;
       queue.isInterruptedByVoice = false;
 
       session.player.play(resource);
-      logger.info(`MusicManager: Memutar "${track.title}" [YouTube HQ] di guild ${guildId}`);
+      logger.info(`MusicManager: Memutar "${track.title}" [YouTube HQ | Vol: ${queue.volume}%] di guild ${guildId}`);
     } catch (err: any) {
       logger.error(`MusicManager: Gagal streaming "${track.title}" — ${err.message}. Melewati lagu...`);
-      // Reset state agar tidak stuck, lalu coba lagu berikutnya
       queue.isPlaying = false;
       queue.currentTrack = null;
+      queue.currentResource = null;
       await this.playNext(guildId);
     }
   }
 
   /**
-   * Play next track in queue
+   * Play next track in queue with Loop Mode support (track / queue / off)
    */
   public async playNext(guildId: string) {
     const queue = this.queues.get(guildId);
     if (!queue) return;
 
+    // 1. Loop Track: Replay current track indefinitely
+    if (queue.loopMode === "track" && queue.currentTrack) {
+      logger.info(`MusicManager: Mengulang lagu saat ini "${queue.currentTrack.title}" (Loop: Track)`);
+      await this.streamTrack(guildId, queue.currentTrack);
+      return;
+    }
+
+    // 2. Loop Queue: Re-add finished track to the end of queue
+    if (queue.loopMode === "queue" && queue.currentTrack) {
+      queue.tracks.push(queue.currentTrack);
+    }
+
+    // 3. Normal / Queue progression
     if (queue.tracks.length > 0) {
       const nextTrack = queue.tracks.shift()!;
       queue.currentTrack = nextTrack;
       await this.streamTrack(guildId, nextTrack);
     } else {
       queue.currentTrack = null;
+      queue.currentResource = null;
       queue.isPlaying = false;
       queue.isPaused = false;
       queue.isInterruptedByVoice = false;
@@ -239,6 +269,25 @@ export class MusicManager {
 
     const skippedTitle = queue.currentTrack.title;
     logger.info(`MusicManager: Melewati lagu "${skippedTitle}" di guild ${guildId}`);
+
+    // If loop is "track", temporarily bypass so it plays next track
+    if (queue.loopMode === "track") {
+      if (queue.tracks.length > 0) {
+        const nextTrack = queue.tracks.shift()!;
+        queue.currentTrack = nextTrack;
+        await this.streamTrack(guildId, nextTrack);
+        return true;
+      } else {
+        queue.currentTrack = null;
+        queue.currentResource = null;
+        queue.isPlaying = false;
+        queue.isPaused = false;
+        const session = voiceChatManager.getSession(guildId);
+        session?.player.stop();
+        return true;
+      }
+    }
+
     await this.playNext(guildId);
     return true;
   }
@@ -279,6 +328,7 @@ export class MusicManager {
 
     queue.tracks = [];
     queue.currentTrack = null;
+    queue.currentResource = null;
     queue.isPlaying = false;
     queue.isPaused = false;
     queue.isInterruptedByVoice = false;
@@ -287,6 +337,63 @@ export class MusicManager {
       session.player.stop();
     }
     return true;
+  }
+
+  /**
+   * Set or toggle Loop Mode ("off" | "track" | "queue")
+   */
+  public setLoop(guildId: string, mode?: LoopMode): LoopMode {
+    const queue = this.getOrCreateQueue(guildId);
+    if (mode) {
+      queue.loopMode = mode;
+    } else {
+      // Cycle: off -> track -> queue -> off
+      if (queue.loopMode === "off") queue.loopMode = "track";
+      else if (queue.loopMode === "track") queue.loopMode = "queue";
+      else queue.loopMode = "off";
+    }
+    logger.info(`MusicManager: Loop mode guild ${guildId} diubah menjadi: ${queue.loopMode}`);
+    return queue.loopMode;
+  }
+
+  /**
+   * Shuffle queue tracks using Fisher-Yates
+   */
+  public shuffle(guildId: string): boolean {
+    const queue = this.queues.get(guildId);
+    if (!queue || queue.tracks.length <= 1) return false;
+
+    for (let i = queue.tracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [queue.tracks[i], queue.tracks[j]] = [queue.tracks[j], queue.tracks[i]];
+    }
+
+    logger.info(`MusicManager: Berhasil mengacak ${queue.tracks.length} lagu di antrean guild ${guildId}`);
+    return true;
+  }
+
+  /**
+   * Set volume (1 - 100) with live adjustment
+   */
+  public setVolume(guildId: string, volume: number): number {
+    const queue = this.getOrCreateQueue(guildId);
+    const clamped = Math.max(1, Math.min(100, Math.round(volume)));
+    queue.volume = clamped;
+
+    if (queue.currentResource && queue.currentResource.volume) {
+      queue.currentResource.volume.setVolume(clamped / 100);
+    }
+
+    logger.info(`MusicManager: Volume guild ${guildId} diatur ke ${clamped}%`);
+    return clamped;
+  }
+
+  /**
+   * Adjust volume by delta (e.g. +10, -10)
+   */
+  public changeVolume(guildId: string, delta: number): number {
+    const queue = this.getOrCreateQueue(guildId);
+    return this.setVolume(guildId, queue.volume + delta);
   }
 
   /**
@@ -314,3 +421,100 @@ export class MusicManager {
 }
 
 export const musicManager = MusicManager.getInstance();
+
+/**
+ * Helper to create rich interactive Button Controller ActionRows
+ */
+export function createMusicControlButtons(queue: GuildMusicQueue): ActionRowBuilder<ButtonBuilder>[] {
+  const isPaused = queue.isPaused;
+  const loopMode = queue.loopMode;
+
+  const loopLabel = loopMode === "track" ? "🔂 Loop: Track" : loopMode === "queue" ? "🔁 Loop: Queue" : "🔁 Loop: Off";
+  const loopStyle = loopMode !== "off" ? ButtonStyle.Success : ButtonStyle.Secondary;
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:pause_resume")
+      .setEmoji(isPaused ? "▶️" : "⏸️")
+      .setLabel(isPaused ? "Resume" : "Pause")
+      .setStyle(isPaused ? ButtonStyle.Success : ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:skip")
+      .setEmoji("⏭️")
+      .setLabel("Skip")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:loop")
+      .setLabel(loopLabel)
+      .setStyle(loopStyle),
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:shuffle")
+      .setEmoji("🔀")
+      .setLabel("Shuffle")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:stop")
+      .setEmoji("⏹️")
+      .setLabel("Stop")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:vol_down")
+      .setEmoji("🔉")
+      .setLabel("-10%")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:vol_up")
+      .setEmoji("🔊")
+      .setLabel("+10%")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId("music_ctrl:queue")
+      .setEmoji("📜")
+      .setLabel(`Antrean (${queue.tracks.length})`)
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  return [row1, row2];
+}
+
+/**
+ * Helper to create rich Now Playing embed
+ */
+export function createNowPlayingEmbed(queue: GuildMusicQueue, customMessage?: string): EmbedBuilder {
+  const track = queue.currentTrack;
+
+  const loopLabel = queue.loopMode === "track" 
+    ? "🔂 Ulang Lagu Ini" 
+    : queue.loopMode === "queue" 
+    ? "🔁 Ulang Seluruh Antrean" 
+    : "❌ Nonaktif";
+
+  const statusLabel = queue.isPaused ? "⏸️ Dijeda" : "▶️ Sedang Memutar";
+
+  const embed = new EmbedBuilder()
+    .setColor(0xF472B6)
+    .setTitle("🎵 Maya Music Player")
+    .setDescription(customMessage || (track ? `[**${track.title}**](${track.url})` : "Tidak ada lagu yang sedang diputar."))
+    .setFooter({ text: "Maya Music Companion • YouTube HQ Audio", iconURL: "https://i.imgur.com/8Q5F5W4.png" })
+    .setTimestamp();
+
+  if (track) {
+    embed.addFields(
+      { name: "⏱️ Durasi", value: `\`${track.duration}\``, inline: true },
+      { name: "👤 Pemesan", value: track.requestedBy, inline: true },
+      { name: "📊 Status", value: statusLabel, inline: true },
+      { name: "🔊 Volume", value: `\`${queue.volume}%\``, inline: true },
+      { name: "🔁 Mode Loop", value: `\`${loopLabel}\``, inline: true },
+      { name: "📋 Sisa Antrean", value: `\`${queue.tracks.length} lagu\``, inline: true }
+    );
+
+    if (track.thumbnail) {
+      embed.setThumbnail(track.thumbnail);
+    }
+  }
+
+  return embed;
+}

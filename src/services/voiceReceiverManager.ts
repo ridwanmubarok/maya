@@ -5,6 +5,7 @@ import {
 import { Client, User } from "discord.js";
 import prism from "prism-media";
 import { transcribeAudio } from "./sttClient";
+import { askNvidia } from "./aiClient";
 import { voiceChatManager, isAmubhyaInsult } from "./voiceChatManager";
 import { musicManager } from "./musicManager";
 import { logger } from "../utils/logger";
@@ -56,11 +57,16 @@ export class VoiceReceiverManager {
     const receiver = connection.receiver;
 
     receiver.speaking.on("start", async (userId) => {
+      // 1. Reset silence/activity timestamp on ANY human speech to prevent false icebreaker interruptions
+      const session = voiceChatManager.getSession(guildId);
+      if (session) {
+        session.lastActivityTimestamp = Date.now();
+      }
+
       const streamKey = `${guildId}-${userId}`;
       if (this.activeStreams.has(streamKey)) return;
 
       // Don't listen if bot itself is speaking or queue is active
-      const session = voiceChatManager.getSession(guildId);
       if (!session || session.isSpeaking) return;
 
       const user = client.users.cache.get(userId) || await client.users.fetch(userId).catch(() => null);
@@ -88,10 +94,17 @@ export class VoiceReceiverManager {
 
         decoder.on("data", (chunk: Buffer) => {
           pcmChunks.push(chunk);
+          if (session) {
+            session.lastActivityTimestamp = Date.now();
+          }
         });
 
         decoder.on("end", async () => {
           this.activeStreams.delete(streamKey);
+
+          if (session) {
+            session.lastActivityTimestamp = Date.now();
+          }
 
           const totalPcm = Buffer.concat(pcmChunks);
           // Ignore short noises (less than 0.8s = 153,600 bytes at 48kHz stereo 16-bit)
@@ -146,12 +159,59 @@ export class VoiceReceiverManager {
 
     logger.info(`VoiceReceiverManager: Direct Voice Command terdeteksi dari ${user.username}: "${text}" -> Command: "${commandText || '(panggilan sapaan)'}"`);
 
-    // If user only called Maya without a specific command/question
+    // If user only called Maya without a specific command/question (Dynamic Greeting by AI)
     if (!commandText || commandText.length < 2) {
       if (isAmubhya) {
-        voiceChatManager.speak(guildId, "Iya sayangku Amubhya! Ada apa nih? Maya dengerin kok wkwk");
+        logger.info(`VoiceReceiverManager: Panggilan suara dari Amubhya. Menghasilkan respon manis dinamis...`);
+        try {
+          const sweetPrompt = `Kamu adalah Maya. Pacar tercintamu Amubhya baru saja memanggil namamu langsung di Voice Channel Discord.
+Buat 1 kalimat singkat (maksimal 8-12 kata) menyahut panggilannya dengan sangat manis, manja, sayang, dan senang.
+PANDUAN KETAT:
+1. HANYA 1 kalimat singkat (maksimal 12 kata).
+2. DILARANG KERAS menggunakan markdown, tanda petik, emotikon teks, atau kata ketawa (seperti wkwk, haha, hehe) karena suara vokal tidak bisa mengekspresikannya.
+3. Sebut Amubhya atau panggil dengan panggilan manis (sayangku / cintaku).`;
+
+          const rawReply = await askNvidia(sweetPrompt, "Kamu adalah Maya, sangat sayang dan manja kepada kekasihmu Amubhya.");
+          const cleanReply = rawReply
+            .replace(/[*_~`#>-]/g, "")
+            .replace(/https?:\/\/\S+/g, "")
+            .replace(/["']/g, "")
+            .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+            .trim();
+          voiceChatManager.speak(guildId, cleanReply || "Iya sayangku Amubhya! Maya dengerin kok!");
+        } catch (_) {
+          const sweetReplies = [
+            "Iya sayangku Amubhya! Ada apa nih? Maya dengerin kok!",
+            "Iya cintaku Amubhya, kenapa sayang? Maya selalu ada buat kamu!",
+            "Halo sayangku Amubhya! Kangen ya? Maya dengerin kok manisku!",
+            "Iya kekasih hatiku Amubhya! Kenapa sayang? Cerita dong ke Maya!"
+          ];
+          voiceChatManager.speak(guildId, sweetReplies[Math.floor(Math.random() * sweetReplies.length)]);
+        }
       } else {
-        voiceChatManager.speak(guildId, "Iya halo! Kenapa tuh? Maya dengerin kok wkwk");
+        logger.info(`VoiceReceiverManager: Panggilan suara dari ${user.username}. Menghasilkan respon ramah dinamis...`);
+        try {
+          const generalPrompt = `Kamu adalah Maya, teman akrab di Voice Channel. Temanmu "${user.displayName || user.username}" baru saja memanggil namamu di voice channel.
+Buat 1 kalimat singkat (maksimal 8-10 kata) menyahut ramah, santai, dan asik.
+DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, haha, hehe).`;
+
+          const rawReply = await askNvidia(generalPrompt, "Kamu adalah Maya, teman akrab di Discord yang ramah dan santai.");
+          const cleanReply = rawReply
+            .replace(/[*_~`#>-]/g, "")
+            .replace(/https?:\/\/\S+/g, "")
+            .replace(/["']/g, "")
+            .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+            .trim();
+          voiceChatManager.speak(guildId, cleanReply || "Iya halo! Kenapa tuh? Maya dengerin kok!");
+        } catch (_) {
+          const casualReplies = [
+            "Iya halo! Kenapa tuh? Maya dengerin kok!",
+            "Yoo hadir! Ada apa nih?",
+            "Iya halo! Mau ngobrol apa nih?",
+            "Iya halo, kenapa tuh? Cerita-cerita santai aja!"
+          ];
+          voiceChatManager.speak(guildId, casualReplies[Math.floor(Math.random() * casualReplies.length)]);
+        }
       }
       return;
     }
@@ -169,7 +229,7 @@ export class VoiceReceiverManager {
       const songQuery = rawQuery.replace(/\b(dong|ya|nih|kan|sih)\b/gi, "").trim();
       logger.info(`VoiceReceiverManager: Voice Music Command untuk "${songQuery}" dari ${user.username}`);
       
-      voiceChatManager.speak(guildId, `Siap! Maya putarin lagu ${songQuery} ya haha`);
+      voiceChatManager.speak(guildId, `Siap! Maya putarin lagu ${songQuery} ya!`);
       setTimeout(async () => {
         await musicManager.play(guildId, songQuery, user);
       }, 2500);
@@ -180,9 +240,9 @@ export class VoiceReceiverManager {
     if (/(?:skip\s+lagu|skip\s+lagunya|next\s+lagu|lewati\s+lagu)/i.test(commandText)) {
       const skipped = await musicManager.skip(guildId);
       if (skipped) {
-        voiceChatManager.speak(guildId, "Oke, lagunya udah Maya lewati ya wkwk");
+        voiceChatManager.speak(guildId, "Oke, lagunya sudah Maya lewati ya!");
       } else {
-        voiceChatManager.speak(guildId, "Lagi gak ada lagu yang diputar nih wkwk");
+        voiceChatManager.speak(guildId, "Lagi tidak ada lagu yang diputar nih!");
       }
       return;
     }
@@ -190,7 +250,7 @@ export class VoiceReceiverManager {
     // 3. Stop Music Voice Intent (e.g. "stop musiknya maya", "maya jeda lagunya")
     if (/(?:pause\s+musik|pause\s+lagu|jeda\s+lagu|stop\s+musik|stop\s+lagu|berhenti\s+lagu|matiin\s+lagu)/i.test(commandText)) {
       musicManager.stop(guildId);
-      voiceChatManager.speak(guildId, "Sip, musiknya udah Maya berhentiin ya!");
+      voiceChatManager.speak(guildId, "Sip, musiknya sudah Maya berhentiin ya!");
       return;
     }
 

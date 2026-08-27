@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, GuildMember } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { createEmbed } from "../utils/embeds";
@@ -12,6 +12,7 @@ import { translationCache } from "../commands/utility/translateMsg";
 import { generateFreeImage } from "../services/imageGenService";
 import { imaginePromptCache } from "../commands/utility/imagine";
 import { handlePollVoteInteraction } from "../services/dailyPollManager";
+import { musicManager, createMusicControlButtons, createNowPlayingEmbed } from "../services/musicManager";
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
@@ -19,6 +20,108 @@ const event: BotEvent = {
     // Handle Button Interactions
     if (interaction.isButton()) {
       const { customId } = interaction;
+
+      if (customId.startsWith("music_ctrl:")) {
+        const action = customId.split(":")[1];
+        const guildId = interaction.guildId;
+        const member = interaction.member as GuildMember;
+
+        if (!guildId || !member) {
+          await interaction.reply({ content: "Tombol ini hanya dapat digunakan di server!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const voiceChannel = member.voice?.channel;
+        if (!voiceChannel) {
+          await interaction.reply({ content: "Kamu harus berada di Voice Channel untuk menggunakan tombol kontroler musik!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const queue = musicManager.getQueue(guildId);
+        if (!queue || (!queue.currentTrack && queue.tracks.length === 0)) {
+          await interaction.reply({ content: "Tidak ada musik yang sedang diputar di server ini!", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        if (action === "pause_resume") {
+          if (queue.isPaused) {
+            musicManager.resume(guildId);
+          } else {
+            musicManager.pause(guildId);
+          }
+        } else if (action === "skip") {
+          await musicManager.skip(guildId);
+        } else if (action === "loop") {
+          musicManager.setLoop(guildId);
+        } else if (action === "shuffle") {
+          if (queue.tracks.length <= 1) {
+            await interaction.reply({ content: "Antrean butuh minimal 2 lagu untuk diacak!", flags: MessageFlags.Ephemeral });
+            return;
+          }
+          musicManager.shuffle(guildId);
+        } else if (action === "vol_down") {
+          musicManager.changeVolume(guildId, -10);
+        } else if (action === "vol_up") {
+          musicManager.changeVolume(guildId, 10);
+        } else if (action === "stop") {
+          musicManager.stop(guildId);
+          await interaction.update({
+            content: `⏹️ Musik dihentikan dan antrean dibersihkan oleh **${member.displayName || interaction.user.username}**.`,
+            embeds: [],
+            components: []
+          });
+          return;
+        } else if (action === "queue") {
+          const loopLabel = queue.loopMode === "track" ? "🔂 Track" : queue.loopMode === "queue" ? "🔁 Queue" : "❌ Off";
+          const qEmbed = new EmbedBuilder()
+            .setColor(0xF472B6)
+            .setTitle("📜 Antrean Musik Maya")
+            .setDescription(`🔊 **Volume**: \`${queue.volume}%\` | 🔁 **Loop**: \`${loopLabel}\``)
+            .setFooter({ text: "Maya Music Companion • YouTube HQ Audio", iconURL: interaction.client.user?.displayAvatarURL() })
+            .setTimestamp();
+
+          if (queue.currentTrack) {
+            qEmbed.addFields({
+              name: "▶️ Sedang Diputar",
+              value: `[**${queue.currentTrack.title}**](${queue.currentTrack.url}) | \`${queue.currentTrack.duration}\` (Oleh: ${queue.currentTrack.requestedBy})`
+            });
+          }
+
+          if (queue.tracks.length > 0) {
+            const nextTracks = queue.tracks
+              .slice(0, 10)
+              .map((t, idx) => `**#${idx + 1}.** [${t.title}](${t.url}) | \`${t.duration}\` - ${t.requestedBy}`)
+              .join("\n");
+
+            qEmbed.addFields({
+              name: `📋 Antrean Berikutnya (${queue.tracks.length} lagu)`,
+              value: nextTracks + (queue.tracks.length > 10 ? `\n*...dan ${queue.tracks.length - 10} lagu lainnya.*` : "")
+            });
+          }
+
+          await interaction.reply({ embeds: [qEmbed], flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const updatedQueue = musicManager.getQueue(guildId);
+        if (!updatedQueue || (!updatedQueue.currentTrack && updatedQueue.tracks.length === 0)) {
+          await interaction.update({
+            content: "⏹️ Pemutaran musik telah selesai!",
+            embeds: [],
+            components: []
+          });
+          return;
+        }
+
+        const updatedEmbed = createNowPlayingEmbed(updatedQueue);
+        const updatedComponents = createMusicControlButtons(updatedQueue);
+
+        await interaction.update({
+          embeds: [updatedEmbed],
+          components: updatedComponents
+        });
+        return;
+      }
 
       if (customId.startsWith("menfess_reply:")) {
         const replyToCode = customId.split(":")[1];
