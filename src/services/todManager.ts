@@ -207,11 +207,28 @@ export class TodManager {
 
     logger.info(`TodManager: Botol berputar (Round #${session.round}) -> Terpilih: ${targetName} (${picked.id})`);
 
-    // Voice announcement
-    voiceChatManager.speak(
-      guildId,
-      `Botol berputar... dan berhenti di ${targetName}! Hayo ${targetName}, kamu pilih Truth atau Dare nih?`
-    );
+    // Dynamic AI Voice announcement
+    let teaseNarration = "";
+    try {
+      const teasePrompt = `Kamu adalah Maya, cewek Gen-Z asik yang memandu game Truth or Dare di Voice Channel Discord.
+Botol baru saja berputar dan berhenti tepat di depan "${targetName}".
+Buat 1 kalimat singkat (maksimal 10-12 kata) memanggil dan menantang ${targetName} untuk memilih Truth atau Dare!
+DILARANG menggunakan markdown, tanda petik, atau kata ketawa (wkwk, haha).`;
+
+      const rawTease = await askNvidia(teasePrompt, "Kamu adalah Maya, pemandu game Voice yang seru dan usil.");
+      teaseNarration = rawTease
+        .replace(/[*_~`#>-]/g, "")
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/["']/g, "")
+        .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+        .trim();
+    } catch (_) {}
+
+    if (!teaseNarration) {
+      teaseNarration = `Botol berputar dan berhenti di ${targetName}! Hayo ${targetName}, kamu pilih Truth atau Dare nih?`;
+    }
+
+    voiceChatManager.speak(guildId, teaseNarration);
 
     const embed = new EmbedBuilder()
       .setColor(0xF59E0B)

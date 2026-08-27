@@ -11,6 +11,7 @@ import {
   MessageFlags
 } from "discord.js";
 import { voiceChatManager } from "./voiceChatManager";
+import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 
 export type WerewolfRole = "werewolf" | "seer" | "doctor" | "villager" | "hunter";
@@ -441,22 +442,45 @@ export class WerewolfManager {
     }
 
     session.phase = "day_discussion";
+    session.phase = "day_discussion";
     session.dayVotes.clear();
 
     const victimName = victimPlayer ? victimPlayer.displayName : "tidak ada";
+    const alivePlayers = Array.from(session.players.values()).filter((p) => p.isAlive);
+    const randomSuspect = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+    const suspectName = randomSuspect ? randomSuspect.displayName : "kalian";
 
-    // Voice announcement
-    if (victimDied && victimPlayer) {
-      voiceChatManager.speak(
-        guildId,
-        `Pagi telah tiba di desa! Kabar duka, semalam ${victimPlayer.displayName} gugur dimangsa oleh Werewolf. Silakan berdiskusi dan cari siapa serigalanya!`
-      );
-    } else {
-      voiceChatManager.speak(
-        guildId,
-        "Pagi telah tiba di desa! Kabar baik, Dokter berhasil melindungi warga semalam! Tidak ada korban yang gugur. Silakan berdiskusi bersama!"
-      );
+    // Dynamic AI Morning Narration & Interrogation by Maya Game Master
+    let morningNarration = "";
+    try {
+      const prompt = `Kamu adalah Maya, Game Master dan Narator permainan Werewolf di Voice Channel Discord.
+Kondisi Pagi Hari ke-${session.dayNumber}: ${victimDied ? `Korban bernama "${victimPlayer?.displayName}" tewas dimangsa Werewolf semalam` : "Dokter berhasil menyelamatkan warga semalam sehingga tidak ada korban yang gugur"}.
+Pemain yang masih hidup: ${alivePlayers.map((p) => p.displayName).join(", ")}.
+Buat narasi pagi hari yang seru dan pancing diskusi dengan mengajukan 1 pertanyaan interogasi kecurigaan langsung ke "${suspectName}"!
+PANDUAN KETAT:
+1. HANYA 2 kalimat singkat (maksimal 20-25 kata).
+2. Kalimat 1: Pengumuman pagi hari dan status korban semalam.
+3. Kalimat 2: Pertanyaan interogasi / pancingan kecurigaan langsung menyebut nama "${suspectName}" (misal: semalam kamu ngapain aja di desa?).
+4. DILARANG menggunakan markdown (*, _), tanda petik, atau kata ketawa (wkwk, haha).`;
+
+      const rawNarration = await askNvidia(prompt, "Kamu adalah Maya, Game Master Werewolf yang dramatis, asik, dan suka memancing perdebatan seru.");
+      morningNarration = rawNarration
+        .replace(/[*_~`#>-]/g, "")
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/["']/g, "")
+        .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+        .trim();
+    } catch (_) {}
+
+    if (!morningNarration) {
+      if (victimDied && victimPlayer) {
+        morningNarration = `Pagi telah tiba! Semalam ${victimPlayer.displayName} gugur dimangsa Werewolf. Maya curiga nih sama ${suspectName}, semalam kamu ngapain aja di desa?`;
+      } else {
+        morningNarration = `Pagi telah tiba! Kabar baik, Dokter berhasil melindungi warga semalam! Tapi Maya perhatiin ${suspectName} mencurigakan banget, apa alibimu?`;
+      }
     }
+
+    voiceChatManager.speak(guildId, morningNarration);
 
     // Check win condition
     const win = this.checkWinCondition(session);
@@ -470,8 +494,10 @@ export class WerewolfManager {
       .setDescription(
         victimDied
           ? `🩸 **Kabar Duka:** Semalam **${victimPlayer?.displayName}** telah gugur dimangsa Werewolf!\n\n` +
+            `🔍 **Interogasi Maya:** *"Maya curiga nih sama **${suspectName}**, apa alibimu semalam?"*\n\n` +
             `🗣️ **Fase Diskusi:** Bicarakan kecurigaan kalian di Voice Channel, lalu berikan suara voting untuk mengeliminasi tersangka!`
           : `✨ **Kabar Gembira:** Dokter berhasil melindungi warga! **Tidak ada yang gugur semalam.**\n\n` +
+            `🔍 **Interogasi Maya:** *"Maya perhatiin gerak-gerik **${suspectName}** mencurigakan, apa alibimu?"*\n\n` +
             `🗣️ **Fase Diskusi:** Bicarakan petunjuk di Voice Channel dan voting siapa yang dicurigai!`
       )
       .addFields({
@@ -525,7 +551,7 @@ export class WerewolfManager {
   }
 
   /**
-   * Execute Day Vote results
+   * Execute Day Vote results with Dynamic AI Reveal
    */
   public async executeVoteResults(guildId: string): Promise<{ success: boolean; message: string; embed?: EmbedBuilder; components?: ActionRowBuilder<ButtonBuilder>[] }> {
     const session = this.sessions.get(guildId);
@@ -560,19 +586,34 @@ export class WerewolfManager {
       }
     }
 
-    // Voice announcement
+    // Dynamic AI Voice announcement
+    let executionNarration = "";
     if (executedPlayer) {
-      const roleName = this.getRoleDetails(executedPlayer.role).name;
-      voiceChatManager.speak(
-        guildId,
-        `Berdasarkan hasil voting warga, ${executedPlayer.displayName} resmi dieksekusi! Perannya adalah ${roleName}. Malam telah kembali tiba...`
-      );
+      const roleDetails = this.getRoleDetails(executedPlayer.role);
+      try {
+        const prompt = `Kamu adalah Maya, Game Master Werewolf di Voice Channel Discord.
+Warga desa baru saja sepakat mengeksekusi "${executedPlayer.displayName}".
+Peran aslinya ternyata adalah "${roleDetails.name}".
+Buat 1-2 kalimat singkat (maksimal 18-20 kata) mengumumkan eksekusi ${executedPlayer.displayName} dan mengungkap peran aslinya dengan nada dramatis!
+DILARANG menggunakan markdown, tanda petik, atau kata ketawa.`;
+
+        const rawExec = await askNvidia(prompt, "Kamu adalah Maya, Game Master Werewolf yang dramatis dan seru.");
+        executionNarration = rawExec
+          .replace(/[*_~`#>-]/g, "")
+          .replace(/https?:\/\/\S+/g, "")
+          .replace(/["']/g, "")
+          .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
+          .trim();
+      } catch (_) {}
+
+      if (!executionNarration) {
+        executionNarration = `Berdasarkan hasil voting warga, ${executedPlayer.displayName} resmi dieksekusi! Peran aslinya adalah ${roleDetails.name}! Malam telah kembali tiba di desa.`;
+      }
     } else {
-      voiceChatManager.speak(
-        guildId,
-        "Hasil voting seimbang atau warga memutuskan skip! Tidak ada yang dieksekusi hari ini. Malam telah kembali tiba..."
-      );
+      executionNarration = "Hasil voting seimbang atau warga memutuskan skip! Tidak ada yang dieksekusi hari ini. Malam telah kembali tiba di desa.";
     }
+
+    voiceChatManager.speak(guildId, executionNarration);
 
     // Check win condition
     const win = this.checkWinCondition(session);
