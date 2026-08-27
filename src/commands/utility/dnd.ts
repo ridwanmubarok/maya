@@ -10,21 +10,21 @@ import { dndManager, DndTheme } from "../../services/dndManager";
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("dnd")
-    .setDescription("🐉 Petualangan D&D Fantasi Nusantara dipandu Maya sebagai Dalang di Voice Channel!")
+    .setDescription("🐉 Petualangan D&D (Dungeons & Dragons) dipandu oleh Maya sebagai Dungeon Master di Voice!")
     .addSubcommand((sub) =>
       sub
         .setName("start")
-        .setDescription("Mulai petualangan D&D Nusantara bersama rombongan pendekar di Voice Channel")
+        .setDescription("Mulai petualangan RPG D&D bersama party di Voice Channel")
         .addStringOption((opt) =>
           opt
             .setName("tema")
-            .setDescription("Pilih babad petualangan & musuh gaib Nusantara")
+            .setDescription("Pilih tema petualangan & boss dungeon")
             .setRequired(false)
             .addChoices(
-              { name: "🌲 Alas Roban Angker & Raja Genderuwo Hitam", value: "alas_roban" },
-              { name: "🌊 Segara Kidul & Panglima Siluman Buaya Putih", value: "pantai_selatan" },
-              { name: "🌋 Kawah Keramat Merapi & Raja Banaspati Purba", value: "gunung_merapi" },
-              { name: "🏯 Candi Terbengkalai & Ratu Rangda Calon Arang", value: "candi_leak" }
+              { name: "🏰 The Forgotten Catacombs (Malakar the Shadow Lord)", value: "dungeon" },
+              { name: "🌋 Lair of the Crimson Wyrm (Ancient Red Dragon)", value: "dragon" },
+              { name: "❄️ Citadel of the Frost Lich (Arch-Lich Valgoth)", value: "lich" },
+              { name: "🔥 The Abyssal Rift (Azgareth the Demon King)", value: "abyss" }
             )
         )
     )
