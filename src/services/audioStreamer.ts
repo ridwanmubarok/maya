@@ -26,6 +26,13 @@ export class AudioStreamer {
     }
 
     this.isInitializing = (async () => {
+      // 1. Check if system yt-dlp binary exists (pre-installed in Docker)
+      if (fs.existsSync("/usr/local/bin/yt-dlp")) {
+        logger.info("AudioStreamer: Menggunakan binary sistem /usr/local/bin/yt-dlp");
+        this.ytDlpWrap = new YTDlpWrap("/usr/local/bin/yt-dlp");
+        return;
+      }
+
       const binDir = path.join(process.cwd(), "bin");
       const binaryPath = path.join(binDir, process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp");
 

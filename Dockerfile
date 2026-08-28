@@ -33,11 +33,15 @@ FROM node:22-slim
 
 WORKDIR /usr/src/app
 
-# Install runtime dependencies for audio streaming (ffmpeg) and Prisma database client (openssl)
+# Install runtime dependencies for audio streaming (ffmpeg, python3, yt-dlp) and Prisma database client (openssl)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    python3 \
     openssl \
     ca-certificates \
+    curl \
+    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
@@ -46,6 +50,7 @@ COPY prisma ./prisma/
 # Copy dependencies and dist output directly from the builder stage
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/bin ./bin
 
 EXPOSE 3000
 
