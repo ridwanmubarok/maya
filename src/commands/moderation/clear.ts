@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, TextChannel } from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, TextChannel, MessageFlags } from "discord.js";
 import { Command } from "../../types";
 import { createEmbed } from "../../utils/embeds";
 
@@ -22,7 +22,7 @@ const command: Command = {
     if (!channel || !channel.bulkDelete) {
       await interaction.reply({
         embeds: [createEmbed.error("Kesalahan", "Perintah ini hanya bisa digunakan di text channel server.")],
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
       return;
     }
@@ -48,7 +48,7 @@ const command: Command = {
           "Gagal Menghapus Pesan",
           "Pesan yang berusia lebih dari 14 hari tidak dapat dihapus secara massal oleh Discord API."
         )],
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }

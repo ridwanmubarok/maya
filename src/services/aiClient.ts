@@ -61,10 +61,10 @@ export async function askNvidia(
 
   const modelCandidates = [
     process.env.NVIDIA_MODEL,
-    "minimaxai/minimax-m3",
-    "nvidia/nemotron-3-ultra-550b-a55b",
+    "openai/gpt-oss-20b",
+    "meta/llama-3.2-11b-vision-instruct",
     "nvidia/nemotron-3-nano-30b-a3b",
-    "meta/llama-3.2-11b-vision-instruct"
+    "minimaxai/minimax-m3"
   ].filter(Boolean) as string[];
 
   const messages: { role: string; content: string }[] = [];
@@ -108,7 +108,7 @@ export async function askNvidia(
       }
 
       const data: any = await response.json();
-      let responseText = data.choices?.[0]?.message?.content;
+      let responseText = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content;
       
       if (responseText && responseText.trim()) {
         // Strip out internal reasoning/thinking tags if model provides them
