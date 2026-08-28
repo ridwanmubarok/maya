@@ -81,7 +81,7 @@ export class VoiceReceiverManager {
         const opusStream = receiver.subscribe(userId, {
           end: {
             behavior: EndBehaviorType.AfterSilence,
-            duration: 1000,
+            duration: 450,
           },
         });
 
@@ -110,8 +110,8 @@ export class VoiceReceiverManager {
           }
 
           const totalPcm = Buffer.concat(pcmChunks);
-          // Ignore short noises (less than 0.8s = 153,600 bytes at 48kHz stereo 16-bit)
-          if (totalPcm.length < 153600) return;
+          // Ignore micro noise clicks (less than 0.3s = 57,600 bytes at 48kHz stereo 16-bit)
+          if (totalPcm.length < 57600) return;
 
           const wavBuffer = pcmToWav(totalPcm);
           const transcription = await transcribeAudio(wavBuffer);

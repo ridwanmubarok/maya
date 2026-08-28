@@ -128,6 +128,7 @@ export class VoiceChatManager {
   private userGreetingCooldown = new Map<string, number>(); // key: userId, val: timestamp
   private icebreakerTimer: NodeJS.Timeout | null = null;
   private emptyChannelTimers = new Map<string, NodeJS.Timeout>(); // key: guildId
+  private edgeTtsClient: any = null;
 
   private constructor() {
     this.startIcebreakerScheduler();
@@ -356,10 +357,7 @@ PANDUAN KETAT:
         // Stop current audio/music immediately so goodbye audio plays right away
         session.player.stop();
         session.queue = [];
-        session.isSpeaking = true;
-
-        const audioBuffer = await this.generateTTSAudio(goodbyeText);
-        const audioStream = Readable.from(audioBuffer);
+        const audioStream = await this.getTTSStream(goodbyeText);
         const resource = createAudioResource(audioStream, {
           inputType: StreamType.Arbitrary,
           inlineVolume: true
@@ -706,44 +704,33 @@ PANDUAN KETAT:
     return true;
   }
 
-  private async generateTTSAudio(text: string): Promise<Buffer> {
+  private async getTTSStream(text: string): Promise<Readable> {
     // Sanitize text to remove any laugh onomatopoeias for crystal clear natural speech
     const cleanTtsText = text
       .replace(/\b(w+k+w*k*|h+a+h*a*|h+e+h*e*|h+i+h*i*|x+i+x*i*|h+u+h*u*|l+o+l|a+w+o+k+)\b/gi, "")
       .replace(/\s+/g, " ")
       .trim();
 
-    // 1. Try Microsoft Edge Neural TTS (id-ID-GadisNeural - Ultra Natural Female Indonesian Voice)
+    // 1. Try Microsoft Edge Neural TTS (Stream directly into Discord Audio Player)
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
-      const tts = new MsEdgeTTS();
-      await tts.setMetadata("id-ID-GadisNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-      const { audioStream } = tts.toStream(cleanTtsText);
-
-      const chunks: Buffer[] = [];
-      await new Promise<void>((resolve, reject) => {
-        audioStream.on("data", (chunk: Buffer) => chunks.push(chunk));
-        audioStream.on("end", () => resolve());
-        audioStream.on("error", (err: any) => reject(err));
-      });
-
-      const buffer = Buffer.concat(chunks);
-      if (buffer.length > 0) {
-        return buffer;
+      if (!this.edgeTtsClient) {
+        this.edgeTtsClient = new MsEdgeTTS();
+        await this.edgeTtsClient.setMetadata("id-ID-GadisNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
       }
+      const { audioStream } = this.edgeTtsClient.toStream(cleanTtsText);
+      return audioStream;
     } catch (edgeErr) {
       logger.warn("VoiceChatManager: Edge Neural TTS fallback ke Google TTS:", edgeErr);
+      const base64Audio = await googleTTS.getAudioBase64(cleanTtsText, {
+        lang: "id",
+        slow: false,
+        host: "https://translate.google.com",
+        timeout: 8000,
+      });
+      return Readable.from(Buffer.from(base64Audio, "base64"));
     }
-
-    // 2. Fallback to Google TTS
-    const base64Audio = await googleTTS.getAudioBase64(cleanTtsText, {
-      lang: "id",
-      slow: false,
-      host: "https://translate.google.com",
-      timeout: 10000,
-    });
-    return Buffer.from(base64Audio, "base64");
   }
 
   /**
@@ -772,8 +759,7 @@ PANDUAN KETAT:
     musicManager.onMayaSpeechStart(guildId);
 
     try {
-      const audioBuffer = await this.generateTTSAudio(textToSpeak);
-      const audioStream = Readable.from(audioBuffer);
+      const audioStream = await this.getTTSStream(textToSpeak);
 
       const resource = createAudioResource(audioStream, {
         inputType: StreamType.Arbitrary,
@@ -782,7 +768,7 @@ PANDUAN KETAT:
       resource.volume?.setVolume(1.0);
 
       session.player.play(resource);
-      logger.info(`VoiceChatManager: Memutar vokal suara natural untuk: "${textToSpeak}"`);
+      logger.info(`VoiceChatManager: Memutar vokal suara natural (Zero-Delay Stream) untuk: "${textToSpeak}"`);
     } catch (error) {
       logger.error(`VoiceChatManager: Gagal memutar TTS untuk "${textToSpeak}":`, error);
       session.isSpeaking = false;
