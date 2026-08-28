@@ -80,7 +80,11 @@ export class AudioStreamer {
       "-o", "-"
     ]);
 
-    stream.on("error", (err) => {
+    stream.on("error", (err: any) => {
+      if (err?.code === "ERR_STREAM_PREMATURE_CLOSE" || err?.message?.includes("Premature close")) {
+        // Normal when stream is stopped or preempted by new audio/TTS
+        return;
+      }
       logger.error(`AudioStreamer: Error pada stream "${queryOrUrl}":`, err);
     });
 

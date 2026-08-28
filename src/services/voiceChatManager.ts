@@ -212,16 +212,23 @@ export class VoiceChatManager {
           if (session.queue.length > 0) {
             this.processQueue(guildId);
           } else {
-            // Maya finished all pending speech -> Auto-resume music
+            // Maya finished all pending speech -> Auto-resume music if interrupted
             musicManager.onMayaSpeechEnd(guildId);
           }
         } else {
-          // Track finished naturally -> Play next track
-          musicManager.playNext(guildId);
+          // Track finished naturally -> Play next track (only if not currently interrupted by voice speech)
+          const queue = musicManager.getQueue(guildId);
+          if (queue && !queue.isInterruptedByVoice) {
+            musicManager.playNext(guildId);
+          }
         }
       });
 
-      player.on("error", (error) => {
+      player.on("error", (error: any) => {
+        if (error?.code === "ERR_STREAM_PREMATURE_CLOSE" || error?.message?.includes("Premature close")) {
+          // Ignore premature close on resource switch / TTS preemption
+          return;
+        }
         logger.error(`VoiceChatManager: Audio Player error in guild ${guildId}:`, error);
         if (session.isSpeaking) {
           session.isSpeaking = false;

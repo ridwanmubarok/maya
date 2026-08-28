@@ -485,10 +485,8 @@ export class MusicManager {
    */
   public onMayaSpeechStart(guildId: string) {
     const queue = this.queues.get(guildId);
-    const session = voiceChatManager.getSession(guildId);
-    if (queue && queue.isPlaying && !queue.isPaused && session) {
+    if (queue && queue.isPlaying && !queue.isPaused) {
       queue.isInterruptedByVoice = true;
-      session.player.pause();
       logger.info(`MusicManager: Musik dijeda sementara karena Maya berbicara di guild ${guildId}`);
     }
   }
@@ -496,13 +494,13 @@ export class MusicManager {
   /**
    * Resume music when Maya finishes speaking
    */
-  public onMayaSpeechEnd(guildId: string) {
+  public async onMayaSpeechEnd(guildId: string) {
     const queue = this.queues.get(guildId);
     const session = voiceChatManager.getSession(guildId);
-    if (queue && queue.isPlaying && queue.isInterruptedByVoice && session) {
+    if (queue && queue.isPlaying && queue.isInterruptedByVoice && queue.currentTrack && session) {
       queue.isInterruptedByVoice = false;
-      session.player.unpause();
-      logger.info(`MusicManager: Musik dilanjutkan kembali setelah Maya selesai berbicara di guild ${guildId}`);
+      logger.info(`MusicManager: Melanjutkan musik "${queue.currentTrack.title}" setelah Maya selesai berbicara di guild ${guildId}`);
+      await this.streamTrack(guildId, queue.currentTrack);
     }
   }
 
