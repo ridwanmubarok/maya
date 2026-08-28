@@ -52,56 +52,56 @@ export interface ActiveSession {
 }
 
 const QUESTION_BANK: TebakQuestion[] = [
-  { id: "q1", category: "Tebak-Tebakan Kekinian", question: "Kenapa HP Android kalau lagi charging tidak bisa diajak jalan-jalan?", answer: "Kabelan", acceptableAnswers: ["kabelan", "karena kabelan", "ke kabelan"], clue: "Plesetan kata kesebelasan..." },
-  { id: "q2", category: "Teka-Teki Lucu", question: "Pintu apa yang tidak bisa didorong oleh 10 orang kuat sekalipun?", answer: "Pintu Geser", acceptableAnswers: ["pintu geser", "geser", "sliding door"], clue: "Bukan didorong, tapi..." },
-  { id: "q3", category: "Asah Otak Kocak", question: "Makin diisi makin ringan, apakah itu?", answer: "Balon", acceptableAnswers: ["balon", "balon gas"], clue: "Diisi gas/udara ringan." },
-  { id: "q4", category: "Plesetan Gaool", question: "Buah apa yang kalau dimakan bikin orang jadi jutawan?", answer: "Buah Pikiran", acceptableAnswers: ["buah pikiran", "pikiran"], clue: "Ide cemerlang menghasilkan bisnis jutaan..." },
-  { id: "q5", category: "Tebak-Tebakan Gaul", question: "Mobil apa yang paling panjang di dunia?", answer: "Mobil Antrean", acceptableAnswers: ["mobil antrean", "antrean", "antri"], clue: "Bisa berderet sampai berjam-jam..." },
-  { id: "q6", category: "Teka-Teki Santai", question: "Lampu apa yang kalau dipecahkan justru keluar orangnya?", answer: "Lampu Tetangga", acceptableAnswers: ["lampu tetangga", "tetangga"], clue: "Tetangganya pasti keluar marah-marah!" },
-  { id: "q7", category: "Plesetan Kopi", question: "Kopi apa yang bikin orang capek?", answer: "Kopian", acceptableAnswers: ["kopian", "ngopi sambil lari"], clue: "Plesetan dari kegiatan memfotokopi rute berulang kali..." },
-  { id: "q8", category: "Tebak-Tebakan Hewan", question: "Gajah apa yang belalainya pendek?", answer: "Gajah Pesek", acceptableAnswers: ["gajah pesek", "pesek"], clue: "Beda nasib sama gajah normal..." },
-  { id: "q9", category: "Asah Otak", question: "Benda apa yang punya banyak mata tapi tidak bisa melihat?", answer: "Dadu", acceptableAnswers: ["dadu", "dadu kocok"], clue: "Titik-titik di sisinya disebut mata dadu." },
-  { id: "q10", category: "Teka-Teki Lucu", question: "Penyanyi luar negeri yang suka belanja di pasar tradisional?", answer: "Justin Beli-ber", acceptableAnswers: ["justin beliber", "justin bieber", "beliber"], clue: "Justin Bieber versi emak-emak..." },
-  { id: "q11", category: "Plesetan Makanan", question: "Nasi apa yang paling menakutkan di dunia?", answer: "Nasib", acceptableAnswers: ["nasib", "nasib buruk"], clue: "Bikin kepikiran terus..." },
-  { id: "q12", category: "Tebak-Tebakan Gaul", question: "Kenapa mata pencaharian itu disebut pencaharian?", answer: "Karena Terang", acceptableAnswers: ["karena terang", "terang", "pencahayaan"], clue: "Kalau gelap jadi penutup..." },
-  { id: "q13", category: "Teka-Teki Santai", question: "Telor apa yang kalau diinjak tidak pecah?", answer: "Telor Tato", acceptableAnswers: ["telor tato", "tato"], clue: "Karena digambar di kulit preman!" },
-  { id: "q14", category: "Tebak-Tebakan Hewan", question: "Kucing apa yang paling ditakuti oleh tikus?", answer: "Kucing Beneran", acceptableAnswers: ["kucing beneran", "kucing asli", "kucing"], clue: "Bukan kucing gambar atau mainan." },
-  { id: "q15", category: "Asah Otak Kocak", question: "Benda apa yang selalu di depan mata tapi tidak bisa dilihat?", answer: "Bulu Mata", acceptableAnswers: ["bulu mata", "alis"], clue: "Coba tatap tanpa cermin..." },
-  { id: "q16", category: "Tebak-Tebakan Gaul", question: "Orang apa yang kalau berenang rambutnya tidak basah?", answer: "Orang Botak", acceptableAnswers: ["orang botak", "botak"], clue: "Karena tidak punya rambut..." },
-  { id: "q17", category: "Plesetan Musik", question: "Band apa yang paling tidak suka hujan?", answer: "Slank", acceptableAnswers: ["slank", "selang"], clue: "Plesetan dari selang air..." },
-  { id: "q18", category: "Teka-Teki Lucu", question: "Kenapa saat lampu merah kendaraan harus berhenti?", answer: "Karena Direm", acceptableAnswers: ["karena direm", "direm", "rem"], clue: "Kalau tidak direm ya nabrak!" },
-  { id: "q19", category: "Tebak-Tebakan AI", question: "Sayur apa yang jago bela diri?", answer: "Bayam Choke", acceptableAnswers: ["bayam choke", "bayam", "kangkung kungfu"], clue: "Plesetan dari martial art..." },
-  { id: "q20", category: "Asah Otak", question: "Benda apa yang kalau dipotong malah makin tinggi?", answer: "Celana Panjang", acceptableAnswers: ["celana panjang", "celana"], clue: "Dipotong bagian bawahnya jadi celana pendek/tinggi..." },
-  { id: "q21", category: "Plesetan Gaul", question: "Penyanyi yang selalu gak sabaran dan suka buru-buru?", answer: "Afgan", acceptableAnswers: ["afgan", "afgan buru-buru"], clue: "Plesetan dari 'Ah, buruan gan!'..." },
-  { id: "q22", category: "Teka-Teki Lucu", question: "Bebek apa yang kalau jalan selalu noleh ke kiri?", answer: "Bebek Dikunci Stang", acceptableAnswers: ["bebek dikunci stang", "kunci stang", "motor bebek"], clue: "Bukan sembarang unggas, tapi jenis motor..." },
-  { id: "q23", category: "Plesetan Makanan", question: "Buah apa yang paling ditakuti oleh mahasiswa semester akhir?", answer: "Belimbingan", acceptableAnswers: ["belimbingan", "bimbingan", "buah belimbing"], clue: "Plesetan dari kata bimbingan skripsi..." },
-  { id: "q24", category: "Asah Otak Kocak", question: "Jika ada 10 burung di pohon ditembak 1 ekor, sisa berapa burung di pohon?", answer: "Nol", acceptableAnswers: ["nol", "0", "habis", "tidak ada"], clue: "Sisanya kabur semua karena kaget suara tembakan..." },
-  { id: "q25", category: "Tebak-Tebakan Hewan", question: "Kuda apa yang paling bikin capek dan pegal-pegal?", answer: "Kuda-Kudaan", acceptableAnswers: ["kuda-kudaan", "kuda kuda"], clue: "Pose silat atau menahan beban tubuh..." },
-  { id: "q26", category: "Plesetan Minuman", question: "Es apa yang paling ditakuti oleh para jomblo?", answer: "Eskalator", acceptableAnswers: ["eskalator", "es kelapa"], clue: "Karena naiknya bareng pasangan orang lain..." },
-  { id: "q27", category: "Teka-Teki Logika", question: "Punya gigi banyak tapi tidak bisa mengunyah makanan, apakah itu?", answer: "Sisir", acceptableAnswers: ["sisir", "sisir rambut", "gergaji"], clue: "Dipakai buat merapikan rambut setiap pagi." },
-  { id: "q28", category: "Plesetan Nama Kota", question: "Kota di Indonesia yang paling banyak bapak-bapaknya?", answer: "Purwodadi", acceptableAnswers: ["purwodadi", "papa dadi"], clue: "Plesetan 'Purwo dadi (jadi) bapak'..." },
-  { id: "q29", category: "Tebak-Tebakan Gaul", question: "Kenapa pohon mangga di depan rumah harus ditebang?", answer: "Karena Tumbuh", acceptableAnswers: ["karena tumbuh", "tumbuh"], clue: "Kalau tidak tumbuh ya tidak ada pohonnya!" },
-  { id: "q30", category: "Asah Otak", question: "Benda apa yang kalau basah makin berguna dan menyerap air?", answer: "Handuk", acceptableAnswers: ["handuk", "kain handuk", "spons"], clue: "Dipakai sehabis mandi." },
-  { id: "q31", category: "Plesetan Band", question: "Band luar negeri yang personelnya paling sering kedinginan?", answer: "Coldplay", acceptableAnswers: ["coldplay", "cold play"], clue: "Dari kata 'Cold' yang artinya dingin..." },
-  { id: "q32", category: "Teka-Teki Santai", question: "Bulan apa yang orang-orang tidur paling sedikit?", answer: "Februari", acceptableAnswers: ["februari", "bulan februari"], clue: "Jumlah harinya paling pendek (28 hari)..." },
-  { id: "q33", category: "Tebak-Tebakan Hewan", question: "Kutu apa yang paling bikin panik dan menakutkan?", answer: "Kutukan", acceptableAnswers: ["kutukan", "kutukan seribu tahun"], clue: "Dari penyihir sakti di dongeng..." },
-  { id: "q34", category: "Plesetan Makanan", question: "Sate apa yang aromanya paling harum dan wangi?", answer: "Satelit", acceptableAnswers: ["satelit", "sate melati"], clue: "Mengorbit di luar angkasa..." },
-  { id: "q35", category: "Teka-Teki Lucu", question: "Hewan apa yang kalau jalan selalu menginjak kepalanya sendiri?", answer: "Ular", acceptableAnswers: ["ular", "cacing"], clue: "Badan dan kepalanya menyatu di tanah..." },
-  { id: "q36", category: "Asah Otak", question: "Makin ditarik makin pendek, apakah itu?", answer: "Rokok", acceptableAnswers: ["rokok", "puntung rokok"], clue: "Dihisap sampai habis jadi puntung..." },
-  { id: "q37", category: "Plesetan Gaul", question: "Jus apa yang rasanya asam dan bikin sedih?", answer: "Just a Friend", acceptableAnswers: ["just a friend", "just friend"], clue: "Status hubungan yang cuma dianggap teman..." },
-  { id: "q38", category: "Teka-Teki Santai", question: "Rumah apa yang paling luas dan tidak punya atap sama sekali?", answer: "Rumah Tangga", acceptableAnswers: ["rumah tangga"], clue: "Dibangun bersama pasangan tercinta..." },
-  { id: "q39", category: "Tebak-Tebakan Hewan", question: "Ayam apa yang paling besar di seluruh dunia?", answer: "Ayam Semesta", acceptableAnswers: ["ayam semesta", "alam semesta"], clue: "Plesetan dari alam semesta..." },
-  { id: "q40", category: "Asah Otak Kocak", question: "Kunci apa yang bisa bikin orang joget gembira?", answer: "Kunci Dangdut", acceptableAnswers: ["kunci dangdut", "kunci nada"], clue: "Kunci nada lagu koplo..." },
-  { id: "q41", category: "Plesetan Makanan", question: "Kue apa yang paling sering bikin orang tersinggung dan emosi?", answer: "Kue-rang Ajar", acceptableAnswers: ["kue-rang ajar", "kurang ajar"], clue: "Plesetan dari kata kurang ajar..." },
-  { id: "q42", category: "Teka-Teki Lucu", question: "Ikan apa yang matanya ada lima puluh?", answer: "Ikan Teri 25 Ekor", acceptableAnswers: ["ikan teri 25 ekor", "ikan teri", "teri"], clue: "Satu ekor punya 2 mata..." },
-  { id: "q43", category: "Plesetan Nama Tokoh", question: "Superhero yang selalu rajin membersihkan kamar mandi?", answer: "Aquaman", acceptableAnswers: ["aquaman", "aqua"], clue: "Penguasa air tujuh samudra..." },
-  { id: "q44", category: "Tebak-Tebakan Gaul", question: "Kenapa hantu pocong jalannya selalu lompat-lompat?", answer: "Kakinya Diikat", acceptableAnswers: ["kakinya diikat", "diikat", "kaki diikat"], clue: "Kain kafannya belum dibuka..." },
-  { id: "q45", category: "Asah Otak", question: "Punya leher tapi tidak punya kepala, apakah itu?", answer: "Baju", acceptableAnswers: ["baju", "kaos", "botol"], clue: "Kerah pakaian atau wadah minuman." },
-  { id: "q46", category: "Plesetan Buah", question: "Buah apa yang paling sopan dan selalu permisi?", answer: "Mangga", acceptableAnswers: ["mangga", "buah mangga"], clue: "Bahasa Sunda untuk 'silakan'..." },
-  { id: "q47", category: "Teka-Teki Santai", question: "Benda apa yang selalu lari tapi tidak punya kaki?", answer: "Waktu", acceptableAnswers: ["waktu", "air", "jam"], clue: "Terus berjalan tanpa henti..." },
-  { id: "q48", category: "Tebak-Tebakan Hewan", question: "Tikus apa yang kalau jalan cuma pakai dua kaki?", answer: "Mickey Mouse", acceptableAnswers: ["mickey mouse", "miki tikus"], clue: "Karakter kartun terkenal Disney..." },
-  { id: "q49", category: "Asah Otak Kocak", question: "Bebek apa yang kalau jalan cuma pakai dua kaki?", answer: "Semua Bebek", acceptableAnswers: ["semua bebek", "bebek memang dua kaki", "bebek"], clue: "Emang bebek kakinya cuma dua!" },
-  { id: "q50", category: "Plesetan Makanan", question: "Cemilan apa yang bunyinya paling keras saat digigit?", answer: "Keripik Petir", acceptableAnswers: ["keripik petir", "keripik", "petir"], clue: "Plesetan suara halilintar..." }
+  { id: "q1", category: "Benda Sehari-Hari", question: "Benda apa yang selalu dibawa saat hujan agar tubuh tidak basah?", answer: "Payung", acceptableAnswers: ["payung", "jas hujan"], clue: "Bisa dibuka saat hujan dan dilipat saat kering." },
+  { id: "q2", category: "Benda Sehari-Hari", question: "Alat makan apa yang biasanya digunakan untuk mengambil kuah atau sup?", answer: "Sendok", acceptableAnswers: ["sendok", "sendok makan", "centong"], clue: "Bentuknya cekung dan memiliki gagang." },
+  { id: "q3", category: "Benda Sehari-Hari", question: "Alat apa yang digunakan untuk merapikan dan menyisir rambut setelah mandi?", answer: "Sisir", acceptableAnswers: ["sisir", "sisir rambut"], clue: "Memiliki banyak gerigi rapat untuk merapikan rambut." },
+  { id: "q4", category: "Benda Sehari-Hari", question: "Benda apa yang digunakan untuk mengeringkan badan sehabis mandi?", answer: "Handuk", acceptableAnswers: ["handuk", "handuk mandi"], clue: "Terbuat dari kain yang menyerap air." },
+  { id: "q5", category: "Benda Sehari-Hari", question: "Benda apa yang menunjukkan waktu dan biasanya dipasang di dinding atau dipakai di pergelangan tangan?", answer: "Jam", acceptableAnswers: ["jam", "jam tangan", "jam dinding", "arloji"], clue: "Memiliki angka dan jarum yang terus berputar." },
+  { id: "q6", category: "Makanan & Minuman", question: "Bahan makanan apa yang dihasilkan oleh ayam dan sering digoreng ceplok atau dadar untuk sarapan?", answer: "Telur", acceptableAnswers: ["telur", "telur ayam", "telor"], clue: "Memiliki cangkang, putih telur, dan kuning telur." },
+  { id: "q7", category: "Makanan & Minuman", question: "Minuman berwarna hitam dengan aroma khas yang sering diminum di pagi hari untuk menghilangkan rasa kantuk?", answer: "Kopi", acceptableAnswers: ["kopi", "kopi hitam", "espresso"], clue: "Diseduh dari biji yang disangrai dan mengandung kafein." },
+  { id: "q8", category: "Makanan & Minuman", question: "Makanan pokok orang Indonesia yang berasal dari beras yang telah dimasak?", answer: "Nasi", acceptableAnswers: ["nasi", "nasi putih"], clue: "Dimasak menggunakan rice cooker atau dandang." },
+  { id: "q9", category: "Makanan & Minuman", question: "Buah berwarna kuning berbentuk melengkung yang sangat disukai monyet?", answer: "Pisang", acceptableAnswers: ["pisang", "buah pisang"], clue: "Kulitnya dikupas sebelum dimakan dan dagingnya manis lembut." },
+  { id: "q10", category: "Makanan & Minuman", question: "Cairan putih bergizi yang dihasilkan oleh sapi atau kambing dan baik untuk pertumbuhan tulang?", answer: "Susu", acceptableAnswers: ["susu", "susu sapi", "susu murni"], clue: "Kaya akan kalsium dan sering diminum anak-anak." },
+  { id: "q11", category: "Hewan & Alam", question: "Hewan mamalia berbelalai panjang dan bertubuh sangat besar yang memiliki gading?", answer: "Gajah", acceptableAnswers: ["gajah", "gajah sumatera"], clue: "Memiliki telinga lebar dan belalai untuk mengambil makanan." },
+  { id: "q12", category: "Hewan & Alam", question: "Hewan peliharaan berkaki empat yang suka mengeong dan berburu tikus?", answer: "Kucing", acceptableAnswers: ["kucing", "kucing anggora", "kucing kampung"], clue: "Hewan berbulu dengan cakar tajam dan suara 'meong'." },
+  { id: "q13", category: "Hewan & Alam", question: "Hewan yang dijuluki sebagai raja hutan dan memiliki auman yang sangat keras?", answer: "Singa", acceptableAnswers: ["singa", "raja hutan"], clue: "Pejantannya memiliki surai lebat di sekeliling kepala." },
+  { id: "q14", category: "Hewan & Alam", question: "Burung malam yang bisa memutar kepalanya hampir 270 derajat dan aktif berburu saat gelap?", answer: "Burung Hantu", acceptableAnswers: ["burung hantu", "hantu"], clue: "Memiliki mata besar yang tajam di malam hari." },
+  { id: "q15", category: "Hewan & Alam", question: "Reptil yang bisa mengubah warna kulitnya sesuai dengan lingkungan tempat ia menempel?", answer: "Bunglon", acceptableAnswers: ["bunglon"], clue: "Ahli berkamuflase di dedaunan dan batang pohon." },
+  { id: "q16", category: "Profesi & Aktivitas", question: "Profesi seseorang yang bertugas mengemudikan dan menerbangkan pesawat terbang?", answer: "Pilot", acceptableAnswers: ["pilot", "penerbang"], clue: "Bekerja di dalam kokpit pesawat dan memakai seragam khusus." },
+  { id: "q17", category: "Profesi & Aktivitas", question: "Profesi medis yang bertugas memeriksa, mengobati pasien yang sakit, dan meresepkan obat?", answer: "Dokter", acceptableAnswers: ["dokter", "dokter umum"], clue: "Bekerja di rumah sakit atau klinik dan sering memakai stetoskop." },
+  { id: "q18", category: "Profesi & Aktivitas", question: "Profesi yang bertugas mendidik, mengajar, dan membimbing murid-murid di sekolah?", answer: "Guru", acceptableAnswers: ["guru", "pengajar", "guru sekolah"], clue: "Berdiri di depan kelas menjelaskan materi pelajaran." },
+  { id: "q19", category: "Profesi & Aktivitas", question: "Petugas yang bertugas memadamkan api saat terjadi kebakaran besar di pemukiman?", answer: "Pemadam Kebakaran", acceptableAnswers: ["pemadam kebakaran", "pemadam", "damkar"], clue: "Mengendarai mobil merah dengan sirine kencang dan selang air besar." },
+  { id: "q20", category: "Profesi & Aktivitas", question: "Aktivitas membersihkan tubuh menggunakan air dan sabun yang dilakukan minimal dua kali sehari?", answer: "Mandi", acceptableAnswers: ["mandi"], clue: "Dilakukan di kamar mandi sehabis bangun tidur atau beraktivitas." },
+  { id: "q21", category: "Tempat & Lingkungan", question: "Tempat berisi banyak buku yang dipinjamkan kepada masyarakat atau pelajar untuk dibaca dengan tenang?", answer: "Perpustakaan", acceptableAnswers: ["perpustakaan", "perpus"], clue: "Suasananya harus hening dan rak-raknya penuh dengan buku." },
+  { id: "q22", category: "Tempat & Lingkungan", question: "Tempat bertemunya penjual dan pembeli untuk bertransaksi sayuran, buah, daging, dan kebutuhan pokok?", answer: "Pasar", acceptableAnswers: ["pasar", "pasar tradisional", "pasar modern", "supermarket"], clue: "Tempat ramai tawar-menawar bahan makanan." },
+  { id: "q23", category: "Tempat & Lingkungan", question: "Tempat tinggal dan habitat alami pohon-pohon lebat tempat hidup berbagai satwa liar?", answer: "Hutan", acceptableAnswers: ["hutan", "rimba"], clue: "Sering disebut sebagai paru-paru dunia karena menghasilkan oksigen." },
+  { id: "q24", category: "Tempat & Lingkungan", question: "Hamparan perairan asin sangat luas yang memisahkan pulau-pulau di bumi?", answer: "Laut", acceptableAnswers: ["laut", "lautan", "samudra"], clue: "Airnya berasa asin dan memiliki ombak serta terumbu karang." },
+  { id: "q25", category: "Tempat & Lingkungan", question: "Tempat landasan pacu pesawat untuk lepas landas dan mendarat?", answer: "Bandara", acceptableAnswers: ["bandara", "bandar udara", "airport"], clue: "Tempat penumpang naik pesawat terbang." },
+  { id: "q26", category: "Pengetahuan Umum", question: "Planet tempat manusia dan makhluk hidup tinggal dalam tata surya kita?", answer: "Bumi", acceptableAnswers: ["bumi", "planet bumi", "earth"], clue: "Planet ketiga dari matahari yang kaya akan air dan oksigen." },
+  { id: "q27", category: "Pengetahuan Umum", question: "Bintang terdekat dari bumi yang menjadi sumber utama cahaya dan panas di siang hari?", answer: "Matahari", acceptableAnswers: ["matahari", "surya", "sun"], clue: "Terbit di sebelah timur dan terbenam di sebelah barat." },
+  { id: "q28", category: "Pengetahuan Umum", question: "Warna yang melambangkan kesucian pada bendera pusaka Republik Indonesia?", answer: "Putih", acceptableAnswers: ["putih"], clue: "Pasangan dari warna merah yang melambangkan keberanian." },
+  { id: "q29", category: "Pengetahuan Umum", question: "Ibu kota negara Indonesia saat ini?", answer: "Jakarta", acceptableAnswers: ["jakarta", "dki jakarta", "ikn", "nusantara"], clue: "Kota metropolitan terbesar tempat berdirinya Monumen Nasional (Monas)." },
+  { id: "q30", category: "Pengetahuan Umum", question: "Mata uang resmi yang digunakan di negara Indonesia?", answer: "Rupiah", acceptableAnswers: ["rupiah", "idr"], clue: "Memiliki simbol Rp dan pecahan koin serta kertas." },
+  { id: "q31", category: "Teka-Teki Logika", question: "Benda apa yang memiliki lubang kunci dan digunakan untuk membuka gembok atau pintu rumah?", answer: "Kunci", acceptableAnswers: ["kunci", "anak kunci"], clue: "Terbuat dari logam kecil bergerigi dan sering digantung bersama gantungan." },
+  { id: "q32", category: "Teka-Teki Logika", question: "Benda apa yang selalu diisi udara, jika diisi terus akan meletus, dan sering ada di pesta ulang tahun?", answer: "Balon", acceptableAnswers: ["balon", "balon karet"], clue: "Bisa ditiup hingga bulat dan melayang jika diisi gas helium." },
+  { id: "q33", category: "Teka-Teki Logika", question: "Alat tulis yang tintanya bisa dihapus menggunakan penghapus karet?", answer: "Pensil", acceptableAnswers: ["pensil", "pensil kayu", "pensil 2b"], clue: "Terbuat dari kayu berisi grafit hitam yang harus diraut jika tumpul." },
+  { id: "q34", category: "Teka-Teki Logika", question: "Alat pemotong yang terdiri dari dua bilah pisau yang dihubungkan di tengah dan digerakkan dengan jari?", answer: "Gunting", acceptableAnswers: ["gunting", "gunting kertas"], clue: "Digunakan untuk memotong kertas, kain, atau rambut." },
+  { id: "q35", category: "Teka-Teki Logika", question: "Benda kaca yang memantulkan bayangan diri kita dengan sangat jelas?", answer: "Cermin", acceptableAnswers: ["cermin", "kaca cermin", "kaca"], clue: "Dipakai saat bersolek atau menyisir rambut untuk melihat wajah sendiri." },
+  { id: "q36", category: "Fenomena Alam", question: "Lengkungan warna-warni indah di langit yang sering muncul setelah hujan reda dan terkena sinar matahari?", answer: "Pelangi", acceptableAnswers: ["pelangi", "mejikuhibiniu"], clue: "Terdiri dari spektrum warna merah, jingga, kuning, hijau, biru, nila, dan ungu." },
+  { id: "q37", category: "Fenomena Alam", question: "Peristiwa turunnya butiran air dari langit akibat kondensasi uap air di awan?", answer: "Hujan", acceptableAnswers: ["hujan", "gerimis"], clue: "Membuat tanah basah dan udara menjadi dingin." },
+  { id: "q38", category: "Fenomena Alam", question: "Cahaya kilat terang yang menyambar di langit saat badai dan disusul suara guntur menggelegar?", answer: "Petir", acceptableAnswers: ["petir", "halilintar", "kilat"], clue: "Aliran listrik alami bertegangan tinggi di langit." },
+  { id: "q39", category: "Benda Sehari-Hari", question: "Alat penerangan portabel yang menggunakan baterai dan tombol saklar untuk menerangi jalan saat mati lampu?", answer: "Senter", acceptableAnswers: ["senter", "lampu senter", "flashlight"], clue: "Bisa digenggam di tangan dan mengarahkan sorot cahaya ke depan." },
+  { id: "q40", category: "Benda Sehari-Hari", question: "Alat alas kaki yang digunakan untuk melindungi kaki saat berjalan di luar ruangan, biasanya berpasangan dengan kaus kaki?", answer: "Sepatu", acceptableAnswers: ["sepatu", "sneakers"], clue: "Diikat dengan tali sepatu dan dipakai saat ke sekolah atau bekerja." },
+  { id: "q41", category: "Makanan & Minuman", question: "Bumbu dapur berwarna putih yang memberikan rasa asin pada masakan dan berasal dari air laut?", answer: "Garam", acceptableAnswers: ["garam", "garam dapur"], clue: "Bumbu utama penambah rasa asin pada makanan." },
+  { id: "q42", category: "Makanan & Minuman", question: "Bahan pemanis alami berwarna putih atau kecokelatan yang dibuat dari tebu?", answer: "Gula", acceptableAnswers: ["gula", "gula pasir", "gula tebu"], clue: "Dicampurkan ke dalam teh atau kopi untuk memberikan rasa manis." },
+  { id: "q43", category: "Hewan & Alam", question: "Serangga kecil yang hidup berkelompok, sangat rajin bekerja sama, dan suka dengan makanan manis?", answer: "Semut", acceptableAnswers: ["semut", "semut merah", "semut hitam"], clue: "Sering berjalan beriringan di dinding dan mengerubungi gula." },
+  { id: "q44", category: "Hewan & Alam", question: "Serangga bersayap indah warna-warni yang bermula dari ulat dan kepompong?", answer: "Kupu-Kupu", acceptableAnswers: ["kupu-kupu", "kupu kupu"], clue: "Suka hinggap di bunga untuk menghisap nektar." },
+  { id: "q45", category: "Benda Sehari-Hari", question: "Alat elektronik yang digunakan untuk mendinginkan dan mengawetkan makanan serta membuat es batu?", answer: "Kulkas", acceptableAnswers: ["kulkas", "lemari es", "freezer"], clue: "Memiliki pintu dengan suhu dingin di bagian dalamnya." },
+  { id: "q46", category: "Benda Sehari-Hari", question: "Benda empuk yang diletakkan di bawah kepala saat tidur di atas kasur?", answer: "Bantal", acceptableAnswers: ["bantal", "bantal tidur"], clue: "Diberi sarung bantal dan membuat leher nyaman saat tidur." },
+  { id: "q47", category: "Benda Sehari-Hari", question: "Alat komunikasi pintar yang dapat digunakan untuk menelepon, berkirim pesan, dan berselancar di internet?", answer: "Handphone", acceptableAnswers: ["handphone", "hp", "smartphone", "ponsel", "telepon genggam"], clue: "Memiliki layar sentuh dan dibawa ke mana-mana di saku." },
+  { id: "q48", category: "Profesi & Aktivitas", question: "Orang yang berlayar ke laut untuk menangkap ikan menggunakan jaring atau perahu?", answer: "Nelayan", acceptableAnswers: ["nelayan", "penangkap ikan"], clue: "Bekerja di perahu menjala ikan di laut malam hari." },
+  { id: "q49", category: "Profesi & Aktivitas", question: "Orang yang bekerja menanam padi, sayuran, dan mengelola sawah atau ladang?", answer: "Petani", acceptableAnswers: ["petani", "petani sawah"], clue: "Sering memakai caping dan mencangkul di sawah." },
+  { id: "q50", category: "Pengetahuan Umum", question: "Gas yang dihirup oleh manusia saat bernapas untuk bertahan hidup?", answer: "Oksigen", acceptableAnswers: ["oksigen", "o2", "udara"], clue: "Dihasilkan oleh tumbuhan melalui proses fotosintesis." }
 ];
 
 export class TebakManager {
@@ -614,54 +614,149 @@ Format JSON wajib:
   }
 
   /**
-   * Generate dynamic AI riddle using NVIDIA AI with random themes & strict quality guidelines
+   * Generate dynamic AI Daily Quiz / Riddle using NVIDIA AI adhering strictly to DAILY QUIZ RULES
    */
   private async generateAiTebakQuestion(): Promise<TebakQuestion | null> {
-    const themes = [
-      "Plesetan Nama Artis & Tokoh Dunia",
-      "Plesetan Makanan & Minuman Kekinian",
-      "Tebak-Tebakan Teknologi & HP",
-      "Teka-Teki Logika Out of the Box",
-      "Plesetan Hewan & Alam",
-      "Tebak-Tebakan Gaul Gen-Z & Tongkrongan",
-      "Plesetan Judul Lagu & Film Populer",
-      "Tebak-Tebakan Kehidupan Sehari-hari",
+    const seedTopics = [
+      { category: "Alat Dapur & Alat Makan", examples: "garpu, wajan, teko, pisau dapur, mangkuk, blender, parutan kelapa, sendok" },
+      { category: "Elektronik & Peralatan Rumah", examples: "kulkas, kipas angin, televisi, setrika, mesin cuci, lampu bohlam, AC" },
+      { category: "Peralatan Belajar & Kantor", examples: "penghapus, pulpen, penggaris, buku tulis, stapler, kalkulator, gunting" },
+      { category: "Pakaian & Aksesoris", examples: "kacamata, ikat pinggang, topi, jaket, kaus kaki, payung, jam tangan, sepatu" },
+      { category: "Bahan Makanan & Sayuran", examples: "wortel, kentang, cabai, bawang merah, bayam, telur, tempe, jagung" },
+      { category: "Buah-buahan Populer", examples: "semangka, apel, mangga, jeruk, kelapa, pisang, alpukat, nanas" },
+      { category: "Minuman Sehari-Hari", examples: "kopi, teh hangat, susu, jus buah, air kelapa muda, madu" },
+      { category: "Dunia Satwa & Hewan", examples: "gajah, kelinci, harimau, kuda, monyet, kucing, lumba-lumba, burung hantu, pinguin" },
+      { category: "Profesi & Pekerjaan", examples: "dokter, guru, koki, arsitek, pemadam kebakaran, polisi, nelayan, petani, pilot" },
+      { category: "Fenomena Alam & Cuaca", examples: "pelangi, hujan, petir, kabut, gerhana matahari, ombak pantai, embun pagi" },
+      { category: "Tempat Umum & Bangunan", examples: "perpustakaan, bandara, stasiun kereta, rumah sakit, museum, pasar, bioskop" }
     ];
-    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
+    const randomSeed = seedTopics[Math.floor(Math.random() * seedTopics.length)];
     const historyList = Array.from(this.askedQuestionHistory).slice(-25).join("; ");
 
+    const systemPrompt = `Kamu adalah pembuat soal Daily Quiz profesional. Tugasmu membuat soal kuis yang masuk akal, menyenangkan, mudah dipahami, dan dapat ditebak oleh manusia secara logis.
+PRINSIP UTAMA:
+LOGIKA > KEUNIKAN
+KEJELASAN > KERUMITAN
+NATURAL > DIPAKSA
+COMMON SENSE > ASOSIASI RANDOM`;
+
     const prompt = `
-Buatkan 1 pertanyaan tebak-tebakan bahasa Indonesia bertema "${randomTheme}" yang SANGAT LUCU, NATURAL, dan TIDAK MEMAKSAKAN!
+## DAILY QUIZ — QUESTION GENERATOR RULES
 
-ATURAN KETAT KUALITAS TEBAK-TEBAKAN:
-1. **PLESETAN WAJIB MASUK AKAL & TIDAK DIPAKSAKAN**:
-   - Jika jawaban adalah nama artis/benda, unsur plesetan HARUS didasarkan pada bunyi, suku kata, atau kata yang benar-benar menyerupai nama tersebut (Contoh Bagus: "Justin Bieber -> Justin Beliber (beli-beli di pasar)", "Afgan -> Ah, buruan gan").
-   - DILARANG menggunakan asosiasi yang terlalu jauh (Contoh Buruk: Menghubungkan Taylor Swift dengan "tart kue", ini DILARANG!).
-2. **SETIAP KATA DALAM PETUNJUK HARUS RELEVAN**:
-   - Petunjuk harus mengarah secara natural ke jawaban.
-   - Hubungan antara pertanyaan -> petunjuk -> jawaban HARUS bisa dipahami orang awam dalam 1 kalimat tanpa butuh penjelasan berbelit-belit.
-3. **PRINSIP UTAMA**:
-   - Jangan mencari pembenaran untuk jawaban. Cari hubungan kata yang benar-benar menghasilkan jawaban yang klop dan bikin tersenyum.
-4. **ANTI-DUPLIKASI**:
-   - JANGAN gunakan tebakan yang pernah dipakai baru-baru ini berikut:
-   [${historyList || "Belum ada"}]
+Kamu bertugas membuat 1 soal Daily Quiz bertema "${randomSeed.category}" (Contoh objek seputar: ${randomSeed.examples}) yang **masuk akal, menyenangkan, mudah dipahami, dan dapat ditebak oleh manusia**.
 
-Jawab HANYA dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
+Tujuan utama bukan membuat soal yang terlihat unik, tetapi membuat **pertanyaan, jawaban, dan clue yang memiliki hubungan yang kuat dan natural**.
+
+### 1. ATURAN UTAMA
+Setiap soal WAJIB memenuhi hubungan:
+**QUESTION → ANSWER → CLUE**
+Ketiganya harus saling terhubung secara logis.
+Jangan pernah memaksakan hubungan antara pertanyaan, jawaban, dan clue hanya agar soal tetap memiliki jawaban.
+Jika sebuah jawaban terasa tidak cocok dengan pertanyaan atau clue, BUANG soal tersebut dan buat soal baru.
+
+### 2. JAWABAN HARUS NATURAL
+Jawaban harus merupakan jawaban yang secara wajar akan diberikan manusia ketika membaca pertanyaan.
+Prioritaskan: benda sehari-hari, makanan, hewan, tempat, aktivitas, profesi, fenomena umum, istilah populer, fakta ringan, hal yang familiar bagi pengguna.
+Hindari jawaban yang:
+- tidak berhubungan dengan pertanyaan
+- terlalu abstrak
+- terlalu dipaksakan
+- hanya cocok karena permainan kata
+- merupakan asosiasi yang sangat jauh
+- muncul hanya karena memiliki satu kata yang mirip dengan clue
+- membutuhkan penjelasan panjang agar terlihat benar
+
+### 3. CLUE HARUS BENAR-BENAR MEMBANTU
+Clue bukan sekadar kalimat yang mempunyai hubungan samar dengan jawaban.
+Clue harus memberikan petunjuk nyata yang mengarah langsung ke jawaban, tanpa menyebut kata kuncinya.
+
+### 4. JANGAN MEMAKSA PLESETAN ATAU PERMAINAN KATA
+DILARANG menggunakan plesetan yang tidak wajar, asosiasi kata yang jauh, atau jawaban yang aneh/tidak masuk akal.
+
+### 5. GUNAKAN COMMON-SENSE CHECK (PENTING)
+Sebelum soal dibuat, pastikan:
+- CHECK A — QUESTION: Pertanyaan jelas, deskriptif, dan tidak ambigu.
+- CHECK B — ANSWER: Jawaban benar-benar menjawab pertanyaan secara wajar dan umum.
+- CHECK C — CLUE: Clue memberikan petunjuk yang sangat relevan dan membantu.
+- CHECK D — CONSISTENCY: Pertanyaan, jawaban, dan clue membentuk satu konteks yang konsisten.
+- CHECK E — HUMAN GUESSABILITY: Manusia normal dapat dengan mudah menebak jawabannya begitu membaca pertanyaan dan clue.
+- CHECK F — NO FORCING: Jawaban terasa 100% masuk akal tanpa butuh penjelasan tambahan.
+
+### 6. PRIORITASKAN JAWABAN YANG PALING UMUM & FAMILIAR
+Pilih objek yang paling umum dijumpai dalam kehidupan sehari-hari.
+
+### 7. JANGAN MENGARANG FAKTA
+Gunakan fakta pengetahuan umum yang benar dan dapat diverifikasi.
+
+### 8. HINDARI SOAL DENGAN BANYAK JAWABAN BENAR
+JANGAN membuat pertanyaan terbuka yang bisa dijawab dengan ratusan hal berbeda.
+BUAT pertanyaan deskriptif yang memiliki 1 target jawaban pasti!
+
+### 9. CARA KERJA DAN URUTAN BERPIKIR (WAJIB DIIKUTI):
+1. **Tentukan 1 Target Jawaban Spesifik**: Pilih 1 benda, hewan, makanan, profesi, atau aktivitas yang sangat umum dan familiar (misal: "Gunting", "Handuk", "Kucing", "Dokter", "Telur", "Sepatu", "Kacamata", "Garam").
+2. **Buat Pertanyaan Deskriptif**: Tulis deskripsi fungsi, bentuk, atau ciri khas utama objek tersebut secara jelas sehingga pembaca langsung terarah ke objek itu.
+3. **Buat Clue Relevan**: Tulis petunjuk tambahan yang nyata membantu mengonfirmasi jawaban tanpa membocorkan kata kuncinya secara langsung.
+
+### 10. CONTOH-CONTOH SOAL VALID (JADIKAN PATOKAN):
+- **Contoh 1 (Benda)**:
+  - Pertanyaan: "Alat apa yang digunakan untuk mengeringkan badan sehabis mandi?"
+  - Jawaban: "Handuk"
+  - Clue: "Terbuat dari kain berpori halus yang sangat menyerap air."
+- **Contoh 2 (Makanan)**:
+  - Pertanyaan: "Bahan makanan bercangkang yang dihasilkan ayam dan sering digoreng dadar atau ceplok?"
+  - Jawaban: "Telur"
+  - Clue: "Memiliki bagian putih dan kuning di dalamnya."
+- **Contoh 3 (Profesi)**:
+  - Pertanyaan: "Profesi medis yang memeriksa pasien yang sakit dan memberikan resep obat di rumah sakit?"
+  - Jawaban: "Dokter"
+  - Clue: "Sering memakai jas putih dan stetoskop di lehernya."
+- **Contoh 4 (Benda)**:
+  - Pertanyaan: "Alat pemotong yang memiliki dua bilah pisau bertemu di tengah dan digerakkan dengan jari?"
+  - Jawaban: "Gunting"
+  - Clue: "Sering digunakan untuk memotong kertas, kain, atau rambut."
+
+### 11. ANTI-DUPLIKASI
+Hindari pertanyaan yang mirip dengan riwayat ini:
+[${historyList || "Belum ada"}]
+
+Jawab HANYA dalam format JSON persis seperti berikut tanpa teks atau markdown tambahan apapun:
 {
-  "category": "${randomTheme}",
-  "question": "Pertanyaan tebak-tebakan lucu di sini...",
-  "answer": "Jawaban utama singkat",
-  "acceptableAnswers": ["jawaban utama", "kata kunci singkat"],
-  "clue": "Petunjuk natural dan relevan..."
+  "category": "${randomSeed.category}",
+  "question": "Pertanyaan deskriptif yang jelas dan mengarah pasti ke target...",
+  "answer": "Jawaban natural dan umum",
+  "acceptableAnswers": ["jawaban utama", "sinonim wajar 1", "sinonim wajar 2"],
+  "clue": "Clue yang relevan dan nyata membantu..."
 }
 `.trim();
 
     try {
-      const raw = await askNvidia(prompt, "Kamu adalah Maya, master teka-teki humor cerdas yang selalu membuat tebakan berbobot, berima alami, dan tidak pernah memaksakan plesetan.");
+      const raw = await askNvidia(prompt, systemPrompt);
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         if (data.question && data.answer) {
+          // Double-check validation filter with AI (Common-Sense Verification)
+          const validationPrompt = `Tinjau apakah soal kuis tebak-tebakan berikut logis, natural, dan masuk akal bagi manusia:
+Pertanyaan: "${data.question}"
+Jawaban: "${data.answer}"
+Clue: "${data.clue}"
+
+Kriteria:
+1. Hubungan QUESTION -> ANSWER -> CLUE harus 100% natural, logis, dan saling terhubung.
+2. Tidak ada deskripsi aneh, mengada-ada, atau dipaksakan.
+3. Jawaban benar-benar tepat untuk menjawab pertanyaan.
+
+Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
+
+          const checkRes = await askNvidia(validationPrompt, "Kamu adalah juri validator logika kuis yang sangat teliti.");
+          const isLogicallyValid = checkRes.toUpperCase().includes("VALID") && !checkRes.toUpperCase().includes("INVALID");
+
+          if (!isLogicallyValid) {
+            logger.warn(`TebakManager: Soal AI dibuang karena gagal Common-Sense check: [Q: "${data.question}" | A: "${data.answer}"] -> Validator: "${checkRes.trim()}"`);
+            return null;
+          }
+
           const acceptable = Array.isArray(data.acceptableAnswers) && data.acceptableAnswers.length > 0
             ? data.acceptableAnswers.map((a: string) => a.toLowerCase())
             : [data.answer.toLowerCase()];
@@ -670,18 +765,20 @@ Jawab HANYA dalam format JSON persis seperti berikut tanpa teks tambahan apapun:
             acceptable.push(data.answer.toLowerCase());
           }
 
+          logger.info(`TebakManager: Soal AI VALID dibuat: "${data.question}" -> "${data.answer}" (Clue: "${data.clue}")`);
+
           return {
             id: `ai-q-${Date.now()}`,
-            category: data.category || randomTheme,
+            category: data.category || randomSeed.category,
             question: data.question,
             answer: data.answer,
             acceptableAnswers: acceptable,
-            clue: data.clue || "Gunakan logika gaul & out of the box!",
+            clue: data.clue || "Perhatikan petunjuk konteks pertanyaan dengan seksama.",
           };
         }
       }
     } catch (error) {
-      logger.error("TebakManager: Error generating AI riddle via NVIDIA:", error);
+      logger.error("TebakManager: Error generating AI Daily Quiz via NVIDIA:", error);
     }
     return null;
   }
