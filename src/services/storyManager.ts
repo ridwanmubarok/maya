@@ -216,31 +216,30 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
 
 ${rawWordStream}
 
-TUGAS UTAMA MAYA (PENULIS DONGENG KOMEDI & MASTER COCOKOLOGI):
-Tulis ulang dan karanglah sebuah **Cerita Petualangan Komedi / Dongeng Satir yang SANGAT NYAMBUNG, RUNTUT, MENGALIR, dan SUPER LUCU** berdasarkan ide-ide kalimat di atas!
+TUGAS UTAMA MAYA (PENULIS NOVEL & DONGENG KOMEDI CERDAS):
+Tulis ulang dan karanglah sebuah **Cerita Petualangan Komedi / Dongeng Satir yang SANGAT NYAMBUNG, RUNTUT, MENGALIR, dan SUPER LUCU** berdasarkan rangkaian kalimat di atas!
 
 PANDUAN PENULISAN (WAJIB DIPATUHI):
-1. **ALUR SEBAB-AKIBAT YANG RUNTUT & NYAMBUNG**:
-   - DILARANG hanya menempel kalimat mentah! Kamu HARUS menyusun cerita dengan alur sebab-akibat (kausalitas) yang jelas: Pembuka -> Konflik Konyol -> Plot Twist -> Penutup/Punchline.
-   - Jembatani setiap ide yang acak dengan narasi penghubung yang masuk akal dalam logika komedi, sehingga tidak ada adegan yang terputus atau melompat tanpa konteks.
-   - Cerita harus mengalir luwes, enak dibaca, dan padat (2-3 paragraf).
+1. **ALUR SEBAB-AKIBAT YANG RUNTUT & KOHEREN**:
+   - DILARANG hanya menempel kalimat mentah secara terpotong-potong! Kamu HARUS menyusun cerita dengan alur sebab-akibat (kausalitas) yang utuh: Pembuka yang menarik -> Konflik Konyol Berantai -> Plot Twist Menggelitik -> Penutup/Punchline yang berkesan.
+   - Jembatani setiap ide yang acak dengan narasi penghubung yang luwes dan masuk akal dalam logika komedi, sehingga seluruh cerita terasa seperti satu kesatuan novel petualangan mini yang padat (2-3 paragraf mengalir).
 2. **JADIKAN MEMBER SEBAGAI TOKOH UTAMA**:
-   - Masukkan nama-nama member kontributor di atas sebagai karakter yang berinteraksi langsung satu sama lain dalam petualangan tersebut.
+   - Jadikan nama-nama member di atas sebagai karakter yang berinteraksi langsung dalam aksi cerita tersebut.
 3. **PILIH 1 MVP**:
-   - Tentukan 1 member yang idenya paling memicu plot twist atau punchline paling gokil.
-4. **PROMPT GAMBAR**:
-   - Buatkan 1 kalimat deskripsi prompt visual digital art kartun komedi dalam bahasa Inggris.
+   - Pilih 1 member yang kalimatnya paling memicu plot twist tak terduga atau punchline terlucu.
+4. **PROMPT GAMBAR ILUSTRASI**:
+   - Tuliskan 1 kalimat deskripsi prompt visual digital art kartun komedi dalam bahasa Inggris yang menggambarkan momen paling epik atau konyol dari cerita tersebut.
 
 SYARAT FORMAT:
-- DILARANG menggunakan banyak emoji keyboard lebay! Maksimal 1 emoji di judul.
-- Output HANYA JSON persis tanpa teks pengantar / markdown:
+- DILARANG menggunakan emoji berlebihan (maksimal 1 di judul).
+- Balas HANYA format JSON valid tanpa teks pengantar / markdown codeblock:
 {
   "title": "Judul Cerita Komedi yang Menarik",
-  "storyText": "Teks cerita utuh yang mengalir sangat nyambung dan lucu di sini (2-3 paragraf mengalir)...",
+  "storyText": "Teks cerita utuh yang mengalir sangat nyambung dan menghibur di sini (2-3 paragraf mengalir)...",
   "mvpUserId": "User ID member pilihanmu",
   "mvpUsername": "Nama member pilihanmu",
-  "mvpReason": "Alasan apresiasi yang lucu kenapa memilih dia sebagai MVP",
-  "imagePrompt": "A humorous vibrant digital art illustration of [scene description in English]"
+  "mvpReason": "Alasan apresiasi yang lucu dan personal kenapa memilih dia sebagai MVP",
+  "imagePrompt": "A humorous vibrant digital art illustration of [vivid scene description in English]"
 }`;
 
     let title = "Petualangan Konyol Warga Server";

@@ -50,135 +50,83 @@ const PANTUN_THEMES = [
 const CURATED_STARTER_PANTUNS = [
   {
     theme: "Pasar & Belanja",
-    lines: "Pergi ke pasar beli tomat,\nSambil belanja bawa sekop."
+    lines: "Pergi ke pasar membeli tomat,\nPulang ke rumah memetik kelapa."
   },
   {
-    theme: "Anak Ayam & Masak",
-    lines: "Anak ayam turun sepuluh,\nMakan jagung di pinggir jalan."
+    theme: "Anak Ayam & Jagung",
+    lines: "Anak ayam turun sepuluh,\nMakan jagung di tepi kolam."
   },
   {
-    theme: "Rawa & Binatang",
-    lines: "Jalan-jalan ke rawa-rawa,\nDuduk istirahat di bawah pohon."
+    theme: "Danau & Pohon Rindang",
+    lines: "Jalan-jalan ke tepi danau,\nMelihat pohon rindang berdaun."
   },
   {
-    theme: "Empang & Katak",
-    lines: "Jalan-jalan ke pinggir empang,\nNemu katak di pinggir empang."
+    theme: "Empang & Teratai",
+    lines: "Pergi memancing ke pinggir empang,\nMelihat bunga teratai mekar."
   },
   {
-    theme: "Warung Sabun",
-    lines: "Beli sabun di sebuah warung,\nWarung baru milik Fauzan."
+    theme: "Burung Kicau & Hutan",
+    lines: "Burung kutilang terbang melayang,\nHinggap sebentar di dahan cemara."
   },
   {
-    theme: "Burung Kicau",
-    lines: "Burung perkutut burung kutilang,\nTerbang tinggi ke awan-awan."
+    theme: "Kelapa Muda & Petang",
+    lines: "Kelapa muda dibuat santan,\nDiminum santai di waktu petang."
   },
   {
-    theme: "Kelapa & Santan",
-    lines: "Kelapa muda dibikin santan,\nDibikinnya saat waktu petang."
+    theme: "Mancing & Sungai",
+    lines: "Pagi-pagi memancing ikan,\nSungai mengalir airnya jernih."
   },
   {
-    theme: "Mancing Santai",
-    lines: "Pagi-pagi mancing ikan,\nDapatnya banyak hati pun senang."
-  },
-  {
-    theme: "Warung Padang",
+    theme: "Ladang & Sumur",
     lines: "Kalau ada sumur di ladang,\nBolehlah kita menumpang mandi."
   },
   {
-    theme: "Koran & Santai",
-    lines: "Duduk santai membaca koran,\nMembacanya sambil makan petisan."
+    theme: "Koran & Kopi",
+    lines: "Duduk di teras membaca koran,\nSambil menyeruput kopi hangat."
   },
   {
-    theme: "Badak & TikTok",
-    lines: "Sungguhlah besar hewan badak,\nJika berjalan terseok-seok."
+    theme: "Bunga di Taman",
+    lines: "Bunga mawar harum baunya,\nMekar indah di taman kota."
   },
   {
-    theme: "Tomat & Cerita",
-    lines: "Adik Nia memetik tomat,\nTomat merah dibelah dua."
+    theme: "Hutan & Satwa",
+    lines: "Pergi berjalan ke tengah rimba,\nMelihat kijang berlari kencang."
   },
   {
-    theme: "Pohon & Rindang",
-    lines: "Pohon hijau daunnya rindang,\nEnak sekali mata memandang."
+    theme: "Pantai & Ombak",
+    lines: "Duduk bersantai di pasir pantai,\nMemandang ombak berkejaran."
   },
   {
-    theme: "Kucing & Binatang",
-    lines: "Kucing anggora baru lahir,\nLari-lari ke tengah sawah."
+    theme: "Pohon Kelapa",
+    lines: "Tinggi menjulang pohon kelapa,\nTertiup angin bergoyang-goyang."
   },
   {
-    theme: "Gajah & Hutan",
-    lines: "Pergi ke hutan bertemu gajah,\nGajah lari dikejar kanguru."
+    theme: "Hujan & Pelangi",
+    lines: "Rintik hujan telah mereda,\nMuncul pelangi di balik awan."
   },
   {
-    theme: "Minimarket & Roti",
-    lines: "Pergi belanja ke minimarket,\nPulang-pulang beli roti."
+    theme: "Kebun Jeruk",
+    lines: "Memetik jeruk di kebun paman,\nBuahnya ranum rasanya manis."
   },
   {
-    theme: "Bunga & Taman",
-    lines: "Bunga mawar bunga melati,\nCantik mekar di taman kota."
+    theme: "Layang-Layang & Sore",
+    lines: "Sore hari bermain layangan,\nTerbang tinggi ditiup angin."
   },
   {
-    theme: "Gaming & Nasi",
-    lines: "Memasak nasi di pagi hari,\nSambil menunggu main layangan."
+    theme: "Sepeda & Pagi",
+    lines: "Mengayuh sepeda di waktu fajar,\nMenghirup udara segar pedesaan."
   },
   {
-    theme: "Buaya & Rawa",
-    lines: "Ada buaya di rawa-rawa,\nBuayanya sedang berenang kalem."
+    theme: "Kucing & Halaman",
+    lines: "Kucing belang tidur di bangku,\nTerbangun saat terdengar suara."
   },
   {
-    theme: "Kota Padang & Kambing",
-    lines: "Jalan-jalan ke Kota Padang,\nAda kambing makan rumput."
+    theme: "Padi & Sawah",
+    lines: "Kuning menguning butiran padi,\nPetani tersenyum hatinya gembira."
   },
   {
-    theme: "Kota Lama & Baju",
-    lines: "Beli baju di kota lama,\nPakai uang hasil memetik."
-  },
-  {
-    theme: "Pasar Malam & Sepatu",
-    lines: "Ke pasar malam beli sepatu,\nBeli baju untuk pesta."
-  },
-  {
-    theme: "Pantai & Angin",
-    lines: "Duduk bersila di tengah pantai,\nMelihat angin kencang bertiup."
-  },
-  {
-    theme: "Kedondong Asam",
-    lines: "Buah kedondong rasanya asam,\nBeli di pasar murah harganya."
-  },
-  {
-    theme: "Gunung Berliku",
-    lines: "Pegunungan jalan berliku,\nUdara pegunungan sungguh enak."
-  },
-  {
-    theme: "Kali & Beruk",
-    lines: "Di kampung ada kali,\nDi sana ada banyak beruk."
-  },
-  {
-    theme: "Liburan ke Bali",
-    lines: "Pak Bagas liburan ke Bali,\nMenonton bule sedang menari-nari."
-  },
-  {
-    theme: "Berenang Ikan",
-    lines: "Berenang jauh para ikan,\nMereka bebas hatinya senang."
-  },
-  {
-    theme: "Belimbing & Manggis",
-    lines: "Buah belimbing buah manggis,\nBuah coklat sebesar mempelam."
-  },
-  {
-    theme: "Jalan ke Surabaya",
-    lines: "Jalan-jalan ke Surabaya,\nJangan lupa beli oleh-olehnya."
-  },
-  {
-    theme: "Jamu Pagi",
-    lines: "Pagi-pagi minum jamu,\nMinumnya bareng kakek tua."
-  },
-  {
-    theme: "Toko & Gunting",
-    lines: "Ke toko membeli gunting,\nTidak lupa membeli peta."
-  },
-  {
-    theme: "Layang-layang",
-    lines: "Pulang sekolah main layang-layang,\nMainnya bersama kawan-kawan."
+    theme: "Malam & Bintang",
+    lines: "Malam sunyi bertabur bintang,\nCahaya bulan bersinar terang."
   }
 ];
 
@@ -213,38 +161,30 @@ export async function getOrCreateTodayPantun(guildId: string) {
   let theme = pickedTheme;
 
   try {
-    const aiPrompt = `Kamu adalah Maya, teman di server yang jago pantun komedi super receh, pendek, gokil, dan relate ala Gen-Z Indonesia.
+    const aiPrompt = `Kamu adalah Maya, cewek Gen-Z cerdas di Discord yang jago membuat sampiran pantun bahasa Indonesia yang indah, natural, berirama merdu, dan tidak memaksakan kata.
 Hari ini adalah tanggal ${todayStr}.
-Tema pantun hari ini: "${pickedTheme}".
+Tema sampiran hari ini: "${pickedTheme}".
 
 PENTING ANTI-DUPLIKASI:
-DILARANG KERAS membuat pantun yang sama atau mirip dengan pantun yang sudah pernah dipakai baru-baru ini berikut:
+DILARANG membuat bait pembuka yang sudah pernah dipakai berikut:
 [${historySnippet || "Belum ada riwayat"}]
 
-Contoh gaya pantun receh & pendek yang diinginkan (4 baris utuh):
-- Sampiran: "Pergi ke pasar beli tomat, / Sambil belanja bawa sekop." -> Isi: "Sudah tampan tapi pemalas, / Gimana mau jadi top!"
-- Sampiran: "Anak ayam turun sepuluh, / Makan jagung di pinggir jalan." -> Isi: "Katanya jago masak betul, / Tapi mie instan aja keasinan!"
-- Sampiran: "Jalan-jalan ke pinggir empang, / Nemu katak di pinggir empang." -> Isi: "Hati siapa tak bimbang, / Kamu botak minta dikepang."
-- Sampiran: "Kelapa muda dibikin santan, / Dibikinnya saat waktu petang." -> Isi: "Buat apa memikirkan mantan, / Mending kamu ingat utang."
-- Sampiran: "Sungguhlah besar hewan badak, / Jika berjalan terseok-seok." -> Isi: "Nenek tertawa terbahak-bahak, / Melihat kakek bermain TikTok."
-- Sampiran: "Pohon hijau daunnya rindang, / Enak sekali mata memandang." -> Isi: "Ada uang abang kusayang, / Gak ada uang abang ditendang."
-- Sampiran: "Duduk santai membaca koran, / Membacanya sambil makan petisan." -> Isi: "Seenak-enaknya makan di restoran, / Lebih enak makan gratisan."
+ATURAN PEMBUATAN SAMPIRAN PANTUN (2 BARIS):
+1. **RIMA ALAMI & STRUKTUR SASTRA INDONESIA**:
+   - Terdiri dari TEPAT 2 BARIS sampiran.
+   - Panjang baris berkisar antara 8-12 suku kata (panjang wajar pantun).
+   - Rima akhir baris harus jelas, natural, dan mudah disambung menjadi pantun 4 baris oleh member Discord.
+   - DILARANG memaksakan kata-kata aneh atau tata bahasa yang rancu hanya demi mengejar bunyi akhir!
+2. **KONTEKS NYATA & AKRAB**:
+   - Gambarkan suasana alam, aktivitas sehari-hari, makanan, benda, atau situasi ringan yang familiar bagi orang Indonesia.
 
-TUGAS KAMU:
-Buatkan 2 BARIS BAIT PEMBUKA (sampiran pantun) yang BARU, FRESH, dan BELUM PERNAH DIGUNAKAN:
-1. **RIMA NATURAL & TIDAK MEMAKSAKAN**:
-   - Rima dan pilihan kata HARUS mengalir alami, wajar, dan bermakna. DILARANG memaksakan kata aneh atau tata bahasa yang rancu hanya demi mengejar bunyi akhir!
-   - Gunakan rima sajak yang bersih dan mudah dicerna (misal: an/an, at/at, ang/ang, ak/ak, ol/ol, ur/ur, dsb).
-2. **PENDEK, RECEH, & RELATABLE**:
-   - Bahasa santai, ringan, bertema keseharian anak muda / warganet / jokes tongkrongan.
-   - Bersifat memancing member server untuk membalas dengan 2 baris isi pantun yang gak kalah receh & kocak.
-3. **STRUKTUR**:
-   - Tepat 2 baris bait pembuka (dipisahkan enter / newline).
+Format balasan HANYA JSON persis tanpa teks tambahan atau markdown codeblock:
+{
+  "theme": "${pickedTheme}",
+  "lines": "Baris 1 sampiran\\nBaris 2 sampiran"
+}`;
 
-Format balasan HANYA JSON persis tanpa markdown codeblock:
-{"theme": "${pickedTheme}", "lines": "Baris 1 sampiran\\nBaris 2 sampiran"}`;
-
-    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, teman gaul yang jago pantun receh modern dan selalu membuat bait orisinal.");
+    const rawResponse = await askNvidia(aiPrompt, "Kamu adalah Maya, pencipta pantun sastra humoris yang cerdas dan berirama indah.");
     const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -258,24 +198,24 @@ Format balasan HANYA JSON persis tanpa markdown codeblock:
       }
     }
   } catch (err) {
-    logger.warn("PantunManager: Gagal membuat bait AI, menggunakan kurasi fallback:", err);
+    logger.warn("PantunManager: Gagal menghasilkan sampiran AI, menggunakan fallback:", err);
   }
 
-  // Fallback to unused curated pantun
+  // Fallback to curated list if AI didn't return
   if (!starterLines) {
-    const unusedCurated = CURATED_STARTER_PANTUNS.filter(p => !usedLinesSet.has(p.lines.trim().toLowerCase()));
-    const pool = unusedCurated.length > 0 ? unusedCurated : CURATED_STARTER_PANTUNS;
-    const picked = pool[daySeed % pool.length];
-    starterLines = picked.lines;
-    theme = picked.theme;
+    const availableCurated = CURATED_STARTER_PANTUNS.filter(p => !usedLinesSet.has(p.lines.trim().toLowerCase()));
+    const pool = availableCurated.length > 0 ? availableCurated : CURATED_STARTER_PANTUNS;
+    const selected = pool[Math.floor(Math.random() * pool.length)];
+    starterLines = selected.lines;
+    theme = selected.theme;
   }
 
   pantun = await prisma.dailyPantun.create({
     data: {
       guildId,
-      starterLines,
-      theme,
       dateStr: todayStr,
+      theme,
+      starterLines,
       isActive: true
     }
   });
