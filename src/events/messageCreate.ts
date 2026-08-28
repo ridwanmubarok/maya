@@ -8,6 +8,7 @@ import { trackAnalyticsEvent } from "../services/analyticsTracker";
 import { handleStoryWordMessage } from "../services/storyManager";
 import { handlePantunMessage } from "../services/pantunManager";
 import { askNvidia } from "../services/aiClient";
+import { voiceChatManager } from "../services/voiceChatManager";
 
 const event: BotEvent = {
   name: Events.MessageCreate,
@@ -142,6 +143,49 @@ const event: BotEvent = {
 
         const rawContent = message.content.replace(new RegExp(`<@!?${botId}>`, "g"), "").trim();
         const userPrompt = rawContent || "halo maya!";
+
+        // 1. Natural Mention Intent: Leave / Disconnect Voice Channel
+        if (
+          /(?:keluar\s+voice|leave\s+voice|keluar\s+vc|leave\s+vc|dc\s+dari\s+voice|disconnect\s+voice|dc\s+voice|keluar\s+room|dc\s+dulu|cabut\s+dari\s+voice|disconnect\s+dari\s+voice|pamit\s+dari\s+voice|keluar\s+dong)/i.test(userPrompt) ||
+          /^(?:keluar\s+voice|leave\s+voice|dc|disconnect|cabut|pamit)$/i.test(userPrompt.toLowerCase())
+        ) {
+          const session = voiceChatManager.getSession(guildId);
+          if (session) {
+            await voiceChatManager.leave(guildId, true);
+            await message.reply({
+              content: "Siap, Maya izin keluar dari Voice Channel dulu ya! Sampai ketemu lagi guys! 👋✨",
+              allowedMentions: { repliedUser: true }
+            }).catch(() => {});
+            return;
+          } else {
+            await message.reply({
+              content: "Maya lagi nggak ada di Voice Channel kok! Kalau mau ajak ngobrol di voice, panggil Maya ya! 🎙️",
+              allowedMentions: { repliedUser: true }
+            }).catch(() => {});
+            return;
+          }
+        }
+
+        // 2. Natural Mention Intent: Join Voice Channel
+        if (
+          /(?:masuk\s+voice|join\s+voice|masuk\s+vc|join\s+vc|sini\s+masuk|gabung\s+voice|gabung\s+vc|masuk\s+room|join\s+room|sini\s+gabung)/i.test(userPrompt)
+        ) {
+          const memberVoice = message.member?.voice?.channel;
+          if (memberVoice) {
+            await voiceChatManager.join(memberVoice);
+            await message.reply({
+              content: `Siap! Maya meluncur gabung ke Voice Channel **${memberVoice.name}**! 🚀🎙️`,
+              allowedMentions: { repliedUser: true }
+            }).catch(() => {});
+            return;
+          } else {
+            await message.reply({
+              content: "Kamu belum masuk ke Voice Channel nih! Masuk ke salah satu voice channel dulu ya, nanti Maya langsung join nemenin! 🎧",
+              allowedMentions: { repliedUser: true }
+            }).catch(() => {});
+            return;
+          }
+        }
 
         // Fetch recent conversation history with this user for natural context
         const dbHistory = await prisma.aiChatMessage.findMany({

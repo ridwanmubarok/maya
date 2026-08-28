@@ -225,6 +225,16 @@ DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, hah
       return;
     }
 
+    // 0. Leave / Disconnect Voice Channel Intent (e.g. "maya keluar voice", "maya dc", "maya leave voice", "maya keluar dong", "maya pamit ya", "maya cabut dulu")
+    if (
+      /(?:keluar\s+voice|leave\s+voice|keluar\s+vc|leave\s+vc|dc\s+dari\s+voice|disconnect\s+voice|disconnect|dc|cabut\s+dulu|udahan\s+dulu|keluar\s+room|keluar\s+dong|pamit\s+dulu|pamit|keluar\s+ya)/i.test(commandText) ||
+      /^(?:keluar|leave|dc|disconnect|cabut|pamit)$/i.test(commandText)
+    ) {
+      logger.info(`VoiceReceiverManager: Voice Command Keluar Voice dari ${user.username}: "${commandText}"`);
+      await voiceChatManager.leave(guildId, true);
+      return;
+    }
+
     // 1. Play Music Voice Intent (e.g. "coba putar lagu nadin dong maya", "maya putar lagu bernadya", "play lagu komang")
     const playMusicMatch = commandText.match(/(?:putar|play|puterin|puter|setel|mainkan|nyanyiin|nyalain)\s+(?:lagu\s+|musik\s+)?(.+)/i);
     if (playMusicMatch) {
