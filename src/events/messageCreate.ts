@@ -155,9 +155,27 @@ const event: BotEvent = {
           content: msg.content
         }));
 
+        // Extract other mentioned members for live context awareness (e.g., @Maya ramal si @rel, @Maya @rel kemana ya?)
+        let contextAddition = "";
+        const otherMentions = message.mentions.users.filter(u => u.id !== botId);
+        if (otherMentions.size > 0 && message.guild) {
+          const contextParts: string[] = [];
+          for (const [targetId, targetUser] of otherMentions) {
+            const targetMember = message.guild.members.cache.get(targetId) || await message.guild.members.fetch(targetId).catch(() => null);
+            const targetName = targetMember?.displayName || targetUser.displayName || targetUser.username;
+            const inVoice = targetMember?.voice?.channel 
+              ? `sedang online dan nongkrong di Voice Channel "${targetMember.voice.channel.name}"` 
+              : "sedang tidak berada di Voice Channel manapun";
+            contextParts.push(`Status Target ${targetName}: ${inVoice}`);
+          }
+          if (contextParts.length > 0) {
+            contextAddition = `\n[Info Live Server Discord: ${contextParts.join("; ")}]`;
+          }
+        }
+
         const personality = config?.aiPersonality || undefined;
         const authorName = message.member?.displayName || message.author.displayName || message.author.username;
-        const promptWithUser = `${authorName}: ${userPrompt}`;
+        const promptWithUser = `${authorName}: ${userPrompt}${contextAddition}`;
 
         const aiResponse = await askNvidia(promptWithUser, personality, historyMessages);
         const cleanResponse = aiResponse

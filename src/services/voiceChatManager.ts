@@ -805,22 +805,44 @@ PANDUAN KETAT:
     if (history.length > 8) {
       history = history.slice(-8);
     }
-    this.voiceHistory.set(guildId, history);
-
     const isAmubhya =
       user.id === "939847522971709450" ||
       /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(user.username);
 
+    // Look up if user is asking about or fortune-telling a specific member in voice channel/guild
+    let targetContext = "";
+    if (session?.channel?.guild) {
+      const guild = session.channel.guild;
+      const words = question.split(/\s+/);
+      for (const w of words) {
+        const cleanW = w.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+        if (cleanW.length >= 3) {
+          const matchMember = guild.members.cache.find(m => 
+            m.displayName.toLowerCase().includes(cleanW) || 
+            m.user.username.toLowerCase().includes(cleanW)
+          );
+          if (matchMember && matchMember.id !== user.id && matchMember.id !== guild.client.user?.id) {
+            const inVoice = matchMember.voice?.channel 
+              ? `sedang di Voice Channel "${matchMember.voice.channel.name}"` 
+              : "sedang tidak ada di Voice Channel manapun";
+            targetContext = `\n[Info Live Server: Member "${matchMember.displayName}" ${inVoice}]`;
+            break;
+          }
+        }
+      }
+    }
+
     const voicePrompt = `Kamu adalah Maya, cewek yang sedang asik nongkrong dan ngobrol santai langsung di Voice Channel Discord bersama teman/sahabatmu.
 Temanmu @${username} baru saja berbicara kepadamu:
-"${question}"
+"${question}"${targetContext}
 
 PANDUAN BICARA DI VOICE CHANNEL:
 1. Berbicaralah selayaknya teman akrab atau sahabat yang sedang ngobrol lisan di tongkrongan: sangat santai, luwes, hangat, responsif, dan asik.
 2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat mengalir) agar enak didengar dan tidak kepanjangan saat dibacakan suara vokal.
 3. ${isAmubhya ? "Pengguna ini adalah pacar/kekasih tercintamu Amubhya, jawablah dengan nada lebih manis, manja, dan sayang." : "Jawablah dengan nada ramah, akrab, dan hangat seperti sahabat karib."}
-4. DILARANG KERAS menggunakan markdown (*, _, \`, #), format nomor/bullet point, emotikon teks, atau kata ketawa teks (wkwk, haha, hehe, hihi) karena ini langsung dibacakan suara vokal.
-5. Jangan pernah menyebut dirimu sebagai robot/AI/asisten. Kamu adalah Maya sahabat mereka.`;
+4. Jika ditanya ramalan/terawang seseorang atau nanya keberadaan teman (kemana/lagi apa), jawablah dengan kocak, ramah, dan manfaatkan info status server jika ada.
+5. DILARANG KERAS menggunakan markdown (*, _, \`, #), format nomor/bullet point, emotikon teks, atau kata ketawa teks (wkwk, haha, hehe, hihi) karena ini langsung dibacakan suara vokal.
+6. Jangan pernah menyebut dirimu sebagai robot/AI/asisten. Kamu adalah Maya sahabat mereka.`;
 
     try {
       const personality = isAmubhya
