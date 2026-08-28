@@ -15,7 +15,7 @@ async function loadAiHistory() {
     const history = data.history || [];
 
     if (history.length === 0) {
-      historyList.innerHTML = `<div class="text-center py-6 text-gray-500 text-xs italic">Belum ada memori percakapan AI di server ini. Ucapkan salam ke Maya dengan perintah /ask!</div>`;
+      historyList.innerHTML = `<div class="text-center py-6 text-gray-500 text-xs italic">Belum ada memori percakapan AI di server ini. Ucapkan salam ke Maya dengan mention @Maya atau mengobrol di Voice!</div>`;
       return;
     }
 
