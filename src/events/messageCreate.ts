@@ -7,6 +7,7 @@ import { logger } from "../utils/logger";
 import { trackAnalyticsEvent } from "../services/analyticsTracker";
 import { handleStoryWordMessage } from "../services/storyManager";
 import { handlePantunMessage } from "../services/pantunManager";
+import { askNvidia } from "../services/aiClient";
 
 const event: BotEvent = {
   name: Events.MessageCreate,
@@ -119,8 +120,79 @@ const event: BotEvent = {
           }
         }
       }
+
+      // Check if message is a mention to Maya or a reply to Maya's message
+      const botId = message.client.user?.id;
+      const isMentioned = botId && message.mentions.users.has(botId) && !message.mentions.everyone;
+      let isReplyToMaya = false;
+      if (message.reference?.messageId) {
+        try {
+          const refMsg = await message.channel.messages.fetch(message.reference.messageId);
+          if (refMsg && refMsg.author.id === botId) {
+            isReplyToMaya = true;
+          }
+        } catch (_) {}
+      }
+
+      if (isMentioned || isReplyToMaya) {
+        // Send typing status
+        if ("sendTyping" in message.channel) {
+          await message.channel.sendTyping().catch(() => {});
+        }
+
+        const rawContent = message.content.replace(new RegExp(`<@!?${botId}>`, "g"), "").trim();
+        const userPrompt = rawContent || "halo maya!";
+
+        // Fetch recent conversation history with this user for natural context
+        const dbHistory = await prisma.aiChatMessage.findMany({
+          where: { guildId, userId: message.author.id },
+          orderBy: { createdAt: "desc" },
+          take: 8
+        });
+
+        const historyMessages = dbHistory.reverse().map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+        const personality = config?.aiPersonality || undefined;
+        const authorName = message.member?.displayName || message.author.displayName || message.author.username;
+        const promptWithUser = `${authorName}: ${userPrompt}`;
+
+        const aiResponse = await askNvidia(promptWithUser, personality, historyMessages);
+        const cleanResponse = aiResponse
+          .replace(/^(\[User:.*?\]|\bMaya:\s*|\bAI:\s*)/i, "")
+          .trim();
+
+        if (cleanResponse) {
+          // Save to memory
+          await prisma.aiChatMessage.createMany({
+            data: [
+              {
+                guildId,
+                userId: message.author.id,
+                username: message.author.username,
+                role: "user",
+                content: userPrompt
+              },
+              {
+                guildId,
+                userId: message.author.id,
+                username: message.author.username,
+                role: "assistant",
+                content: cleanResponse
+              }
+            ]
+          }).catch(() => {});
+
+          await message.reply({
+            content: cleanResponse.length > 2000 ? cleanResponse.substring(0, 1997) + "..." : cleanResponse,
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+        }
+      }
     } catch (error) {
-      logger.error("Error pada event messageCreate (Automod/Story):", error);
+      logger.error("Error pada event messageCreate (Chat/Automod):", error);
     }
   }
 };

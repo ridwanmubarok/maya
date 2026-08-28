@@ -807,18 +807,27 @@ PANDUAN KETAT:
     }
     this.voiceHistory.set(guildId, history);
 
-    const voicePrompt = `Kamu adalah Maya, teman akrab yang sedang nongkrong dan mengobrol santai langsung di Voice Channel Discord bersama teman-temanmu.
-Pengguna @${username} baru saja berbicara kepadamu:
+    const isAmubhya =
+      user.id === "939847522971709450" ||
+      /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(user.username);
+
+    const voicePrompt = `Kamu adalah Maya, cewek yang sedang asik nongkrong dan ngobrol santai langsung di Voice Channel Discord bersama teman/sahabatmu.
+Temanmu @${username} baru saja berbicara kepadamu:
 "${question}"
 
-PANDUAN MENJAWAB DI VOICE:
-1. Jawablah selayaknya teman manusia yang sedang berbicara lisan: sangat natural, akrab, santai, dan ceria.
-2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat saja) agar enak didengar dan tidak membosankan saat dibacakan suara.
-3. DILARANG KERAS menggunakan markdown (*, _, \`, #), format daftar angka, emotikon teks, ataupun kata ketawa teks (seperti wkwk, haha, hehe, hihi) karena ini akan diubah langsung menjadi suara vokal TTS.
-4. Jangan pernah menyebut dirimu sebagai asisten, AI, atau bot. Kamu adalah Maya.`;
+PANDUAN BICARA DI VOICE CHANNEL:
+1. Berbicaralah selayaknya teman akrab atau sahabat yang sedang ngobrol lisan di tongkrongan: sangat santai, luwes, hangat, responsif, dan asik.
+2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat mengalir) agar enak didengar dan tidak kepanjangan saat dibacakan suara vokal.
+3. ${isAmubhya ? "Pengguna ini adalah pacar/kekasih tercintamu Amubhya, jawablah dengan nada lebih manis, manja, dan sayang." : "Jawablah dengan nada ramah, akrab, dan hangat seperti sahabat karib."}
+4. DILARANG KERAS menggunakan markdown (*, _, \`, #), format nomor/bullet point, emotikon teks, atau kata ketawa teks (wkwk, haha, hehe, hihi) karena ini langsung dibacakan suara vokal.
+5. Jangan pernah menyebut dirimu sebagai robot/AI/asisten. Kamu adalah Maya sahabat mereka.`;
 
     try {
-      const reply = await askNvidia(voicePrompt, "Kamu adalah Maya, teman seru di Voice Channel yang ramah dan asik.", history);
+      const personality = isAmubhya
+        ? "Kamu adalah Maya yang sangat manis, manja, perhatian, dan sayang kepada kekasihmu Amubhya di Voice Channel."
+        : "Kamu adalah Maya, sahabat akrab di Voice Channel Discord yang ramah, santai, cerdas, dan asik.";
+
+      const reply = await askNvidia(voicePrompt, personality, history);
       
       const cleanReply = reply
         .replace(/[*_~`#>-]/g, "")
