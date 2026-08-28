@@ -51,8 +51,10 @@ export async function askNvidia(
 
   const modelCandidates = [
     process.env.NVIDIA_MODEL,
-    "meta/llama-3.2-11b-vision-instruct",
-    "meta/llama-3.2-90b-vision-instruct"
+    "minimaxai/minimax-m3",
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "nvidia/nemotron-3-nano-30b-a3b",
+    "meta/llama-3.2-11b-vision-instruct"
   ].filter(Boolean) as string[];
 
   const messages: { role: string; content: string }[] = [];
@@ -96,10 +98,14 @@ export async function askNvidia(
       }
 
       const data: any = await response.json();
-      const responseText = data.choices?.[0]?.message?.content;
+      let responseText = data.choices?.[0]?.message?.content;
       
       if (responseText && responseText.trim()) {
-        return responseText.trim();
+        // Strip out internal reasoning/thinking tags if model provides them
+        responseText = responseText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+        if (responseText) {
+          return responseText;
+        }
       }
     } catch (error: any) {
       lastError = error;
