@@ -155,10 +155,12 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
       return false;
     }
 
-    // Fetch top 10 users for dailyScore sorted by highest dailyScore desc, updatedAt asc (first to answer correctly)
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Fetch top 10 users for dailyQuizScore sorted by highest dailyQuizScore desc, updatedAt asc (first to answer correctly)
     const topDailyUsers = await prisma.triviaScore.findMany({
-      where: { guildId: guild.id, dailyScore: { gt: 0 } },
-      orderBy: [{ dailyScore: "desc" }, { updatedAt: "asc" }],
+      where: { guildId: guild.id, lastDailyQuizDate: todayStr, dailyQuizScore: { gt: 0 } },
+      orderBy: [{ dailyQuizScore: "desc" }, { updatedAt: "asc" }],
       take: 10,
     });
 
@@ -171,16 +173,16 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
     const embed = new EmbedBuilder()
       .setTitle("🏆 KLASEMEN HARIAN TEBAK-TEBAKAN MAYA")
       .setDescription(
-        `Berikut adalah perolehan skor member tercepat & terhebat hari ini (**${dateFormatted}**):\n\n` +
+        `Berikut adalah perolehan skor tebak-tebakan harian member tercepat & terhebat hari ini (**${dateFormatted}**):\n\n` +
         (topDailyUsers.length === 0
           ? "*Belum ada member yang berhasil memecahkan tebak-tebakan hari ini.*"
           : topDailyUsers
               .map((u, index) => {
                 const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `**#${index + 1}**`;
-                return `${medal} <@${u.userId}> — **${u.dailyScore} RTK Points**`;
+                return `${medal} <@${u.userId}> — **${u.dailyQuizScore} RTK Points**`;
               })
               .join("\n")) +
-        `\n\n💡 *Skor harian akan direset setiap pagi pukul 00:00 WIB untuk tebakan baru besok.*`
+        `\n\n💡 *Skor harian tebak-tebakan dihitung khusus dari jawaban tebakan harian.*`
       )
       .setColor("#EAB308")
       .setFooter({ text: "Maya Daily Trivia Engine • Leaderboard Malam" })

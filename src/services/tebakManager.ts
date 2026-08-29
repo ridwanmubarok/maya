@@ -811,7 +811,7 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
   }
 
   /**
-   * Add daily score in DB
+   * Add daily quiz score in DB
    */
   public async addDailyScore(guildId: string, userId: string, username: string, points: number): Promise<number> {
     try {
@@ -824,16 +824,21 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
         const isNewDay = existing.lastDailyDate !== todayStr;
         const newDaily = isNewDay ? points : existing.dailyScore + points;
 
+        const isNewQuizDay = existing.lastDailyQuizDate !== todayStr;
+        const newDailyQuiz = isNewQuizDay ? points : existing.dailyQuizScore + points;
+
         const updated = await prisma.triviaScore.update({
           where: { id: existing.id },
           data: {
             score: existing.score + points,
             dailyScore: newDaily,
+            dailyQuizScore: newDailyQuiz,
             lastDailyDate: todayStr,
+            lastDailyQuizDate: todayStr,
             username,
           },
         });
-        return updated.dailyScore;
+        return updated.dailyQuizScore;
       } else {
         const created = await prisma.triviaScore.create({
           data: {
@@ -842,10 +847,12 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
             username,
             score: points,
             dailyScore: points,
+            dailyQuizScore: points,
             lastDailyDate: todayStr,
+            lastDailyQuizDate: todayStr,
           },
         });
-        return created.dailyScore;
+        return created.dailyQuizScore;
       }
     } catch (error) {
       logger.error("TebakManager: Error adding daily score to DB:", error);
@@ -875,21 +882,21 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
   }
 
   /**
-   * Get Top 10 Daily Leaderboard
+   * Get Top 10 Daily Quiz Leaderboard
    */
   public async getDailyLeaderboard(guildId: string): Promise<{ userId: string; username: string; dailyScore: number }[]> {
     try {
       const todayStr = new Date().toISOString().split("T")[0];
       const scores = await prisma.triviaScore.findMany({
-        where: { guildId, lastDailyDate: todayStr, dailyScore: { gt: 0 } },
+        where: { guildId, lastDailyQuizDate: todayStr, dailyQuizScore: { gt: 0 } },
         orderBy: [
-          { dailyScore: "desc" },
+          { dailyQuizScore: "desc" },
           { updatedAt: "asc" }
         ],
         take: 10,
       });
 
-      return scores.map((s) => ({ userId: s.userId, username: s.username, dailyScore: s.dailyScore }));
+      return scores.map((s) => ({ userId: s.userId, username: s.username, dailyScore: s.dailyQuizScore }));
     } catch (error) {
       logger.error("TebakManager: Error getting daily leaderboard:", error);
       return [];

@@ -162,18 +162,21 @@ model ReactionRoleOption {
 }
 
 model TriviaScore {
-  id            Int      @id @default(autoincrement())
-  guildId       String
-  userId        String
-  username      String
-  score         Int      @default(0)
-  dailyScore    Int      @default(0)
-  lastDailyDate String?  @default("")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  guildId           String
+  userId            String
+  username          String
+  score             Int      @default(0)
+  dailyScore        Int      @default(0)
+  dailyQuizScore    Int      @default(0)
+  lastDailyDate     String?  @default("")
+  lastDailyQuizDate String?  @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, score])
+  @@index([guildId, dailyQuizScore])
 }
 
 model MenfessLog {

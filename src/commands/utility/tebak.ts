@@ -86,8 +86,8 @@ const command: Command = {
         }
 
         const embed = new EmbedBuilder()
-          .setTitle(`🏆 Leaderboard Rogatekno Koin (RTK) Harian • ${interaction.guild?.name || "Server"}`)
-          .setDescription("Daftar 10 besar anggota server dengan perolehan **Rogatekno Koin (RTK)** tertinggi hari ini:")
+          .setTitle(`🏆 Leaderboard Tebak-Tebakan Harian • ${interaction.guild?.name || "Server"}`)
+          .setDescription("Daftar 10 besar anggota server dengan perolehan skor **Tebak-Tebakan Harian** tertinggi hari ini:")
           .setColor("#9333EA")
           .setFooter({
             text: `Maya Daily Trivia Leaderboard • Diperbarui Real-Time`,
@@ -103,8 +103,8 @@ const command: Command = {
         });
 
         embed.addFields(
-          { name: "Peringkat Hari Ini", value: text },
-          { name: "💡 Catatan", value: `> *Ke depannya Rogatekno Koin (RTK) akan bisa ditukarkan ke item-item menarik!*` }
+          { name: "Peringkat Harian Tebak-Tebakan", value: text },
+          { name: "💡 Catatan", value: `> *Peringkat ini khusus menghitung perolehan Rogatekno Koin (RTK) dari tebak-tebakan harian.*` }
         );
         await interaction.editReply({ embeds: [embed] });
       } else {
