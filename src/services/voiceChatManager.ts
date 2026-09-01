@@ -128,7 +128,6 @@ export class VoiceChatManager {
   private userGreetingCooldown = new Map<string, number>(); // key: userId, val: timestamp
   private icebreakerTimer: NodeJS.Timeout | null = null;
   private emptyChannelTimers = new Map<string, NodeJS.Timeout>(); // key: guildId
-  private edgeTtsClient: any = null;
 
   private constructor() {
     this.startIcebreakerScheduler();
@@ -711,15 +710,37 @@ PANDUAN KETAT:
       .replace(/\s+/g, " ")
       .trim();
 
-    // 1. Try Microsoft Edge Neural TTS (Stream directly into Discord Audio Player)
+    // 1. Try Microsoft Edge Neural TTS with safety guard against trailing socket data
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
-      if (!this.edgeTtsClient) {
-        this.edgeTtsClient = new MsEdgeTTS();
-        await this.edgeTtsClient.setMetadata("id-ID-GadisNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      const tts = new MsEdgeTTS();
+
+      // Guard internal _pushAudioData and _pushMetadata from undefined streams
+      if (typeof tts._pushAudioData === "function") {
+        const origPushAudio = tts._pushAudioData.bind(tts);
+        tts._pushAudioData = (data: any, reqId: string) => {
+          if (tts._streams && tts._streams[reqId] && tts._streams[reqId].audio) {
+            origPushAudio(data, reqId);
+          }
+        };
       }
-      const { audioStream } = this.edgeTtsClient.toStream(cleanTtsText);
+      if (typeof tts._pushMetadata === "function") {
+        const origPushMeta = tts._pushMetadata.bind(tts);
+        tts._pushMetadata = (data: any, reqId: string) => {
+          if (tts._streams && tts._streams[reqId] && tts._streams[reqId].metadata) {
+            origPushMeta(data, reqId);
+          }
+        };
+      }
+
+      await tts.setMetadata("id-ID-GadisNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      const { audioStream } = tts.toStream(cleanTtsText);
+
+      audioStream.on("error", (e: any) => {
+        logger.warn("VoiceChatManager: Edge TTS stream notice:", e?.message || e);
+      });
+
       return audioStream;
     } catch (edgeErr) {
       logger.warn("VoiceChatManager: Edge Neural TTS fallback ke Google TTS:", edgeErr);

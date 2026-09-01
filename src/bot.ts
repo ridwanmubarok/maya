@@ -14,6 +14,15 @@ import { logger } from "./utils/logger";
 // Load environment variables
 dotenv.config();
 
+// Global process error safety guards
+process.on("unhandledRejection", (reason: any) => {
+  logger.error("Global Process: Unhandled Rejection:", reason?.stack || reason);
+});
+
+process.on("uncaughtException", (error: any) => {
+  logger.error("Global Process: Uncaught Exception:", error?.stack || error);
+});
+
 // Initialize external services
 connectDatabase();
 initAI();
