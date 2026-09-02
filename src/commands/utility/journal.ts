@@ -7,7 +7,7 @@ import {
   ButtonStyle 
 } from "discord.js";
 import { Command } from "../../types";
-import { academicSearchService, AcademicPaper } from "../../services/academicSearchService";
+import { academicSearchService, AcademicPaper, createJournalEmbed } from "../../services/academicSearchService";
 import { createEmbed } from "../../utils/embeds";
 
 const command: Command = {
@@ -85,78 +85,12 @@ const command: Command = {
         return;
       }
 
-      // Format year range header string
-      let yearBadge = "Semua Tahun (All-Time)";
-      if (searchFromYear && searchToYear) {
-        yearBadge = searchFromYear === searchToYear ? `Tahun ${searchFromYear}` : `Rentang Tahun: ${searchFromYear} – ${searchToYear}`;
-      } else if (searchFromYear) {
-        yearBadge = `Tahun >= ${searchFromYear}`;
-      } else if (searchToYear) {
-        yearBadge = `Tahun <= ${searchToYear}`;
-      }
-
-      const embed = new EmbedBuilder()
-        .setColor(0x3B82F6) // Scholar Blue
-        .setTitle(`📚 Hasil Pencarian Jurnal & Paper Ilmiah`)
-        .setDescription(`🔍 **Topik:** "${topic}"\n📅 **Filter:** ${yearBadge}\n📊 **Ditemukan:** ${papers.length} artikel ilmiah terverifikasi\n───────────────────────────────`)
-        .setFooter({
-          text: `Maya Academic Research Engine • OpenAlex & Crossref Verified`,
-          iconURL: interaction.client.user?.displayAvatarURL(),
-        })
-        .setTimestamp();
-
-      const components: ActionRowBuilder<ButtonBuilder>[] = [];
-      const primaryButtons: ButtonBuilder[] = [];
-
-      papers.forEach((paper, idx) => {
-        const num = idx + 1;
-        const authorList = paper.authors.slice(0, 3).join(", ") + (paper.authors.length > 3 ? " et al." : "");
-        const yearStr = paper.year ? `(${paper.year})` : "(Tahun n/a)";
-        const citationBadge = paper.citationCount > 0 ? ` • 🌟 **${paper.citationCount}** Sitasi` : "";
-        const oaBadge = paper.isOpenAccess ? " • 🔓 **Open Access**" : "";
-
-        let fieldContent = `👤 *${authorList}* ${yearStr}\n🏛️ *${paper.journalOrVenue}*${citationBadge}${oaBadge}\n`;
-
-        if (paper.abstractSnippet) {
-          fieldContent += `📝 *${paper.abstractSnippet}*\n`;
-        }
-
-        const linkParts: string[] = [];
-        if (paper.doi) {
-          linkParts.push(`[🌐 DOI / Publikasi](${paper.doi})`);
-        } else if (paper.url) {
-          linkParts.push(`[🌐 Baca Artikel](${paper.url})`);
-        }
-
-        if (paper.pdfUrl) {
-          linkParts.push(`[📥 Download PDF](${paper.pdfUrl})`);
-        }
-
-        fieldContent += `🔗 ${linkParts.join("  |  ")}`;
-
-        embed.addFields({
-          name: `${num}. ${paper.title.substring(0, 200)}`,
-          value: fieldContent,
-          inline: false,
-        });
-
-        // Add direct button for the top 2 papers if DOI or PDF exists
-        if (idx < 2 && (paper.doi || paper.pdfUrl || paper.url)) {
-          const btnUrl = paper.pdfUrl || paper.doi || paper.url;
-          if (btnUrl && btnUrl.startsWith("http")) {
-            primaryButtons.push(
-              new ButtonBuilder()
-                .setLabel(`Paper #${num} ${paper.pdfUrl ? "(PDF)" : "(Baca)"}`)
-                .setStyle(ButtonStyle.Link)
-                .setURL(btnUrl)
-            );
-          }
-        }
-      });
-
-      if (primaryButtons.length > 0) {
-        components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(primaryButtons));
-      }
+      const { embed, components } = createJournalEmbed(
+        papers,
+        topic,
+        { fromYear: searchFromYear, toYear: searchToYear, limit },
+        interaction.client.user?.displayAvatarURL()
+      );
 
       await interaction.editReply({
         embeds: [embed],

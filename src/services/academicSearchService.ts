@@ -1,4 +1,5 @@
 import axios from "axios";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { logger } from "../utils/logger";
 
 export interface AcademicPaper {
@@ -19,6 +20,131 @@ export interface AcademicSearchOptions {
   fromYear?: number;
   toYear?: number;
   limit?: number;
+}
+
+/**
+ * Parses user message to detect academic query, clean topic, and extract publication year range
+ */
+export function parseAcademicQuery(text: string): { isAcademic: boolean; topic: string; fromYear?: number; toYear?: number } {
+  const academicPattern = /\b(jurnal|journal|paper|papers|artikel\s+ilmiah|penelitian|riset|skripsi|tesis|referensi\s+ilmiah)\b/i;
+  if (!academicPattern.test(text)) {
+    return { isAcademic: false, topic: "" };
+  }
+
+  let fromYear: number | undefined;
+  let toYear: number | undefined;
+
+  const rangeMatch = text.match(/(?:tahun|rentang|periode|\()?(\b\d{4}\b)\s*(?:-|–|sampai|hingga|to)\s*(\b\d{4}\b)\)?/i);
+  const singleYearMatch = text.match(/(?:tahun|sejak|dari|\()?(\b\d{4}\b)\)?/i);
+
+  let cleaned = text;
+
+  if (rangeMatch) {
+    fromYear = parseInt(rangeMatch[1], 10);
+    toYear = parseInt(rangeMatch[2], 10);
+    cleaned = cleaned.replace(rangeMatch[0], " ");
+  } else if (singleYearMatch) {
+    fromYear = parseInt(singleYearMatch[1], 10);
+    cleaned = cleaned.replace(singleYearMatch[0], " ");
+  }
+
+  cleaned = cleaned
+    .replace(/<@!?\d+>/g, " ")
+    .replace(/\b(maya|may)\b/gi, " ")
+    .replace(/\b(tolong|plis|please|coba|dong|ya|nih|kan|sih|ada|gak|bisa|rekomen(?:dasi(?:kan)?)?|spill|cari(?:kan|in)?|temukan|daftar|list|butuh|mau|mau\s+nanya|tentang|mengenai|soal|seputar|yang\s+membahas|yang\s+ada|jurnal|journal|paper|papers|artikel\s+ilmiah|artikel|penelitian|riset|referensi\s+ilmiah|terbaru|terkini|lengkap|beserta|link|linknya)\b/gi, " ")
+    .replace(/[()[\]{},;:"'!?]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return {
+    isAcademic: true,
+    topic: cleaned || text,
+    fromYear,
+    toYear,
+  };
+}
+
+/**
+ * Creates rich, well-formatted Discord Embed and action buttons for academic paper results
+ */
+export function createJournalEmbed(
+  papers: AcademicPaper[],
+  topic: string,
+  options: AcademicSearchOptions = {},
+  botAvatarUrl?: string
+): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
+  let yearBadge = "Semua Tahun (All-Time)";
+  if (options.fromYear && options.toYear) {
+    yearBadge = options.fromYear === options.toYear ? `Tahun ${options.fromYear}` : `Rentang Tahun: ${options.fromYear} – ${options.toYear}`;
+  } else if (options.fromYear) {
+    yearBadge = `Tahun >= ${options.fromYear}`;
+  } else if (options.toYear) {
+    yearBadge = `Tahun <= ${options.toYear}`;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(0x3B82F6) // Scholar Blue
+    .setTitle(`📚 Hasil Pencarian Jurnal & Paper Ilmiah`)
+    .setDescription(`🔍 **Topik:** "${topic}"\n📅 **Periode:** ${yearBadge}\n📊 **Ditemukan:** ${papers.length} artikel ilmiah terverifikasi\n───────────────────────────────`)
+    .setFooter({
+      text: `Maya Academic Research Engine • OpenAlex & Crossref Verified`,
+      iconURL: botAvatarUrl,
+    })
+    .setTimestamp();
+
+  const components: ActionRowBuilder<ButtonBuilder>[] = [];
+  const primaryButtons: ButtonBuilder[] = [];
+
+  papers.forEach((paper, idx) => {
+    const num = idx + 1;
+    const authorList = paper.authors.slice(0, 3).join(", ") + (paper.authors.length > 3 ? " et al." : "");
+    const yearStr = paper.year ? `(${paper.year})` : "(Tahun n/a)";
+    const citationBadge = paper.citationCount > 0 ? ` • 🌟 **${paper.citationCount}** Sitasi` : "";
+    const oaBadge = paper.isOpenAccess ? " • 🔓 **Open Access**" : "";
+
+    let fieldContent = `👤 *${authorList}* ${yearStr}\n🏛️ *${paper.journalOrVenue}*${citationBadge}${oaBadge}\n`;
+
+    if (paper.abstractSnippet) {
+      fieldContent += `📝 *${paper.abstractSnippet}*\n`;
+    }
+
+    const linkParts: string[] = [];
+    if (paper.doi) {
+      linkParts.push(`[🌐 DOI / Publikasi](${paper.doi})`);
+    } else if (paper.url) {
+      linkParts.push(`[🌐 Baca Artikel](${paper.url})`);
+    }
+
+    if (paper.pdfUrl) {
+      linkParts.push(`[📥 Download PDF](${paper.pdfUrl})`);
+    }
+
+    fieldContent += `🔗 ${linkParts.join("  |  ")}`;
+
+    embed.addFields({
+      name: `${num}. ${paper.title.substring(0, 200)}`,
+      value: fieldContent,
+      inline: false,
+    });
+
+    if (idx < 2 && (paper.doi || paper.pdfUrl || paper.url)) {
+      const btnUrl = paper.pdfUrl || paper.doi || paper.url;
+      if (btnUrl && btnUrl.startsWith("http")) {
+        primaryButtons.push(
+          new ButtonBuilder()
+            .setLabel(`Paper #${num} ${paper.pdfUrl ? "(PDF)" : "(Baca)"}`)
+            .setStyle(ButtonStyle.Link)
+            .setURL(btnUrl)
+        );
+      }
+    }
+  });
+
+  if (primaryButtons.length > 0) {
+    components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(primaryButtons));
+  }
+
+  return { embed, components };
 }
 
 /**

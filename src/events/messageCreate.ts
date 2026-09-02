@@ -9,7 +9,7 @@ import { handleStoryWordMessage } from "../services/storyManager";
 import { handlePantunMessage } from "../services/pantunManager";
 import { askNvidia } from "../services/aiClient";
 import { voiceChatManager } from "../services/voiceChatManager";
-import { academicSearchService } from "../services/academicSearchService";
+import { academicSearchService, parseAcademicQuery, createJournalEmbed } from "../services/academicSearchService";
 
 const event: BotEvent = {
   name: Events.MessageCreate,
@@ -189,56 +189,39 @@ const event: BotEvent = {
         }
 
         // 3. Natural Mention Intent: Search Journal / Paper / Academic Articles
-        const journalMatch = userPrompt.match(/(?:cari(?:kan)?|temukan|rekomendasi(?:kan)?|spill|ada)\s+(?:jurnal|paper|artikel\s+ilmiah|penelitian)\s+(?:tentang\s+|mengenai\s+|soal\s+)?(.+)/i);
-        if (journalMatch) {
-          const rawTopicQuery = journalMatch[1];
-          let fromYear: number | undefined;
-          let toYear: number | undefined;
+        const academicQuery = parseAcademicQuery(userPrompt);
+        if (academicQuery.isAcademic && academicQuery.topic.length >= 2) {
+          const papers = await academicSearchService.search(academicQuery.topic, {
+            fromYear: academicQuery.fromYear,
+            toYear: academicQuery.toYear,
+            limit: 4,
+          });
 
-          const yearRangeMatch = rawTopicQuery.match(/(?:tahun|rentang|periode)?\s*(\b\d{4}\b)\s*(?:-|sampai|hingga|to)\s*(\b\d{4}\b)/i);
-          const singleYearMatch = rawTopicQuery.match(/(?:tahun|sejak|dari)\s*(\b\d{4}\b)/i);
+          if (papers.length > 0) {
+            const { embed, components } = createJournalEmbed(
+              papers,
+              academicQuery.topic,
+              { fromYear: academicQuery.fromYear, toYear: academicQuery.toYear, limit: 4 },
+              message.client.user?.displayAvatarURL()
+            );
 
-          let cleanTopic = rawTopicQuery;
-
-          if (yearRangeMatch) {
-            fromYear = parseInt(yearRangeMatch[1], 10);
-            toYear = parseInt(yearRangeMatch[2], 10);
-            cleanTopic = cleanTopic.replace(yearRangeMatch[0], "").trim();
-          } else if (singleYearMatch) {
-            fromYear = parseInt(singleYearMatch[1], 10);
-            cleanTopic = cleanTopic.replace(singleYearMatch[0], "").trim();
-          }
-
-          cleanTopic = cleanTopic.replace(/\b(dong|ya|nih|kan|sih|plis|tolong|terbaru)\b/gi, "").trim();
-
-          if (cleanTopic.length >= 2) {
-            const papers = await academicSearchService.search(cleanTopic, {
-              fromYear,
-              toYear,
-              limit: 3,
-            });
-
-            if (papers.length > 0) {
-              let replyContent = `Ini dia beberapa jurnal & paper ilmiah terverifikasi tentang **"${cleanTopic}"** yang Maya temukan buat kamu: 📚✨\n\n`;
-              papers.forEach((p, idx) => {
-                const yearStr = p.year ? `(${p.year})` : "";
-                const authors = p.authors.slice(0, 2).join(", ") + (p.authors.length > 2 ? " et al." : "");
-                replyContent += `**${idx + 1}. [${p.title}](${p.url})**\n`;
-                replyContent += `> 👤 *${authors}* ${yearStr} • 🏛️ *${p.journalOrVenue}*\n`;
-                if (p.pdfUrl) {
-                  replyContent += `> 📥 [Download PDF Open Access](${p.pdfUrl})\n`;
-                }
-                replyContent += `\n`;
-              });
-
-              replyContent += `💡 *Gunakan juga slash command \`/journal\` untuk pencarian lengkap dengan filter tahun dan tombol akses langsung!*`;
-
-              await message.reply({
-                content: replyContent.substring(0, 2000),
-                allowedMentions: { repliedUser: true },
-              }).catch(() => {});
-              return;
-            }
+            await message.reply({
+              content: `Ini dia daftar jurnal & paper ilmiah terverifikasi yang Maya temukan buat kamu: 📚✨`,
+              embeds: [embed],
+              components,
+              allowedMentions: { repliedUser: true },
+            }).catch(() => {});
+            return;
+          } else {
+            const notFoundEmbed = createEmbed.error(
+              "Jurnal Tidak Ditemukan",
+              `Tidak ditemukan jurnal atau paper ilmiah terverifikasi untuk topik **"${academicQuery.topic}"**.\n\n💡 *Tips: Coba gunakan kata kunci bahasa Inggris yang lebih umum atau perlebar rentang tahun pencarian.*`
+            );
+            await message.reply({
+              embeds: [notFoundEmbed],
+              allowedMentions: { repliedUser: true },
+            }).catch(() => {});
+            return;
           }
         }
 
