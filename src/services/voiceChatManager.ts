@@ -823,9 +823,10 @@ PANDUAN KETAT:
       user.id === "939847522971709450" ||
       /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(user.username);
 
-    // Look up if user is asking about or fortune-telling a specific member in voice channel/guild
+    // Look up member status ONLY if user is specifically asking about someone's whereabouts
     let targetContext = "";
-    if (session?.channel?.guild) {
+    const isAskingWhereabouts = /(kemana|ke\s+mana|di\s+mana|dimana|lagi\s+apa|sedang\s+apa|ada\s+gak|online\s+gak|lagi\s+ngapain|nyari|nyariin)\b/i.test(question);
+    if (isAskingWhereabouts && session?.channel?.guild) {
       const guild = session.channel.guild;
       const words = question.split(/\s+/);
       for (const w of words) {
@@ -854,7 +855,7 @@ PANDUAN BICARA DI VOICE CHANNEL:
 1. Berbicaralah selayaknya teman akrab atau sahabat yang sedang ngobrol lisan di tongkrongan: sangat santai, luwes, hangat, responsif, dan asik.
 2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat mengalir) agar enak didengar dan tidak kepanjangan saat dibacakan suara vokal.
 3. ${isAmubhya ? "Pengguna ini adalah pacar/kekasih tercintamu Amubhya, jawablah dengan nada lebih manis, manja, dan sayang." : "Jawablah dengan nada ramah, akrab, dan hangat seperti sahabat karib."}
-4. Jika ditanya ramalan/terawang seseorang atau nanya keberadaan teman (kemana/lagi apa), jawablah dengan kocak, ramah, dan manfaatkan info status server jika ada.
+4. Jika ditanya ramalan/terawang nama seseorang, ramallah MURNI dari vibe namanya dan hal-hal nyata (asmara, karir, hoki). JANGAN membawa masalah server Discord ke dalam ramalan!
 5. DILARANG KERAS menggunakan markdown (*, _, \`, #), format nomor/bullet point, emotikon teks, atau kata ketawa teks (wkwk, haha, hehe, hihi) karena ini langsung dibacakan suara vokal.
 6. Jangan pernah menyebut dirimu sebagai robot/AI/asisten. Kamu adalah Maya sahabat mereka.`;
 

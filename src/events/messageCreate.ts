@@ -237,10 +237,12 @@ const event: BotEvent = {
           content: msg.content
         }));
 
-        // Extract other mentioned members for live context awareness (e.g., @Maya ramal si @rel, @Maya @rel kemana ya?)
+        // Extract other mentioned members for live context awareness ONLY when asking about whereabouts
         let contextAddition = "";
+        const isAskingWhereabouts = /(kemana|ke\s+mana|di\s+mana|dimana|lagi\s+apa|sedang\s+apa|ada\s+gak|online\s+gak|lagi\s+ngapain|nyari|nyariin)\b/i.test(userPrompt);
         const otherMentions = message.mentions.users.filter(u => u.id !== botId);
-        if (otherMentions.size > 0 && message.guild) {
+
+        if (isAskingWhereabouts && otherMentions.size > 0 && message.guild) {
           const contextParts: string[] = [];
           for (const [targetId, targetUser] of otherMentions) {
             const targetMember = message.guild.members.cache.get(targetId) || await message.guild.members.fetch(targetId).catch(() => null);
