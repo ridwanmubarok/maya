@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { logger } from "../utils/logger";
 
 export interface JobItem {
@@ -275,7 +276,63 @@ export async function searchJobs(position: string, location: string = ""): Promi
     }
   }
 
-  const result = Array.from(uniqueMap.values()).slice(0, 5);
+  const result = Array.from(uniqueMap.values()).slice(0, 4);
   logger.info(`JobScraper: Ditemukan ${result.length} lowongan valid untuk '${position}' di '${location}'`);
   return result;
 }
+
+/**
+ * Render clean journal-style embed for Job vacancies
+ */
+export function createJobEmbed(
+  jobs: JobItem[],
+  queryInfo: { position: string; location: string },
+  botAvatarUrl?: string
+): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const embed = new EmbedBuilder()
+    .setColor(0x2563EB) // Royal Blue
+    .setTitle(`Peluang Karir & Lowongan Kerja`)
+    .setDescription(
+      `Posisi: **${queryInfo.position}** | Lokasi: **${queryInfo.location}** | Ditemukan: **${jobs.length} lowongan aktif**\n───────────────────────────────`
+    )
+    .setFooter({
+      text: "Maya Career Directory • Lowongan Terverifikasi",
+      iconURL: botAvatarUrl,
+    })
+    .setTimestamp();
+
+  const buttons: ButtonBuilder[] = [];
+
+  jobs.forEach((job, idx) => {
+    const num = idx + 1;
+    const fieldContent =
+      `**Perusahaan**: ${job.company}\n` +
+      `**Lokasi**: ${job.location} • **Tipe**: ${job.type}\n` +
+      `**Kompensasi**: ${job.salary}\n` +
+      `**Portal Lowongan**: [${job.source}](${job.url})`;
+
+    embed.addFields({
+      name: `${num}. ${job.title}`,
+      value: fieldContent,
+      inline: false,
+    });
+
+    if (buttons.length < 4 && job.url && job.url.startsWith("http")) {
+      const compName = job.company.length > 18 ? job.company.substring(0, 15) + "..." : job.company;
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel(`Lamar #${num} (${compName})`)
+          .setStyle(ButtonStyle.Link)
+          .setURL(job.url)
+      );
+    }
+  });
+
+  const components: ActionRowBuilder<ButtonBuilder>[] = [];
+  if (buttons.length > 0) {
+    components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons));
+  }
+
+  return { embed, components };
+}
+

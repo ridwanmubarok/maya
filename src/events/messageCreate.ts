@@ -10,8 +10,129 @@ import { handlePantunMessage } from "../services/pantunManager";
 import { askNvidia } from "../services/aiClient";
 import { voiceChatManager } from "../services/voiceChatManager";
 import { academicSearchService, parseAcademicQuery, createJournalEmbed } from "../services/academicSearchService";
+import { searchScholarships, createScholarshipEmbed, searchFreeCourses, createCourseEmbed } from "../services/eduScraper";
+import { fetchIndonesianNews, createNewsEmbed } from "../services/newsScraper";
+import { searchJobs, createJobEmbed } from "../services/jobScraper";
+import { searchOutfitTrends, createOutfitEmbed } from "../services/outfitService";
+import { fetchCurrencyRates, createCurrencyEmbed } from "../services/financialService";
+
+// Helper deterministic query parsers (Bypasses AI reasoning for precision and speed)
+function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
+  const isScholarship = /\b(beasiswa|scholarship|grant|studi\s+gratis|biaya\s+kuliah|pendidikan\s+gratis)\b/i.test(prompt);
+  if (!isScholarship) return { isScholarship: false, scope: "semua", level: "semua" };
+
+  let scope: "luar-negeri" | "nasional" | "semua" = "semua";
+  if (/\b(luar\s*negeri|overseas|international|eropa|jepang|amerika|aus|uk|turki|singapura|korea)\b/i.test(prompt)) {
+    scope = "luar-negeri";
+  } else if (/\b(dalam\s*negeri|nasional|indonesia|lokal|negeri)\b/i.test(prompt)) {
+    scope = "nasional";
+  }
+
+  let level: "s1" | "s2" | "s3" | "d3" | "bootcamp" | "all" = "all";
+  if (/\b(s3|doktor|phd)\b/i.test(prompt)) {
+    level = "s3";
+  } else if (/\b(s2|magister|master)\b/i.test(prompt)) {
+    level = "s2";
+  } else if (/\b(s1|sarjana|bachelor)\b/i.test(prompt)) {
+    level = "s1";
+  } else if (/\b(d3|d4|diploma|vokasi)\b/i.test(prompt)) {
+    level = "d3";
+  } else if (/\b(bootcamp|kursus|pelatihan)\b/i.test(prompt)) {
+    level = "bootcamp";
+  }
+
+  const words = prompt
+    .replace(/<@!?\d+>/g, "")
+    .replace(/\b(maya|tolong|carikan|info|beasiswa|scholarship|dong|yang|buat|kuliah|luar|dalam|negeri|nasional|s1|s2|s3|d3|d4|doktor|magister|sarjana)\b/gi, "")
+    .trim();
+  const keyword = words.length > 2 ? words : undefined;
+
+  return { isScholarship: true, scope, level, keyword };
+}
+
+function parseNewsQuery(prompt: string): { isNews: boolean; category: string } {
+  const isNews = /\b(berita|news|kabar\s+terkini|headline|kabar\s+dunia|kabar\s+hari\s+ini)\b/i.test(prompt);
+  if (!isNews) return { isNews: false, category: "semua" };
+
+  let category = "semua";
+  if (/\b(internasional|global|dunia|luar\s*negeri|world)\b/i.test(prompt)) {
+    category = "internasional";
+  } else if (/\b(teknologi|tekno|gadget|ai\b|tech|it\b|software)\b/i.test(prompt)) {
+    category = "teknologi";
+  } else if (/\b(bisnis|ekonomi|saham|market|keuangan|ihsg)\b/i.test(prompt)) {
+    category = "ekonomi";
+  } else if (/\b(nasional|indonesia|dalam\s*negeri|lokal|nusantara)\b/i.test(prompt)) {
+    category = "nasional";
+  }
+
+  return { isNews: true, category };
+}
+
+function parseJobQuery(prompt: string): { isJob: boolean; keyword?: string; location?: string } {
+  const isJob = /\b(loker|lowongan|lowongan\s+kerja|job|jobs|hiring|karir|career|kerjaan)\b/i.test(prompt);
+  if (!isJob) return { isJob: false };
+
+  let location: string | undefined = undefined;
+  const locMatch = prompt.match(/\b(jakarta|bandung|surabaya|yogyakarta|jogja|semarang|bali|medan|remote|wfh|wfo)\b/i);
+  if (locMatch) {
+    location = locMatch[1];
+  }
+
+  const cleaned = prompt
+    .replace(/<@!?\d+>/g, "")
+    .replace(/\b(maya|tolong|carikan|info|loker|lowongan|kerja|kerjaan|job|jobs|hiring|karir|career|dong|ada|di|yang|buat|posisi)\b/gi, "")
+    .replace(/\b(jakarta|bandung|surabaya|yogyakarta|jogja|semarang|bali|medan|remote|wfh|wfo)\b/gi, "")
+    .trim();
+
+  const keyword = cleaned.length >= 2 ? cleaned : undefined;
+  return { isJob: true, keyword, location };
+}
+
+function parseCourseQuery(prompt: string): { isCourse: boolean; topic?: string; platform?: string } {
+  const isCourse = /\b(kursus|course|courses|pelatihan|sertifikasi|bootcamp|belajar\s+coding|belajar\s+gratis|training\s+gratis)\b/i.test(prompt);
+  if (!isCourse) return { isCourse: false };
+
+  let platform: string | undefined = undefined;
+  const platMatch = prompt.match(/\b(google|aws|dicoding|coursera|harvard|microsoft|freecodecamp)\b/i);
+  if (platMatch) {
+    platform = platMatch[1];
+  }
+
+  const cleaned = prompt
+    .replace(/<@!?\d+>/g, "")
+    .replace(/\b(maya|tolong|carikan|info|kursus|course|courses|pelatihan|sertifikasi|bootcamp|dong|ada|yang|gratis|free|belajar)\b/gi, "")
+    .replace(/\b(google|aws|dicoding|coursera|harvard|microsoft|freecodecamp)\b/gi, "")
+    .trim();
+
+  const topic = cleaned.length >= 2 ? cleaned : undefined;
+  return { isCourse: true, topic, platform };
+}
+
+function parseOutfitQuery(prompt: string): { isOutfit: boolean; style?: string; gender?: "pria" | "wanita" | "unisex"; occasion?: string } {
+  const isOutfit = /\b(outfit|ootd|fashion|gaya\s+pakaian|style\s+baju|tren\s+baju|rekomendasi\s+baju|inspirasi\s+baju|dresscode)\b/i.test(prompt);
+  if (!isOutfit) return { isOutfit: false };
+
+  let gender: "pria" | "wanita" | "unisex" | undefined = undefined;
+  if (/\b(pria|cowok|laki|men|cowo)\b/i.test(prompt)) gender = "pria";
+  else if (/\b(wanita|cewek|perempuan|women|cewe)\b/i.test(prompt)) gender = "wanita";
+
+  let style: string | undefined = undefined;
+  const styleMatch = prompt.match(/\b(korean|streetwear|smart\s*casual|old\s*money|minimalist|casual|formal)\b/i);
+  if (styleMatch) style = styleMatch[1].replace(/\s+/g, " ");
+
+  let occasion: string | undefined = undefined;
+  const occMatch = prompt.match(/\b(kampus|kuliah|kantor|kerja|hangout|dating|kencan|pesta|kondangan|formal|santai)\b/i);
+  if (occMatch) occasion = occMatch[1];
+
+  return { isOutfit: true, style, gender, occasion };
+}
+
+function parseCurrencyQuery(prompt: string): boolean {
+  return /\b(kurs|valas|nilai\s+tukar|usd\s+ke\s+idr|dollar\s+ke\s+rupiah|rupiah\s+ke\s+dollar|exchange\s+rate|harga\s+dollar|mata\s+uang)\b/i.test(prompt);
+}
 
 const event: BotEvent = {
+
   name: Events.MessageCreate,
   async execute(message: Message) {
     // Abaikan pesan dari bot
@@ -224,6 +345,112 @@ const event: BotEvent = {
             return;
           }
         }
+
+        // 4. Natural Mention Intent: Search Scholarships (Beasiswa Luar Negeri / Nasional)
+        const schQuery = parseScholarshipQuery(userPrompt);
+        if (schQuery.isScholarship) {
+          const items = await searchScholarships({
+            scope: schQuery.scope,
+            level: schQuery.level,
+            keyword: schQuery.keyword
+          });
+          const { embed, components } = createScholarshipEmbed(
+            items,
+            { scope: schQuery.scope, level: schQuery.level, keyword: schQuery.keyword },
+            message.client.user?.displayAvatarURL()
+          );
+          await message.reply({
+            embeds: [embed],
+            components,
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+          return;
+        }
+
+        // 5. Natural Mention Intent: Search News (Berita Nasional / Internasional / Teknologi / Bisnis)
+        const newsQuery = parseNewsQuery(userPrompt);
+        if (newsQuery.isNews) {
+          const newsItems = await fetchIndonesianNews(newsQuery.category);
+          const { embed, components } = createNewsEmbed(
+            newsItems,
+            newsQuery.category,
+            message.client.user?.displayAvatarURL()
+          );
+          await message.reply({
+            embeds: [embed],
+            components,
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+          return;
+        }
+
+        // 6. Natural Mention Intent: Search Job Vacancies (Loker)
+        const jobQuery = parseJobQuery(userPrompt);
+        if (jobQuery.isJob) {
+          const pos = jobQuery.keyword || "Staff";
+          const loc = jobQuery.location || "Indonesia";
+          const jobItems = await searchJobs(pos, loc);
+          const { embed, components } = createJobEmbed(
+            jobItems,
+            { position: pos, location: loc },
+            message.client.user?.displayAvatarURL()
+          );
+          await message.reply({
+            embeds: [embed],
+            components,
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+          return;
+        }
+
+        // 7. Natural Mention Intent: Search Free Courses & Certifications (Kursus)
+        const courseQuery = parseCourseQuery(userPrompt);
+        if (courseQuery.isCourse) {
+          const courseItems = await searchFreeCourses(courseQuery.topic || "", courseQuery.platform || "");
+          const { embed, components } = createCourseEmbed(
+            courseItems,
+            courseQuery.topic || "Semua Materi",
+            message.client.user?.displayAvatarURL()
+          );
+          await message.reply({
+            embeds: [embed],
+            components,
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+          return;
+        }
+
+        // 8. Natural Mention Intent: Outfit Trends & OOTD Styling
+        const outfitQuery = parseOutfitQuery(userPrompt);
+        if (outfitQuery.isOutfit) {
+          const outfitItems = searchOutfitTrends(userPrompt);
+          const { embed } = createOutfitEmbed(
+            outfitItems,
+            userPrompt,
+            message.client.user?.displayAvatarURL()
+          );
+          await message.reply({
+            embeds: [embed],
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+          return;
+        }
+
+        // 9. Natural Mention Intent: Currency Rates / Kurs Valas (Live Data)
+        if (parseCurrencyQuery(userPrompt)) {
+          const rateReport = await fetchCurrencyRates();
+          const { embed, components } = createCurrencyEmbed(
+            rateReport,
+            message.client.user?.displayAvatarURL()
+          );
+          await message.reply({
+            embeds: [embed],
+            components,
+            allowedMentions: { repliedUser: true }
+          }).catch(() => {});
+          return;
+        }
+
 
         // Fetch recent conversation history with this user for natural context
         const dbHistory = await prisma.aiChatMessage.findMany({

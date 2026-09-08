@@ -1,12 +1,15 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { logger } from "../utils/logger";
 
 export interface ScholarshipItem {
   id: string;
   title: string;
   organizer: string;
-  level: string;
+  level: string; // S1, S2, S3, D3, Bootcamp, etc.
+  scope: "Luar Negeri" | "Nasional";
+  country?: string;
   coverage: string;
   deadline: string;
   url: string;
@@ -24,143 +27,385 @@ export interface CourseItem {
   source: string;
 }
 
+export interface ScholarshipFilter {
+  scope?: "luar-negeri" | "nasional" | "semua";
+  level?: string; // s1, s2, s3, d3, sma, bootcamp, semua
+  keyword?: string;
+}
+
+// Katalog Lengkap Program Beasiswa Terverifikasi (Nasional & Luar Negeri)
+const OFFICIAL_SCHOLARSHIPS: ScholarshipItem[] = [
+  // --- LUAR NEGERI ---
+  {
+    id: "sch-lpdp-ln",
+    title: "Beasiswa LPDP Luar Negeri (Kemenkeu RI)",
+    organizer: "Lembaga Pengelola Dana Pendidikan Kemenkeu RI",
+    level: "S2 / S3",
+    scope: "Luar Negeri",
+    country: "Global (Top World Universities)",
+    coverage: "Full Funding (Biaya Kuliah Penuh, Tiket PP, Tunjangan Hidup, Asuransi)",
+    deadline: "Tahap Reguler & Afirmasi Aktif 2026",
+    url: "https://lpdp.kemenkeu.go.id/",
+    source: "LPDP Kemenkeu",
+  },
+  {
+    id: "sch-chevening",
+    title: "Chevening Scholarship United Kingdom (UK)",
+    organizer: "Foreign, Commonwealth & Development Office (FCDO) UK",
+    level: "S2 (Master)",
+    scope: "Luar Negeri",
+    country: "Inggris / United Kingdom",
+    coverage: "Full Funding (Kuliah Master 1 Tahun, Tiket Pesawat, Biaya Hidup Bulanan)",
+    deadline: "Periode Pendaftaran Tahunan",
+    url: "https://www.chevening.org/scholarships/",
+    source: "Pemerintah Inggris (UK)",
+  },
+  {
+    id: "sch-fulbright",
+    title: "Fulbright Master & Doctoral Degree Program (USA)",
+    organizer: "AMINEF / US Department of State",
+    level: "S2 / S3",
+    scope: "Luar Negeri",
+    country: "Amerika Serikat (USA)",
+    coverage: "Full Funding (Tuition Fee, Tunjangan Buku & Hidup, Asuransi Kesehatan)",
+    deadline: "Seleksi AMINEF Dibuka",
+    url: "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/",
+    source: "AMINEF Fulbright",
+  },
+  {
+    id: "sch-mext",
+    title: "Beasiswa MEXT Monbukagakusho (Jepang)",
+    organizer: "Kementerian Pendidikan, Budaya, Olahraga, Sains & Teknologi Jepang",
+    level: "D3 / S1 / S2 / S3",
+    scope: "Luar Negeri",
+    country: "Jepang",
+    coverage: "Full Funding (100% Bebas SPP, Tunjangan Bulanan ~143.000 Yen, Tiket PP)",
+    deadline: "Pendaftaran Jalur G to G & U to U",
+    url: "https://www.id.emb-japan.go.jp/sch.html",
+    source: "Kedutaan Besar Jepang",
+  },
+  {
+    id: "sch-aas",
+    title: "Australia Awards Scholarships (AAS)",
+    organizer: "Department of Foreign Affairs and Trade (DFAT) Australia",
+    level: "S2 / S3",
+    scope: "Luar Negeri",
+    country: "Australia",
+    coverage: "Full Funding (Biaya Pendidikan Penuh, Pelatihan Bahasa Pre-Departure, Biaya Hidup)",
+    deadline: "Siklus Tahunan Australia Awards",
+    url: "https://www.australiaawardsindonesia.org/",
+    source: "Australia Awards Indonesia",
+  },
+  {
+    id: "sch-daad",
+    title: "Beasiswa DAAD EPOS (Jerman)",
+    organizer: "Deutscher Akademischer Austauschdienst (DAAD)",
+    level: "S2 / S3",
+    scope: "Luar Negeri",
+    country: "Jerman",
+    coverage: "Full Funding (Biaya Bebas Kuliah, Tunjangan Hidup ~934 Euro/bulan, Tiket PP)",
+    deadline: "Pendaftaran Universitas Partner DAAD",
+    url: "https://www.daad.id/en/find-funding/scholarships-for-indonesians/",
+    source: "DAAD Jerman",
+  },
+  {
+    id: "sch-turkiye",
+    title: "Turkiye Burslari Scholarships (Turki)",
+    organizer: "Pemerintah Republik Turki (YTB)",
+    level: "S1 / S2 / S3",
+    scope: "Luar Negeri",
+    country: "Turki",
+    coverage: "Full Funding (Kuliah Gratis, Asrama, Kursus Bahasa Turki 1 Tahun, Uang Saku)",
+    deadline: "Periode Pendaftaran Awal Tahun",
+    url: "https://www.turkiyeburslari.gov.tr/",
+    source: "Pemerintah Turki",
+  },
+  {
+    id: "sch-gks",
+    title: "Global Korea Scholarship (GKS / KGSP)",
+    organizer: "National Institute for International Education (NIIED) Korea",
+    level: "S1 / S2 / S3",
+    scope: "Luar Negeri",
+    country: "Korea Selatan",
+    coverage: "Full Funding (Kuliah, Tiket PP, Kursus Bahasa Korea, Tunjangan Hidup)",
+    deadline: "Jalur Embassy & University Track",
+    url: "https://www.studyinkorea.go.kr/",
+    source: "NIIED Korea Selatan",
+  },
+  {
+    id: "sch-iisma",
+    title: "Beasiswa IISMA (Pertukaran Mahasiswa Luar Negeri)",
+    organizer: "Kemendikbudristek RI",
+    level: "S1 / D4 (Semester 4-6)",
+    scope: "Luar Negeri",
+    country: "Universitas Top Dunia (Eropa, Asia, Amerika, Australia)",
+    coverage: "Full Funding (Kuliah 1 Semester Luar Negeri, Tiket PP, Biaya Hidup, Konversi 20 SKS)",
+    deadline: "Jadwal Resmi IISMA",
+    url: "https://iisma.kemdikbud.go.id/",
+    source: "Kemendikbudristek RI",
+  },
+
+  // --- NASIONAL / DALAM NEGERI ---
+  {
+    id: "sch-lpdp-dn",
+    title: "Beasiswa LPDP Dalam Negeri (Kemenkeu RI)",
+    organizer: "Lembaga Pengelola Dana Pendidikan Kemenkeu RI",
+    level: "S2 / S3",
+    scope: "Nasional",
+    country: "Indonesia (PTN/PTS Terakreditasi)",
+    coverage: "Full Funding (Biaya SPP Penuh, Uang Saku Bulanan, Tunjangan Buku, Dana Penelitian)",
+    deadline: "Tahap Reguler & Afirmasi Aktif 2026",
+    url: "https://lpdp.kemenkeu.go.id/",
+    source: "LPDP Kemenkeu",
+  },
+  {
+    id: "sch-bu",
+    title: "Beasiswa Unggulan Kemendikbudristek",
+    organizer: "Puslapdik Kemendikbudristek RI",
+    level: "S1 / S2 / S3",
+    scope: "Nasional",
+    country: "Indonesia",
+    coverage: "Full Tuition + Biaya Hidup Bulanan + Tunjangan Buku",
+    deadline: "Periode Pendaftaran Aktif",
+    url: "https://beasiswaunggulan.kemdikbud.go.id/",
+    source: "Kemendikbudristek RI",
+  },
+  {
+    id: "sch-kipk",
+    title: "KIP Kuliah Merdeka (Kartu Indonesia Pintar)",
+    organizer: "Kementerian Pendidikan, Kebudayaan, Riset, dan Teknologi RI",
+    level: "D3 / D4 / S1",
+    scope: "Nasional",
+    country: "Indonesia",
+    coverage: "Pembebasan Biaya Kuliah Penuh 100% + Bantuan Biaya Hidup Bulanan",
+    deadline: "Jalur SNBP, SNBT & Mandiri 2026",
+    url: "https://kip-kuliah.kemdikbud.go.id/",
+    source: "Kemendikbudristek RI",
+  },
+  {
+    id: "sch-bca",
+    title: "Beasiswa BCA PPTI & PPA (Teknologi & Akuntansi)",
+    organizer: "PT Bank Central Asia Tbk",
+    level: "SMA / SMK / Lulusan Baru",
+    scope: "Nasional",
+    country: "Indonesia (BCA Learning Center)",
+    coverage: "Bebas Biaya Pendidikan Penuh + Uang Saku Bulanan + Kesempatan Karir di BCA",
+    deadline: "Pendaftaran Online Dibuka",
+    url: "https://karir.bca.co.id/beasiswa-bca",
+    source: "BCA Career",
+  },
+  {
+    id: "sch-djarum",
+    title: "Djarum Beasiswa Plus (Beswan Djarum)",
+    organizer: "Djarum Foundation",
+    level: "Mahasiswa S1 / D4 (Semester 4)",
+    scope: "Nasional",
+    country: "Indonesia",
+    coverage: "Dana Bantuan Pendidikan Rp 1.000.000/bulan (1 tahun) + Pelatihan Soft Skills Nasional",
+    deadline: "Seleksi Tahunan Djarum Foundation",
+    url: "https://djarumbeasiswaplus.org/",
+    source: "Djarum Foundation",
+  },
+  {
+    id: "sch-idcamp",
+    title: "Beasiswa IDCamp 2026 - Coding Bootcamp",
+    organizer: "Indosat Ooredoo Hutchison x Dicoding",
+    level: "SMA/SMK / S1 / Umum",
+    scope: "Nasional",
+    country: "Indonesia (Online)",
+    coverage: "100% Gratis Akses Kelas Industri + Sertifikasi Developer Global",
+    deadline: "Gelombang Aktif",
+    url: "https://idcamp.ioh.co.id/",
+    source: "Dicoding Indonesia",
+  },
+  {
+    id: "sch-dts",
+    title: "Beasiswa Digital Talent Scholarship (DTS)",
+    organizer: "Kementerian Komunikasi dan Informatika RI (Kominfo)",
+    level: "D3 / S1 / Umum",
+    scope: "Nasional",
+    country: "Indonesia",
+    coverage: "Pelatihan IT Gratis (Cloud, Cyber Security, AI, Data) + Sertifikasi Internasional",
+    deadline: "Academy Aktif 2026",
+    url: "https://digitalent.kominfo.go.id/",
+    source: "Kominfo RI",
+  },
+];
+
 /**
- * Search Beasiswa (Scholarships)
+ * Search Beasiswa (Scholarships) dengan filter Scope & Jenjang
  */
-export async function searchScholarships(jenjang: string = "", kategori: string = ""): Promise<ScholarshipItem[]> {
-  const items: ScholarshipItem[] = [];
-  const normalizedJenjang = (jenjang || "").toLowerCase();
-  const normalizedKategori = (kategori || "").toLowerCase();
+export async function searchScholarships(filter: ScholarshipFilter | string = "", kategori: string = ""): Promise<ScholarshipItem[]> {
+  let opts: ScholarshipFilter = {};
+  if (typeof filter === "string") {
+    opts = { keyword: filter, level: kategori };
+  } else {
+    opts = filter;
+  }
 
-  logger.info(`EduScraper: Memulai pencarian beasiswa (Jenjang: '${jenjang}', Kategori: '${kategori}')`);
+  const keyword = (opts.keyword || "").toLowerCase();
+  const scope = (opts.scope || "semua").toLowerCase();
+  const level = (opts.level || "semua").toLowerCase();
 
-  // Source 1: Scraping IDScholarship / Beasiswa Indonesia Portal
+  logger.info(`EduScraper: Memulai pencarian beasiswa (Scope: '${scope}', Level: '${level}', Keyword: '${keyword}')`);
+
+  // 1. Scraping Live Portal INDBeasiswa
+  const scrapedItems: ScholarshipItem[] = [];
   try {
     const searchUrl = "https://indbeasiswa.com/category/beasiswa-full-scholarship/";
     const res = await axios.get(searchUrl, {
-      timeout: 6000,
+      timeout: 5000,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       },
     });
 
     const $ = cheerio.load(res.data);
     $("article, .post").each((i, el) => {
-      if (items.length >= 4) return;
+      if (scrapedItems.length >= 3) return;
       const title = $(el).find(".entry-title a, h2 a").text().trim();
       const href = $(el).find(".entry-title a, h2 a").attr("href");
 
       if (title && href) {
-        items.push({
-          id: `beasiswa-idb-${i}`,
+        const isAbroad = /luar negeri|jepang|korea|inggris|eropa|australia|turki|amerika/i.test(title);
+        scrapedItems.push({
+          id: `scraped-idb-${i}`,
           title: title,
-          organizer: "Penyelenggara Resmi IDBeasiswa",
-          level: jenjang && jenjang !== "Semua" ? jenjang : "D3 / S1 / S2 / Umum",
+          organizer: "Penyelenggara Terverifikasi",
+          level: "S1 / S2 / S3",
+          scope: isAbroad ? "Luar Negeri" : "Nasional",
           coverage: "Beasiswa Penuh (Full Scholarship)",
-          deadline: "Lihat Detail Pendaftaran",
+          deadline: "Informasi Pendaftaran Aktif",
           url: href,
           source: "INDBeasiswa",
         });
       }
     });
   } catch (error) {
-    logger.error("EduScraper: Error scraping INDBeasiswa:", error);
+    logger.warn("EduScraper: Live scrape timeout/gagal, menggunakan direktori terverifikasi.");
   }
 
-  // Fallback Curator for Verified Major Scholarship Programs
-  const officialPrograms: ScholarshipItem[] = [
-    {
-      id: "prog-idcamp",
-      title: "Beasiswa IDCamp 2026 - Coding Bootcamp",
-      organizer: "Indosat Ooredoo Hutchison x Dicoding",
-      level: "SMA/SMK / S1 / Umum",
-      coverage: "Beasiswa Bootcamp 100% Gratis + Sertifikat",
-      deadline: "Pendaftaran Dibuka",
-      url: "https://idcamp.ioh.co.id/",
-      source: "Dicoding Indonesia",
-    },
-    {
-      id: "prog-dts",
-      title: "Beasiswa Digital Talent Scholarship (DTS)",
-      organizer: "Kementerian Kominfo RI",
-      level: "D3 / S1 / Umum",
-      coverage: "Pelatihan IT Gratis + Pelatihan Sertifikasi Global",
-      deadline: "Gelombang Aktif 2026",
-      url: "https://digitalent.kominfo.go.id/",
-      source: "Kominfo RI",
-    },
-    {
-      id: "prog-km",
-      title: "Beasiswa Studi Independen & Magang Merdeka",
-      organizer: "Kemdikbudristek RI",
-      level: "Mahasiswa D3 / D4 / S1",
-      coverage: "Uang Saku Bulanan + Konversi 20 SKS",
-      deadline: "Semester Aktif",
-      url: "https://kampusmerdeka.kemdikbud.go.id/",
-      source: "Kampus Merdeka RI",
-    },
-    {
-      id: "prog-lpdp",
-      title: "Beasiswa LPDP Kemenkeu RI (Dalam & Luar Negeri)",
-      organizer: "LPDP Kementerian Keuangan RI",
-      level: "S2 / S3",
-      coverage: "Full Tuition + Uang Saku + Asuransi + Biaya Hidup",
-      deadline: "Tahap Pendaftaran LPDP",
-      url: "https://lpdp.kemenkeu.go.id/",
-      source: "LPDP Kemenkeu",
-    },
-    {
-      id: "prog-bu",
-      title: "Beasiswa Unggulan Kemendikbud",
-      organizer: "Kementerian Pendidikan dan Kebudayaan RI",
-      level: "S1 / S2 / S3",
-      coverage: "Biaya Kuliah Penuh + Biaya Hidup + Buku",
-      deadline: "Periode Pendaftaran Berlangsung",
-      url: "https://beasiswaunggulan.kemdikbud.go.id/",
-      source: "Kemendikbud RI",
-    },
-  ];
+  const allList = [...scrapedItems, ...OFFICIAL_SCHOLARSHIPS];
 
-  // Merge & Filter
-  const allScholarships = [...items, ...officialPrograms];
+  // 2. Filter data
+  let filtered = allList.filter((item) => {
+    // Filter Scope (Luar Negeri vs Nasional)
+    if (scope === "luar-negeri" || scope === "luarnegeri" || scope === "ln") {
+      if (item.scope !== "Luar Negeri") return false;
+    } else if (scope === "nasional" || scope === "dalam-negeri" || scope === "dn") {
+      if (item.scope !== "Nasional") return false;
+    }
 
-  let filtered = allScholarships;
-  if (normalizedKategori && normalizedKategori !== "semua") {
-    filtered = filtered.filter(
-      (s) =>
-        s.title.toLowerCase().includes(normalizedKategori) ||
-        s.organizer.toLowerCase().includes(normalizedKategori) ||
-        s.source.toLowerCase().includes(normalizedKategori)
-    );
+    // Filter Level (S1, S2, S3, dll.)
+    if (level && level !== "semua") {
+      const itemLevel = item.level.toLowerCase();
+      if (level === "s1" && !itemLevel.includes("s1")) return false;
+      if (level === "s2" && !itemLevel.includes("s2")) return false;
+      if (level === "s3" && !itemLevel.includes("s3")) return false;
+      if (level === "d3" && !itemLevel.includes("d3") && !itemLevel.includes("d4")) return false;
+      if (level === "bootcamp" && !itemLevel.includes("bootcamp") && !itemLevel.includes("sma/smk")) return false;
+    }
+
+    // Filter Keyword
+    if (keyword && keyword !== "semua") {
+      const textToSearch = `${item.title} ${item.organizer} ${item.country || ""} ${item.source}`.toLowerCase();
+      if (!textToSearch.includes(keyword)) return false;
+    }
+
+    return true;
+  });
+
+  // Fallback jika terlalu sempit
+  if (filtered.length === 0) {
+    filtered = allList.filter((item) => {
+      if (scope === "luar-negeri") return item.scope === "Luar Negeri";
+      if (scope === "nasional") return item.scope === "Nasional";
+      return true;
+    });
   }
 
-  // Deduplicate and return top 5
+  // Deduplikasi & ambil top 4
   const uniqueMap = new Map<string, ScholarshipItem>();
-  for (const s of filtered.length >= 3 ? filtered : allScholarships) {
+  for (const s of filtered) {
     uniqueMap.set(s.title, s);
   }
 
-  return Array.from(uniqueMap.values()).slice(0, 5);
+  return Array.from(uniqueMap.values()).slice(0, 4);
 }
 
 /**
- * Search Free Courses (Kursus Sertifikasi Gratis)
+ * Render clean journal-style embed for Scholarships (tanpa emoji spam)
+ */
+export function createScholarshipEmbed(
+  items: ScholarshipItem[],
+  queryInfo: { scope?: string; level?: string; keyword?: string },
+  botAvatarUrl?: string
+): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const scopeBadge = queryInfo.scope ? (queryInfo.scope === "luar-negeri" ? "Luar Negeri" : queryInfo.scope === "nasional" ? "Dalam Negeri (Nasional)" : "Semua Wilayah") : "Semua Wilayah";
+  const levelBadge = queryInfo.level && queryInfo.level !== "semua" ? queryInfo.level.toUpperCase() : "Semua Jenjang";
+
+  const embed = new EmbedBuilder()
+    .setColor(0x059669) // Emerald Green
+    .setTitle("Direktori Program Beasiswa Resmi")
+    .setDescription(
+      `Wilayah: **${scopeBadge}** | Jenjang: **${levelBadge}** | Ditemukan: **${items.length} program**\n───────────────────────────────`
+    )
+    .setFooter({
+      text: "Maya Scholarship Directory • Sumber Terverifikasi & Resmi",
+      iconURL: botAvatarUrl,
+    })
+    .setTimestamp();
+
+  const buttons: ButtonBuilder[] = [];
+
+  items.forEach((item, idx) => {
+    const num = idx + 1;
+    const countryStr = item.country ? ` (${item.country})` : "";
+    const fieldContent = 
+      `**Penyelenggara**: ${item.organizer}${countryStr}\n` +
+      `**Jenjang**: ${item.level} • **Cakupan**: ${item.coverage}\n` +
+      `**Status**: ${item.deadline}\n` +
+      `**Portal Resmi**: [${item.source}](${item.url})`;
+
+    embed.addFields({
+      name: `${num}. ${item.title}`,
+      value: fieldContent,
+      inline: false,
+    });
+
+    if (buttons.length < 4 && item.url && item.url.startsWith("http")) {
+      const labelName = item.source.length > 18 ? item.source.substring(0, 15) + "..." : item.source;
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel(`Portal #${num} (${labelName})`)
+          .setStyle(ButtonStyle.Link)
+          .setURL(item.url)
+      );
+    }
+  });
+
+  const components: ActionRowBuilder<ButtonBuilder>[] = [];
+  if (buttons.length > 0) {
+    components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons));
+  }
+
+  return { embed, components };
+}
+
+/**
+ * Search Free Courses
  */
 export async function searchFreeCourses(topik: string = "", platform: string = ""): Promise<CourseItem[]> {
-  const items: CourseItem[] = [];
   const normalizedTopic = (topik || "").toLowerCase();
   const normalizedPlatform = (platform || "").toLowerCase();
 
-  logger.info(`EduScraper: Memulai pencarian kursus gratis (Topik: '${topik}', Platform: '${platform}')`);
-
-  // Major Curated Free Certified Course Programs
   const officialCourses: CourseItem[] = [
     {
       id: "crs-google-1",
-      title: "Google Skillshop - Sertifikasi Digital Marketing & Analytics",
+      title: "Google Skillshop - Sertifikasi Digital Marketing & Data Analytics",
       provider: "Google",
-      topic: "Digital Marketing & Data Analytics",
-      certificate: "Sertifikat Resmi Google (Gratis)",
+      topic: "Digital Marketing, Data & Cloud",
+      certificate: "Sertifikat Kelulusan Resmi Google (Gratis)",
       duration: "Self-paced (~15-20 Jam)",
       url: "https://skillshop.exceedlms.com/student/catalog/browse",
       source: "Google Skillshop",
@@ -169,7 +414,7 @@ export async function searchFreeCourses(topik: string = "", platform: string = "
       id: "crs-aws-1",
       title: "AWS Educate - Cloud Computing & AI Fundamentals",
       provider: "Amazon Web Services (AWS)",
-      topic: "Cloud Computing & AI",
+      topic: "Cloud Computing, Machine Learning, Serverless",
       certificate: "Sertifikat & Digital Badge AWS",
       duration: "Self-paced (~10-15 Jam)",
       url: "https://aws.amazon.com/education/awseducate/",
@@ -177,29 +422,39 @@ export async function searchFreeCourses(topik: string = "", platform: string = "
     },
     {
       id: "crs-dicoding-1",
-      title: "Dicoding Indonesia - Kelas Dasar Pemrograman Web / Python",
+      title: "Dicoding Indonesia - Dasar Pemrograman Web & Python",
       provider: "Dicoding",
-      topic: "Web Development / Python / AI",
-      certificate: "Sertifikat Kelulusan Resmi Dicoding",
+      topic: "Web Development, Python, JavaScript, AI",
+      certificate: "Sertifikat Kompetensi Resmi Dicoding",
       duration: "Self-paced (~15 Jam)",
       url: "https://www.dicoding.com/academies/list",
       source: "Dicoding Indonesia",
     },
     {
       id: "crs-coursera-1",
-      title: "Coursera Free Courses - Programming & Data Science",
+      title: "Coursera Free Courses - Computer Science & Data Science",
       provider: "Coursera",
-      topic: "Computer Science & Data Science",
+      topic: "Programming, Machine Learning, UI/UX",
       certificate: "Akses Belajar Gratis + Sertifikat Audit",
-      duration: "Self-paced (~20 Jam)",
+      duration: "Self-paced (~20-30 Jam)",
       url: "https://www.coursera.org/courses?query=free",
       source: "Coursera",
+    },
+    {
+      id: "crs-harvard-1",
+      title: "Harvard CS50x - Introduction to Computer Science",
+      provider: "Harvard University (edX)",
+      topic: "C, Python, SQL, HTML, CSS, JavaScript",
+      certificate: "Sertifikat Kelulusan Resmi CS50 Gratis",
+      duration: "Self-paced (~10 Minggu)",
+      url: "https://cs50.harvard.edu/x/",
+      source: "Harvard University",
     },
     {
       id: "crs-cisco-1",
       title: "Cisco Networking Academy - Cybersecurity & Networking Essentials",
       provider: "Cisco",
-      topic: "Cybersecurity & Networking",
+      topic: "Cybersecurity, Networking, IoT, Linux",
       certificate: "Sertifikat Kelulusan Resmi Cisco",
       duration: "Self-paced (~30 Jam)",
       url: "https://www.netacad.com/courses/all-courses",
@@ -207,11 +462,11 @@ export async function searchFreeCourses(topik: string = "", platform: string = "
     },
     {
       id: "crs-microsoft-1",
-      title: "Microsoft Learn - AI, Azure & C# Fundamentals",
+      title: "Microsoft Learn - AI, Azure Cloud & C# Developer",
       provider: "Microsoft",
-      topic: "Artificial Intelligence & Azure Cloud",
+      topic: "Artificial Intelligence, Azure, C#, Security",
       certificate: "Sertifikat & Badge Microsoft Learn",
-      duration: "Self-paced (~12 Jam)",
+      duration: "Self-paced (~12-18 Jam)",
       url: "https://learn.microsoft.com/id-id/training/",
       source: "Microsoft Learn",
     },
@@ -223,7 +478,8 @@ export async function searchFreeCourses(topik: string = "", platform: string = "
     filtered = filtered.filter(
       (c) =>
         c.title.toLowerCase().includes(normalizedTopic) ||
-        c.topic.toLowerCase().includes(normalizedTopic)
+        c.topic.toLowerCase().includes(normalizedTopic) ||
+        c.provider.toLowerCase().includes(normalizedTopic)
     );
   }
 
@@ -235,8 +491,62 @@ export async function searchFreeCourses(topik: string = "", platform: string = "
     );
   }
 
-  // Fallback if filter result is empty
-  const resultList = filtered.length > 0 ? filtered : officialCourses;
+  const results = filtered.length > 0 ? filtered : officialCourses;
+  return results.slice(0, 4);
+}
 
-  return resultList.slice(0, 5);
+/**
+ * Render clean journal-style embed for Online Courses (tanpa emoji spam)
+ */
+export function createCourseEmbed(
+  items: CourseItem[],
+  queryTopic: string,
+  botAvatarUrl?: string
+): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const embed = new EmbedBuilder()
+    .setColor(0x4F46E5) // Indigo
+    .setTitle("Katalog Pelatihan & Kursus Bersertifikat")
+    .setDescription(
+      `Topik: **${queryTopic || "Semua Materi"}** | Ditemukan: **${items.length} program gratis**\n───────────────────────────────`
+    )
+    .setFooter({
+      text: "Maya Training Catalog • Sumber Resmi & Kredibel",
+      iconURL: botAvatarUrl,
+    })
+    .setTimestamp();
+
+  const buttons: ButtonBuilder[] = [];
+
+  items.forEach((item, idx) => {
+    const num = idx + 1;
+    const fieldContent =
+      `**Penyedia**: ${item.provider}\n` +
+      `**Materi**: ${item.topic}\n` +
+      `**Sertifikat**: ${item.certificate}\n` +
+      `**Estimasi Waktu**: ${item.duration}\n` +
+      `**Portal Belajar**: [${item.source}](${item.url})`;
+
+    embed.addFields({
+      name: `${num}. ${item.title}`,
+      value: fieldContent,
+      inline: false,
+    });
+
+    if (buttons.length < 4 && item.url && item.url.startsWith("http")) {
+      const labelName = item.provider.length > 18 ? item.provider.substring(0, 15) + "..." : item.provider;
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel(`Mulai #${num} (${labelName})`)
+          .setStyle(ButtonStyle.Link)
+          .setURL(item.url)
+      );
+    }
+  });
+
+  const components: ActionRowBuilder<ButtonBuilder>[] = [];
+  if (buttons.length > 0) {
+    components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons));
+  }
+
+  return { embed, components };
 }
