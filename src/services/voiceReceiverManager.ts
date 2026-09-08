@@ -7,7 +7,6 @@ import prism from "prism-media";
 import { transcribeAudio } from "./sttClient";
 import { askNvidia } from "./aiClient";
 import { voiceChatManager, isAmubhyaInsult } from "./voiceChatManager";
-import { musicManager } from "./musicManager";
 import { todManager } from "./todManager";
 import { werewolfManager } from "./werewolfManager";
 import { dndManager } from "./dndManager";
@@ -235,37 +234,6 @@ DILARANG KERAS markdown, tanda petik, emotikon teks, atau kata ketawa (wkwk, hah
       return;
     }
 
-    // 1. Play Music Voice Intent (e.g. "coba putar lagu nadin dong maya", "maya putar lagu bernadya", "play lagu komang")
-    const playMusicMatch = commandText.match(/(?:putar|play|puterin|puter|setel|mainkan|nyanyiin|nyalain)\s+(?:lagu\s+|musik\s+)?(.+)/i);
-    if (playMusicMatch) {
-      const rawQuery = playMusicMatch[1];
-      const songQuery = rawQuery.replace(/\b(dong|ya|nih|kan|sih)\b/gi, "").trim();
-      logger.info(`VoiceReceiverManager: Voice Music Command untuk "${songQuery}" dari ${user.username}`);
-      
-      voiceChatManager.speak(guildId, `Siap! Maya putarin lagu ${songQuery} ya!`);
-      setTimeout(async () => {
-        await musicManager.play(guildId, songQuery, user);
-      }, 2500);
-      return;
-    }
-
-    // 2. Skip Music Voice Intent (e.g. "skip lagunya maya", "maya lewati lagunya")
-    if (/(?:skip\s+lagu|skip\s+lagunya|next\s+lagu|lewati\s+lagu)/i.test(commandText)) {
-      const skipped = await musicManager.skip(guildId);
-      if (skipped) {
-        voiceChatManager.speak(guildId, "Oke, lagunya sudah Maya lewati ya!");
-      } else {
-        voiceChatManager.speak(guildId, "Lagi tidak ada lagu yang diputar nih!");
-      }
-      return;
-    }
-
-    // 3. Stop Music Voice Intent (e.g. "stop musiknya maya", "maya jeda lagunya")
-    if (/(?:pause\s+musik|pause\s+lagu|jeda\s+lagu|stop\s+musik|stop\s+lagu|berhenti\s+lagu|matiin\s+lagu)/i.test(commandText)) {
-      musicManager.stop(guildId);
-      voiceChatManager.speak(guildId, "Sip, musiknya sudah Maya berhentiin ya!");
-      return;
-    }
 
     // 4. Truth or Dare Voice Intents
     // a. Start TOD via voice ("maya ayo main truth or dare", "maya main tod yuk", "maya mulai truth or dare")

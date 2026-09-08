@@ -11,7 +11,7 @@ import { tebakManager } from "../../services/tebakManager";
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("cash")
-    .setDescription("Kelola dompet saldo & transfer Rogatekno Koin (RTK)")
+    .setDescription("Lihat dompet saldo & leaderboard Rogatekno Koin (RTK)")
     .addSubcommand((sub) =>
       sub
         .setName("saldo")
@@ -21,24 +21,6 @@ const command: Command = {
             .setName("user")
             .setDescription("Member yang ingin dicek saldonya (Default: Diri sendiri)")
             .setRequired(false)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("pay")
-        .setDescription("Transfer Rogatekno Koin (RTK) ke member lain di server ini")
-        .addUserOption((opt) =>
-          opt
-            .setName("penerima")
-            .setDescription("Member yang akan menerima transfer koin")
-            .setRequired(true)
-        )
-        .addIntegerOption((opt) =>
-          opt
-            .setName("jumlah")
-            .setDescription("Jumlah Rogatekno Koin (RTK) yang ingin ditransfer")
-            .setMinValue(1)
-            .setRequired(true)
         )
     )
     .addSubcommand((sub) =>
@@ -88,55 +70,6 @@ const command: Command = {
 
       await interaction.reply({ embeds: [embed] });
     } 
-    else if (subcommand === "pay") {
-      const recipient = interaction.options.getUser("penerima", true);
-      const amount = interaction.options.getInteger("jumlah", true);
-
-      if (recipient.id === interaction.user.id) {
-        await interaction.reply({ content: "Kamu tidak bisa mentransfer RTK ke diri sendiri!", flags: MessageFlags.Ephemeral });
-        return;
-      }
-
-      if (recipient.bot) {
-        await interaction.reply({ content: "Kamu tidak bisa mentransfer RTK ke akun bot!", flags: MessageFlags.Ephemeral });
-        return;
-      }
-
-      const senderRecord = await prisma.triviaScore.findUnique({
-        where: { guildId_userId: { guildId, userId: interaction.user.id } }
-      });
-
-      const senderBalance = senderRecord?.score ?? 0;
-
-      if (senderBalance < amount) {
-        await interaction.reply({
-          content: `Transfer gagal! Saldo kamu saat ini adalah **${senderBalance} RTK**, tidak cukup untuk mentransfer **${amount} RTK**.`,
-          flags: MessageFlags.Ephemeral
-        });
-        return;
-      }
-
-      // Kurangi dari pengirim
-      await prisma.triviaScore.update({
-        where: { id: senderRecord!.id },
-        data: { score: senderBalance - amount }
-      });
-
-      // Tambahkan ke penerima
-      await tebakManager.addScore(guildId, recipient.id, recipient.displayName || recipient.username, amount);
-
-      const embed = new EmbedBuilder()
-        .setTitle("💸 Transfer Rogatekno Koin (RTK) Berhasil!")
-        .setDescription(
-          `Pengirim: <@${interaction.user.id}>\n` +
-          `Penerima: <@${recipient.id}>\n` +
-          `Jumlah Transfer: **${amount} RTK**`
-        )
-        .setColor("#10B981")
-        .setTimestamp();
-
-      await interaction.reply({ embeds: [embed] });
-    }
     else if (subcommand === "leaderboard") {
       await interaction.deferReply();
       const leaderboard = await tebakManager.getLeaderboard(guildId);

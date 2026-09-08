@@ -23,6 +23,7 @@ import { announceStorySessionStart, compileDailyStoryForGuild, getTodayStoryStat
 import { announcePantunSessionStart, closeAndEvaluateDailyPantun, getTodayPantunStatus } from "./pantunManager";
 import { tebakManager } from "./tebakManager";
 import { voiceChatManager } from "./voiceChatManager";
+import { sendHistoryAnnouncement, broadcastMayaAdjustmentHistory } from "../utils/historyLogger";
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
@@ -559,6 +560,28 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
+  app.post("/api/configs/:guildId/publish-story", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+      return res.status(404).json({ error: "Server tidak ditemukan atau bot tidak aktif di server tersebut." });
+    }
+
+    try {
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      const success = await compileDailyStoryForGuild(guild, config?.storyChannelId || undefined);
+
+      if (success) {
+        res.json({ success: true, message: "Cerita komedi & gambar AI berhasil dirangkai dan dipublikasikan ke channel!" });
+      } else {
+        res.status(400).json({ error: "Gagal mempublikasikan cerita. Pastikan ada kontribusi kalimat member hari ini atau channel sudah dikonfigurasi." });
+      }
+    } catch (error: any) {
+      logger.error(`Error publishing story for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Terjadi kesalahan sistem saat mempublikasikan cerita." });
+    }
+  });
+
   // ==========================================
   // MAYA LANJUTKAN PANTUN DASHBOARD API
   // ==========================================
@@ -815,6 +838,29 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error(`Error sending custom embed for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal mengirim pesan embed ke server Discord." });
+    }
+  });
+
+  // Trigger or send Silent History Announcement to #history
+  app.post("/api/history-announcement", authMiddleware, async (req: Request, res: Response) => {
+    const { title, description, fields } = req.body;
+    try {
+      if (!title || !description) {
+        await broadcastMayaAdjustmentHistory(client);
+        return res.json({ success: true, message: "Silent history announcement berhasil disiarkan ke channel #history!" });
+      }
+
+      await sendHistoryAnnouncement(client, {
+        title,
+        description,
+        fields: fields || [],
+        footerText: "Maya System Changelog • Silent History Log"
+      });
+
+      res.json({ success: true, message: "Custom silent history announcement berhasil dikirim ke channel #history!" });
+    } catch (error: any) {
+      logger.error("Error sending silent history announcement:", error);
+      res.status(500).json({ error: "Gagal mengirim silent history announcement." });
     }
   });
 

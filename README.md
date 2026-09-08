@@ -1,6 +1,6 @@
-# Maya Discord Bot 🤖🎵🛡️
+# Maya Discord Bot 🤖🛡️🌐
 
-Maya adalah bot Discord modular yang dibangun menggunakan **TypeScript**, **discord.js v14**, **Prisma ORM (PostgreSQL)**, dan **Gemini AI**. Bot ini siap dideploy ke server VPS menggunakan **Docker**.
+Maya adalah bot Discord modular yang dibangun menggunakan **TypeScript**, **discord.js v14**, **Prisma ORM (PostgreSQL)**, dan **AI Integration**. Bot ini siap dideploy ke server VPS menggunakan **Docker** dan dikelola via **Web Dashboard**.
 
 ---
 
@@ -9,12 +9,10 @@ Maya adalah bot Discord modular yang dibangun menggunakan **TypeScript**, **disc
    - Command moderasi: `/warn`, `/kick`, `/ban`, `/clear`.
    - Konfigurasi server & channel sapaan dikelola dengan aman via **Web Dashboard**.
    - Sistem Automod: Deteksi otomatis kata-kata kasar dengan penambahan strike warning ke database PostgreSQL. User yang mencapai 3 strike akan otomatis di-timeout selama 10 menit.
-2. **🎵 Pemutar Musik Premium**:
-   - Command musik: `/play`, `/skip`, `/queue`, `/stop`.
-   - Streaming langsung dari YouTube dengan performa andal menggunakan `@discordjs/voice` dan `play-dl` (didukung engine `ffmpeg` di Docker).
-3. **🔮 Integrasi Gemini AI**:
-   - Command tanya-jawab: `/ask`.
-   - Terintegrasi dengan model **Gemini 1.5 Flash** yang sangat cepat dan akurat.
+2. **🌐 Web Dashboard Terpusat**:
+   - Seluruh pengaturan server (Welcome Embed, Automod, Strike Logs, Announce, Rules, Mabar Scheduler, Maya Poll, Story Chain, Reaction Roles, Economy RTK, dll.) dikelola terpusat dari dashboard web.
+3. **🔮 Integrasi AI & Komunitas**:
+   - Voice AI Chat, Tebak-Tebakan, Menfess, Pantun, dan fitur komunitas interaktif lainnya.
 
 ---
 
@@ -89,8 +87,7 @@ Anda membutuhkan **Node.js v20+**, **FFmpeg** terinstal di OS Anda, dan database
 1. Undang bot ke server Anda menggunakan tautan OAuth2 yang dibuat di langkah persiapan.
 2. Buka Web Dashboard untuk mengonfigurasi channel welcome, automod, dan fitur lainnya secara aman.
 3. Coba ketik kata kasar (misal: `anjing` atau `goblok`) untuk menguji Automod. Bot akan menghapus pesan Anda dan mencatat strike.
-4. Masuk ke Voice Channel lalu jalankan `/play <judul lagu / link youtube>` untuk memutar musik.
-5. Gunakan `/ask <pertanyaan>` untuk berinteraksi dengan Gemini AI.
+4. Masuk ke Voice Channel lalu panggil Maya dengan `/voice join` atau berbicara langsung untuk mengobrol santai bersama Maya.
 
 ---
 

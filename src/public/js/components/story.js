@@ -266,3 +266,39 @@ async function startStorySessionBroadcast() {
     }
   }
 }
+
+async function publishStoryNowBroadcast() {
+  if (!selectedGuildId) {
+    showToast('Pilih Server', 'Silakan pilih server terlebih dahulu.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-publish-story');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Merangkai & Merender Dongeng AI...`;
+  }
+
+  try {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}/publish-story`, {
+      method: 'POST'
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast('Cerita Terbit!', data.message || 'Dongeng komedi dan gambar AI berhasil dipublikasikan!', 'success');
+      setTimeout(loadActiveStoryLive, 1500);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast('Gagal Publikasi', err.error || 'Gagal mempublikasikan cerita.', 'error');
+    }
+  } catch (err) {
+    showToast('Error', err.message || 'Terjadi kesalahan jaringan saat mempublikasikan cerita.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Publikasikan Cerita Sekarang`;
+    }
+  }
+}
+

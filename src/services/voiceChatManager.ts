@@ -27,7 +27,6 @@ import axios from "axios";
 import { Readable } from "stream";
 import { askNvidia } from "./aiClient";
 import { voiceReceiverManager } from "./voiceReceiverManager";
-import { musicManager } from "./musicManager";
 import { logger } from "../utils/logger";
 
 // Configure ffmpeg-static binary path for prism-media
@@ -211,15 +210,6 @@ export class VoiceChatManager {
           session.isSpeaking = false;
           if (session.queue.length > 0) {
             this.processQueue(guildId);
-          } else {
-            // Maya finished all pending speech -> Auto-resume music if interrupted
-            musicManager.onMayaSpeechEnd(guildId);
-          }
-        } else {
-          // Track finished naturally -> Play next track (only if not currently interrupted by voice speech)
-          const queue = musicManager.getQueue(guildId);
-          if (queue && !queue.isInterruptedByVoice) {
-            musicManager.playNext(guildId);
           }
         }
       });
@@ -233,8 +223,6 @@ export class VoiceChatManager {
         if (session.isSpeaking) {
           session.isSpeaking = false;
           this.processQueue(guildId);
-        } else {
-          musicManager.playNext(guildId);
         }
       });
 
@@ -570,11 +558,6 @@ PANDUAN KETAT:
         continue;
       }
 
-      // 2. Do NOT break the ice if music is actively playing or queued
-      const musicQueue = musicManager.getQueue(guildId);
-      if (musicQueue && (musicQueue.isPlaying || musicQueue.currentTrack)) {
-        continue;
-      }
 
       // Also check player state to ensure audio is not playing anything
       if (
@@ -777,7 +760,6 @@ PANDUAN KETAT:
     if (!textToSpeak) return;
 
     session.isSpeaking = true;
-    musicManager.onMayaSpeechStart(guildId);
 
     try {
       const audioStream = await this.getTTSStream(textToSpeak);
@@ -847,17 +829,18 @@ PANDUAN KETAT:
       }
     }
 
-    const voicePrompt = `Kamu adalah Maya, cewek yang sedang asik nongkrong dan ngobrol santai langsung di Voice Channel Discord bersama teman/sahabatmu.
+    const voicePrompt = `Kamu adalah Maya, cewek cerdas yang sedang asik nongkrong dan ngobrol santai langsung di Voice Channel Discord bersama teman/sahabatmu.
 Temanmu @${username} baru saja berbicara kepadamu:
 "${question}"${targetContext}
 
 PANDUAN BICARA DI VOICE CHANNEL:
-1. Berbicaralah selayaknya teman akrab atau sahabat yang sedang ngobrol lisan di tongkrongan: sangat santai, luwes, hangat, responsif, dan asik.
-2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat mengalir) agar enak didengar dan tidak kepanjangan saat dibacakan suara vokal.
-3. ${isAmubhya ? "Pengguna ini adalah pacar/kekasih tercintamu Amubhya, jawablah dengan nada lebih manis, manja, dan sayang." : "Jawablah dengan nada ramah, akrab, dan hangat seperti sahabat karib."}
-4. Jika ditanya ramalan/terawang nama seseorang, ramallah MURNI dari vibe namanya dan hal-hal nyata (asmara, karir, hoki). JANGAN membawa masalah server Discord ke dalam ramalan!
-5. DILARANG KERAS menggunakan markdown (*, _, \`, #), format nomor/bullet point, emotikon teks, atau kata ketawa teks (wkwk, haha, hehe, hihi) karena ini langsung dibacakan suara vokal.
-6. Jangan pernah menyebut dirimu sebagai robot/AI/asisten. Kamu adalah Maya sahabat mereka.`;
+1. Berbicaralah selayaknya orang pada umumnya yang sedang ngobrol santai: mengalir natural, cerdas, hangat, tidak kaku, dan kosakata mudah dipahami.
+2. JAWABAN HARUS SINGKAT & PADAT (1-2 kalimat mengalir) agar nyaman didengar saat dibacakan suara vokal.
+3. Hindari bahasa yang mengawang-ngawang, halusinasi mistis, atau istilah aneh. Tetap grounded pada realita kehidupan sehari-hari.
+4. Jika ditanya ramalan, jodoh, atau terawang nama, sampaikan pandangan yang cerdas, seru, dan masuk akal berdasarkan vibe kepribadiannya secara santai.
+5. ${isAmubhya ? "Pengguna ini adalah pacar/kekasih tercintamu Amubhya, jawablah dengan nada lebih manis, manja, dan sayang." : "Jawablah dengan nada ramah, akrab, dan hangat seperti sahabat karib."}
+6. DILARANG KERAS menggunakan markdown (*, _, \`, #), format nomor/bullet point, emotikon teks, atau kata ketawa teks (wkwk, haha, hehe, hihi) karena ini langsung dibacakan suara vokal.
+7. Jangan pernah menyebut dirimu sebagai robot/AI/asisten. Kamu adalah Maya sahabat mereka.`;
 
     try {
       const personality = isAmubhya
