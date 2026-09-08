@@ -31,6 +31,11 @@ export function parseAcademicQuery(text: string): { isAcademic: boolean; topic: 
     return { isAcademic: false, topic: "" };
   }
 
+  const isConsultation = /(?:kenapa|mengapa|bagaimana|gimana|apakah|apa\s+(?:maksud|bedanya|arti)|menurut|pendapat|tips|cara|trik|susah\s+gak)\b/i.test(text);
+  if (isConsultation) {
+    return { isAcademic: false, topic: "" };
+  }
+
   let fromYear: number | undefined;
   let toYear: number | undefined;
 

@@ -16,10 +16,20 @@ import { searchJobs, createJobEmbed } from "../services/jobScraper";
 import { searchOutfitTrends, createOutfitEmbed } from "../services/outfitService";
 import { fetchCurrencyRates, createCurrencyEmbed } from "../services/financialService";
 
-// Helper deterministic query parsers (Bypasses AI reasoning for precision and speed)
+// Helper deterministic query parsers (Bypasses AI reasoning for precision and speed ONLY on explicit search/catalog requests)
 function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
-  const isScholarship = /\b(beasiswa|scholarship|grant|studi\s+gratis|biaya\s+kuliah|pendidikan\s+gratis)\b/i.test(prompt);
-  if (!isScholarship) return { isScholarship: false, scope: "semua", level: "semua" };
+  // If the user is asking a conversational question, consultation, opinion, advice, or asking about quotas/reasons/tips
+  const isConsultationOrQuestion = /(?:mana\s+yang|yang\s+mana|yang\s+banyak|yang\s+paling|yang\s+bagus|kenapa|mengapa|bagaimana|gimana|apakah|apa\s+(?:saja|itu|bedanya|syarat)|tips|cara|trik|kuota|peluang|lolos|alasan|menurut|pendapat|opini|cerita|pengalaman|bocoran|kapan|tanya|nanya)\b/i.test(prompt);
+  if (isConsultationOrQuestion) {
+    return { isScholarship: false, scope: "semua", level: "semua" };
+  }
+
+  // Must have explicit search/listing/catalog intent
+  const hasSearchIntent = /(?:cari(?:kan|in)?|temukan|daftar|list|katalog|info\s+(?:beasiswa|daftar)|spill\s+beasiswa|rekomen(?:dasi(?:kan)?)?\s+beasiswa|tampil(?:kan)?\s+beasiswa|ada\s+beasiswa\s+apa)/i.test(prompt);
+  const hasKeyword = /\b(beasiswa|scholarship|grant|pendidikan\s+gratis)\b/i.test(prompt);
+  if (!hasSearchIntent || !hasKeyword) {
+    return { isScholarship: false, scope: "semua", level: "semua" };
+  }
 
   let scope: "luar-negeri" | "nasional" | "semua" = "semua";
   if (/\b(luar\s*negeri|overseas|international|eropa|jepang|amerika|aus|uk|turki|singapura|korea)\b/i.test(prompt)) {
@@ -28,7 +38,7 @@ function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope:
     scope = "nasional";
   }
 
-  let level: "s1" | "s2" | "s3" | "d3" | "bootcamp" | "all" = "all";
+  let level = "semua";
   if (/\b(s3|doktor|phd)\b/i.test(prompt)) {
     level = "s3";
   } else if (/\b(s2|magister|master)\b/i.test(prompt)) {
@@ -51,8 +61,11 @@ function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope:
 }
 
 function parseNewsQuery(prompt: string): { isNews: boolean; category: string } {
-  const isNews = /\b(berita|news|kabar\s+terkini|headline|kabar\s+dunia|kabar\s+hari\s+ini)\b/i.test(prompt);
-  if (!isNews) return { isNews: false, category: "semua" };
+  const isConsultationOrQuestion = /(?:kenapa|mengapa|bagaimana|gimana|apakah|apa\s+(?:pendapat|tanggapan|maksud|isinya)|menurut|opini|tanya|ceritakan)\b/i.test(prompt);
+  if (isConsultationOrQuestion) return { isNews: false, category: "semua" };
+
+  const hasNewsSearchIntent = /(?:cari(?:kan|in)?\s+berita|update\s+berita|baca\s+berita|info\s+berita|kabar\s+terkini|headline|rangkuman\s+berita|berita\s+(?:hari\s+ini|terbaru|terkini|internasional|nasional|dunia|tekno|bisnis))/i.test(prompt);
+  if (!hasNewsSearchIntent) return { isNews: false, category: "semua" };
 
   let category = "semua";
   if (/\b(internasional|global|dunia|luar\s*negeri|world)\b/i.test(prompt)) {
@@ -69,8 +82,11 @@ function parseNewsQuery(prompt: string): { isNews: boolean; category: string } {
 }
 
 function parseJobQuery(prompt: string): { isJob: boolean; keyword?: string; location?: string } {
-  const isJob = /\b(loker|lowongan|lowongan\s+kerja|job|jobs|hiring|karir|career|kerjaan)\b/i.test(prompt);
-  if (!isJob) return { isJob: false };
+  const isConsultationOrQuestion = /(?:kenapa|mengapa|bagaimana|gimana|tips|cara|trik|interview|wawancara|cv|resume|gaji\s+ideal|menurut|opini)\b/i.test(prompt);
+  if (isConsultationOrQuestion) return { isJob: false };
+
+  const hasJobSearchIntent = /(?:cari(?:kan|in)?\s+(?:loker|lowongan|kerja)|info\s+(?:loker|lowongan)|daftar\s+loker|list\s+loker|spill\s+loker|ada\s+loker|lowongan\s+kerja\s+di|loker\s+(?:di|buat|posisi))/i.test(prompt);
+  if (!hasJobSearchIntent) return { isJob: false };
 
   let location: string | undefined = undefined;
   const locMatch = prompt.match(/\b(jakarta|bandung|surabaya|yogyakarta|jogja|semarang|bali|medan|remote|wfh|wfo)\b/i);
@@ -89,8 +105,11 @@ function parseJobQuery(prompt: string): { isJob: boolean; keyword?: string; loca
 }
 
 function parseCourseQuery(prompt: string): { isCourse: boolean; topic?: string; platform?: string } {
-  const isCourse = /\b(kursus|course|courses|pelatihan|sertifikasi|bootcamp|belajar\s+coding|belajar\s+gratis|training\s+gratis)\b/i.test(prompt);
-  if (!isCourse) return { isCourse: false };
+  const isConsultationOrQuestion = /(?:kenapa|mengapa|bagaimana|gimana|apakah|apa\s+(?:bedanya|bagusnya)|menurut|mending|saran)\b/i.test(prompt);
+  if (isConsultationOrQuestion) return { isCourse: false };
+
+  const hasCourseSearchIntent = /(?:cari(?:kan|in)?\s+(?:kursus|course|pelatihan|bootcamp)|info\s+(?:kursus|course|pelatihan)|daftar\s+kursus|list\s+kursus|spill\s+kursus|rekomendasi\s+kursus|kursus\s+gratis|pelatihan\s+gratis)/i.test(prompt);
+  if (!hasCourseSearchIntent) return { isCourse: false };
 
   let platform: string | undefined = undefined;
   const platMatch = prompt.match(/\b(google|aws|dicoding|coursera|harvard|microsoft|freecodecamp)\b/i);
@@ -109,8 +128,11 @@ function parseCourseQuery(prompt: string): { isCourse: boolean; topic?: string; 
 }
 
 function parseOutfitQuery(prompt: string): { isOutfit: boolean; style?: string; gender?: "pria" | "wanita" | "unisex"; occasion?: string } {
-  const isOutfit = /\b(outfit|ootd|fashion|gaya\s+pakaian|style\s+baju|tren\s+baju|rekomendasi\s+baju|inspirasi\s+baju|dresscode)\b/i.test(prompt);
-  if (!isOutfit) return { isOutfit: false };
+  const isConsultationOrQuestion = /(?:kenapa|mengapa|apakah|cocok\s+gak|bagusan\s+mana|menurut|bagus\s+gak)\b/i.test(prompt);
+  if (isConsultationOrQuestion) return { isOutfit: false };
+
+  const hasOutfitIntent = /(?:rekomendasi\s+outfit|ide\s+outfit|cari(?:kan)?\s+outfit|spill\s+outfit|inspirasi\s+outfit|tren\s+outfit|gaya\s+outfit|ootd\s+(?:hari\s+ini|ngampus|kantor|hangout|cowok|cewek))/i.test(prompt);
+  if (!hasOutfitIntent) return { isOutfit: false };
 
   let gender: "pria" | "wanita" | "unisex" | undefined = undefined;
   if (/\b(pria|cowok|laki|men|cowo)\b/i.test(prompt)) gender = "pria";
@@ -128,8 +150,12 @@ function parseOutfitQuery(prompt: string): { isOutfit: boolean; style?: string; 
 }
 
 function parseCurrencyQuery(prompt: string): boolean {
-  return /\b(kurs|valas|nilai\s+tukar|usd\s+ke\s+idr|dollar\s+ke\s+rupiah|rupiah\s+ke\s+dollar|exchange\s+rate|harga\s+dollar|mata\s+uang)\b/i.test(prompt);
+  const isConsultation = /(?:kenapa|mengapa|faktor|prediksi|analisis|masa\s+depan|menurut)\b/i.test(prompt);
+  if (isConsultation) return false;
+
+  return /(?:kurs\s+(?:hari\s+ini|valas|dollar|rupiah|usd|eur|jpy|mata\s+uang)|nilai\s+tukar|harga\s+dollar|cek\s+kurs|info\s+kurs)/i.test(prompt);
 }
+
 
 const event: BotEvent = {
 
@@ -423,14 +449,15 @@ const event: BotEvent = {
         // 8. Natural Mention Intent: Outfit Trends & OOTD Styling
         const outfitQuery = parseOutfitQuery(userPrompt);
         if (outfitQuery.isOutfit) {
-          const outfitItems = searchOutfitTrends(userPrompt);
-          const { embed } = createOutfitEmbed(
+          const outfitItems = await searchOutfitTrends(userPrompt);
+          const { embed, components } = createOutfitEmbed(
             outfitItems,
             userPrompt,
             message.client.user?.displayAvatarURL()
           );
           await message.reply({
             embeds: [embed],
+            components,
             allowedMentions: { repliedUser: true }
           }).catch(() => {});
           return;

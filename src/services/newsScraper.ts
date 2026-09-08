@@ -28,7 +28,7 @@ const FEEDS_CONFIG: Record<string, FeedConfig[]> = {
   ],
   internasional: [
     { name: "CNN Internasional", url: "https://www.cnnindonesia.com/internasional/rss", category: "Kabar Dunia" },
-    { name: "Antara Dunia", url: "https://www.antaranews.com/rss/dunia-global.xml", category: "Global & Diplomasi" },
+    { name: "Antara Dunia", url: "https://www.antaranews.com/rss/dunia.xml", category: "Global & Diplomasi" },
     { name: "Detik Internasional", url: "https://news.detik.com/internasional/rss", category: "Peristiwa Dunia" },
     { name: "BBC News Indonesia", url: "https://feeds.bbci.co.uk/indonesia/rss.xml", category: "Dunia Terkini" },
   ],

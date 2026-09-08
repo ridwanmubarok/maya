@@ -191,6 +191,69 @@ async function fetchJobStreetJobs(position: string, location: string): Promise<J
   return jobs;
 }
 
+async function fetchRemotiveJobs(position: string, location: string): Promise<JobItem[]> {
+  const jobs: JobItem[] = [];
+  try {
+    const res = await axios.get(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(position)}&limit=5`, {
+      timeout: 5000,
+      headers: { "User-Agent": "MayaCareerScraper/1.0" }
+    });
+    if (res.data && res.data.jobs) {
+      for (const j of res.data.jobs) {
+        jobs.push({
+          id: `remotive-${j.id}`,
+          title: j.title,
+          company: j.company_name,
+          location: j.candidate_required_location || (location || "Remote / Global"),
+          type: j.job_type || "Full-time",
+          salary: j.salary || "Sesuai Standar Industri",
+          postedDate: "Aktif",
+          url: j.url,
+          source: "Remotive Jobs Network"
+        });
+      }
+    }
+  } catch (err) {
+    logger.warn("JobScraper: Error fetching Remotive jobs:", err);
+  }
+  return jobs;
+}
+
+async function fetchKalibrrJobs(position: string, location: string): Promise<JobItem[]> {
+  const jobs: JobItem[] = [];
+  try {
+    const query = position && position.trim() !== "" ? position.trim() : "staff";
+    const url = `https://www.kalibrr.com/api/job_board/search?text=${encodeURIComponent(query)}&limit=10`;
+    const res = await axios.get(url, {
+      timeout: 5000,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+    });
+
+    if (res.data && Array.isArray(res.data.jobs)) {
+      for (const j of res.data.jobs) {
+        const city = j.google_location?.address_components?.city || j.company_info?.location || (location || "Indonesia");
+        const companyCode = j.company?.code || "company";
+        const jobUrl = `https://www.kalibrr.com/c/${companyCode}/jobs/${j.id}/${j.slug}`;
+
+        jobs.push({
+          id: `kalibrr-${j.id}`,
+          title: j.name,
+          company: j.company?.name || "Perusahaan Mitra Kalibrr",
+          location: city,
+          type: "Full-time / Kontrak",
+          salary: j.salary || "Sesuai Standar Industri",
+          postedDate: "Aktif",
+          url: jobUrl,
+          source: "Kalibrr Indonesia",
+        });
+      }
+    }
+  } catch (err) {
+    logger.warn("JobScraper: Error fetching Kalibrr jobs:", err);
+  }
+  return jobs;
+}
+
 /**
  * Main Exported Function: searchJobs
  */
@@ -198,13 +261,15 @@ export async function searchJobs(position: string, location: string = ""): Promi
   logger.info(`JobScraper: Memulai pencarian lowongan kerja untuk '${position}' di '${location}'`);
 
   // Run searches in parallel
-  const [linkedInJobs, glintsJobs, jobStreetJobs] = await Promise.all([
+  const [kalibrrJobs, remotiveJobs, linkedInJobs, glintsJobs, jobStreetJobs] = await Promise.all([
+    fetchKalibrrJobs(position, location),
+    fetchRemotiveJobs(position, location),
     fetchLinkedInJobs(position, location),
     fetchGlintsJobs(position, location),
     fetchJobStreetJobs(position, location),
   ]);
 
-  let allJobs = [...linkedInJobs, ...glintsJobs, ...jobStreetJobs];
+  let allJobs = [...kalibrrJobs, ...remotiveJobs, ...linkedInJobs, ...glintsJobs, ...jobStreetJobs];
 
   // Filter location strictly
   allJobs = allJobs.filter((j) => isLocationMatch(j.location, location));

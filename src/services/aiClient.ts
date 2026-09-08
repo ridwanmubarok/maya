@@ -62,8 +62,8 @@ export async function askNvidia(
 
   const modelCandidates = [
     process.env.NVIDIA_MODEL,
-    "openai/gpt-oss-20b",
     "meta/llama-3.2-11b-vision-instruct",
+    "openai/gpt-oss-20b",
     "nvidia/nemotron-3-nano-30b-a3b",
     "minimaxai/minimax-m3"
   ].filter(Boolean) as string[];
@@ -100,7 +100,8 @@ export async function askNvidia(
           messages: messages,
           temperature: 0.75,
           max_tokens: 1024
-        })
+        }),
+        signal: AbortSignal.timeout(12000)
       });
 
       if (!response.ok) {

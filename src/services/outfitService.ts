@@ -1,4 +1,6 @@
-import { EmbedBuilder } from "discord.js";
+import axios from "axios";
+import * as cheerio from "cheerio";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { logger } from "../utils/logger";
 
 export interface OutfitStyle {
@@ -6,16 +8,18 @@ export interface OutfitStyle {
   name: string;
   vibe: string;
   gender: "Cowok" | "Cewek" | "Unisex";
-  occasion: string; // Ngampus, Kantor, Kencan, Hangout, Santai
-  top: string;
-  bottom: string;
-  footwear: string;
-  accessories: string;
-  colorPalette: string;
+  occasion: string;
+  top?: string;
+  bottom?: string;
+  footwear?: string;
+  accessories?: string;
+  colorPalette?: string;
   stylingTips: string;
+  url?: string;
+  source: string;
 }
 
-const OUTFIT_CATALOG: OutfitStyle[] = [
+const FALLBACK_OUTFITS: OutfitStyle[] = [
   {
     id: "outfit-kr-minimalist",
     name: "Korean Minimalist Casual",
@@ -24,10 +28,11 @@ const OUTFIT_CATALOG: OutfitStyle[] = [
     occasion: "Ngampus, Nongkrong di Cafe, Kencan Santai",
     top: "Oversized boxy t-shirt polos atau lightweight knit sweater",
     bottom: "Wide-leg pleated trousers atau straight cut raw denim",
-    footwear: "Clean retro trainers (New Balance 530 / Samba) atau white leather sneakers",
+    footwear: "Clean retro trainers (New Balance 530 / Samba)",
     accessories: "Minimalist canvas tote bag, cap netral polos, jam tangan tipis",
     colorPalette: "Broken White, Khaki / Cream, Sage Green, Charcoal",
-    stylingTips: "Terapkan aturan proporsi 1/3 atasan (french tuck ke celana) dan 2/3 bawahan agar postur terlihat lebih tinggi dan rapi.",
+    stylingTips: "Terapkan aturan proporsi 1/3 atasan (french tuck ke celana) dan 2/3 bawahan agar postur terlihat lebih proporsional.",
+    source: "Editorial Style Guide",
   },
   {
     id: "outfit-smart-casual",
@@ -41,6 +46,7 @@ const OUTFIT_CATALOG: OutfitStyle[] = [
     accessories: "Classic leather strap watch, leather cross-body messenger bag",
     colorPalette: "Navy Blue, Light Grey, Off-White, Olive",
     stylingTips: "Gulung rapi lengan kemeja hingga bawah siku dan pastikan warna ikat pinggang senada dengan warna sepatu.",
+    source: "Editorial Style Guide",
   },
   {
     id: "outfit-streetwear",
@@ -54,6 +60,7 @@ const OUTFIT_CATALOG: OutfitStyle[] = [
     accessories: "Tactical crossbody sling bag, silver chain necklace, bucket hat / beanie",
     colorPalette: "Washed Vintage Black, Cement Grey, Forest Green, Earth Sand",
     stylingTips: "Beri ruang siluet celana jatuh sedikit menumpuk di atas sepatu (stacking effect) untuk look streetwear yang natural.",
+    source: "Editorial Style Guide",
   },
   {
     id: "outfit-old-money",
@@ -66,78 +73,98 @@ const OUTFIT_CATALOG: OutfitStyle[] = [
     footwear: "Suede driving shoes atau Belgian loafers warna cokelat mocca",
     accessories: "Vintage chronograph watch dengan strap kulit, tortoise-shell sunglasses",
     colorPalette: "Beige, Pure White, Sky Blue, Camel Tan, Dark Olive",
-    stylingTips: "Kunci gaya old money adalah bahan kain berkualitas yang breathable dan fit yang tidak terlalu ketat ataupun terlalu longgar.",
-  },
-  {
-    id: "outfit-casual-hangout",
-    name: "Casual Hangout / Tongkrongan Santai",
-    vibe: "Santai Maksimal, Nyaman & Gak Bikin Gerah",
-    gender: "Unisex",
-    occasion: "Nongkrong Warkop / Kafe, Weekend Chill, Jalan Santai Sore",
-    top: "Kemeja flanel bertekstur atau cuban collar shirt sebagai outer di atas kaos putih",
-    bottom: "Relaxed-fit denim jeans atau easy-wear corduroy pants",
-    footwear: "Classic low canvas sneakers (Vans / Chuck 70) atau Birkenstock Boston",
-    accessories: "Canvas waist bag, jam tangan digital klasik (Casio)",
-    colorPalette: "Earthy Brown, Mustard, Washed Indigo, Off-White",
-    stylingTips: "Biarkan kancing kemeja luar terbuka untuk memberikan aksen layer yang hidup tanpa terasa gerah.",
-  },
-  {
-    id: "outfit-chic-femme",
-    name: "Korean Chic & Soft Aesthetic (Cewek)",
-    vibe: "Manis, Anggun, Trendy & Estetik",
-    gender: "Cewek",
-    occasion: "Cafe Hopping, Foto OOTD, Nonton Bioskop, Kencan Pertama",
-    top: "Ribbed knit cardigan manis dengan aksen kancing mutiara atau cropped baby tee",
-    bottom: "A-line flowy midi skirt atau high-waist loose denim",
-    footwear: "Mary Jane flat shoes dengan kaus kaki putih pendek, atau platform loafers",
-    accessories: "Shoulder bag mini warna pastel, jepit rambut satin / hair ribbon, kalung tipis",
-    colorPalette: "Butter Yellow, Soft Pastel Pink, Baby Blue, Vanilla Creme",
-    stylingTips: "Kombinasikan atasan yang pas di badan (fitted) dengan bawahan yang lebih jatuh bervolume untuk ilusi siluet proporsional.",
+    stylingTips: "Kunci gaya old money adalah bahan kain berkualitas yang breathable dan fit yang pas di badan tanpa terlalu ketat.",
+    source: "Editorial Style Guide",
   },
 ];
+
+async function fetchLiveFashionTrends(query: string = ""): Promise<OutfitStyle[]> {
+  const q = query.toLowerCase();
+  const isFemale = q.includes("cewek") || q.includes("wanita") || q.includes("perempuan");
+  const isMale = q.includes("cowok") || q.includes("pria") || q.includes("laki");
+
+  const liveResults: OutfitStyle[] = [];
+
+  // 1. Fetch Who What Wear (Top global women fashion trends)
+  if (!isMale) {
+    try {
+      const res = await axios.get("https://www.whowhatwear.com/rss", {
+        timeout: 4500,
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      const $ = cheerio.load(res.data, { xmlMode: true });
+      $("item").each((i, el) => {
+        if (liveResults.length >= 3) return;
+        const title = $(el).find("title").text().replace(/\s+/g, " ").trim();
+        const link = $(el).find("link").text().trim();
+        const desc = $(el).find("description").text().replace(/<[^>]+>/g, "").trim();
+
+        if (title && link) {
+          liveResults.push({
+            id: `live-www-${i}`,
+            name: title,
+            vibe: "Chic, Elegant & Seasonal 2026 Trend",
+            gender: "Cewek",
+            occasion: "Daily Wear / Cafe Hopping / Seasonal Trend 2026",
+            stylingTips: desc ? (desc.length > 200 ? desc.substring(0, 197) + "..." : desc) : "Inspirasi padu padan siluet modern dengan fokus pada tekstur kain dan layering elegan.",
+            url: link,
+            source: "Who What Wear Fashion Editorial",
+          });
+        }
+      });
+    } catch (err) {
+      logger.warn("OutfitService: Gagal mengambil feed WhoWhatWear:", err);
+    }
+  }
+
+  // 2. Fetch Hypebeast Indonesia (Top streetwear & sneaker releases)
+  if (!isFemale || liveResults.length < 3) {
+    try {
+      const res = await axios.get("https://hypebeast.com/id/feed", {
+        timeout: 4500,
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      const $ = cheerio.load(res.data, { xmlMode: true });
+      $("item").each((i, el) => {
+        if (liveResults.length >= 3) return;
+        const title = $(el).find("title").text().trim();
+        const link = $(el).find("link").text().trim();
+        const desc = $(el).find("description").text().replace(/<[^>]+>/g, "").trim();
+
+        if (title && link && /sepatu|jordan|sneaker|koleksi|baju|jaket|outfit|style|wear|tee|drop|celana|denim/i.test(title + desc)) {
+          liveResults.push({
+            id: `live-hb-${i}`,
+            name: title,
+            vibe: "Urban Streetwear & Contemporary Clean Fit",
+            gender: "Cowok",
+            occasion: "Hangout / Street Styling 2026",
+            stylingTips: desc ? (desc.length > 200 ? desc.substring(0, 197) + "..." : desc) : "Perhatikan padu padan warna alas kaki dan siluet celana agar menghasilkan proporsi tubuh yang kokoh.",
+            url: link,
+            source: "Hypebeast Indonesia",
+          });
+        }
+      });
+    } catch (err) {
+      logger.warn("OutfitService: Gagal mengambil feed Hypebeast:", err);
+    }
+  }
+
+  return liveResults;
+}
 
 /**
  * Search and curate outfit recommendations based on natural query
  */
-export function searchOutfitTrends(query: string): OutfitStyle[] {
-  const q = (query || "").toLowerCase();
-  logger.info(`OutfitService: Mencari rekomendasi outfit untuk query: "${query}"`);
+export async function searchOutfitTrends(query: string): Promise<OutfitStyle[]> {
+  logger.info(`OutfitService: Memulai pencarian live outfit trend untuk kueri: "${query}"`);
 
-  let filtered = OUTFIT_CATALOG;
-
-  if (q.includes("cewek") || q.includes("wanita") || q.includes("perempuan")) {
-    filtered = filtered.filter((o) => o.gender === "Cewek" || o.gender === "Unisex");
-  } else if (q.includes("cowok") || q.includes("pria") || q.includes("laki")) {
-    filtered = filtered.filter((o) => o.gender === "Cowok" || o.gender === "Unisex");
+  const liveTrends = await fetchLiveFashionTrends(query);
+  if (liveTrends.length > 0) {
+    return liveTrends.slice(0, 3);
   }
 
-  // Filter berdasarkan occasion / situasi
-  if (q.includes("ngampus") || q.includes("kuliah")) {
-    const campusOutfits = filtered.filter((o) => o.occasion.toLowerCase().includes("ngampus") || o.occasion.toLowerCase().includes("kuliah"));
-    if (campusOutfits.length > 0) return campusOutfits.slice(0, 3);
-  }
-
-  if (q.includes("kencan") || q.includes("date") || q.includes("pacar")) {
-    const dateOutfits = filtered.filter((o) => o.occasion.toLowerCase().includes("kencan") || o.name.toLowerCase().includes("chic") || o.name.toLowerCase().includes("old money"));
-    if (dateOutfits.length > 0) return dateOutfits.slice(0, 3);
-  }
-
-  if (q.includes("kantor") || q.includes("kerja") || q.includes("formal") || q.includes("smart")) {
-    const workOutfits = filtered.filter((o) => o.occasion.toLowerCase().includes("kantor") || o.name.toLowerCase().includes("smart"));
-    if (workOutfits.length > 0) return workOutfits.slice(0, 3);
-  }
-
-  if (q.includes("streetwear") || q.includes("hype") || q.includes("konser")) {
-    const streetOutfits = filtered.filter((o) => o.name.toLowerCase().includes("streetwear"));
-    if (streetOutfits.length > 0) return streetOutfits;
-  }
-
-  if (q.includes("korean") || q.includes("korea") || q.includes("minimalis") || q.includes("clean")) {
-    const krOutfits = filtered.filter((o) => o.name.toLowerCase().includes("korean") || o.name.toLowerCase().includes("minimalist"));
-    if (krOutfits.length > 0) return krOutfits;
-  }
-
-  return filtered.slice(0, 3);
+  // Fallback to catalog if network is down
+  return FALLBACK_OUTFITS.slice(0, 3);
 }
 
 /**
@@ -147,37 +174,59 @@ export function createOutfitEmbed(
   outfits: OutfitStyle[],
   queryPrompt: string,
   botAvatarUrl?: string
-): { embed: EmbedBuilder } {
+): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
   const embed = new EmbedBuilder()
-    .setColor(0xD97706) // Warm Amber / Ochre Fashion Tone
+    .setColor(0xD97706) // Warm Amber Fashion Tone
     .setTitle("Panduan Trend Outfit & Inspirasi Gaya Busana (OOTD)")
     .setDescription(
       `Kurasi referensi gaya busana terkini • Kueri: **"${queryPrompt}"**\n───────────────────────────────`
     )
     .setFooter({
-      text: "Maya Style & Fashion Curator • Rapi & Bebas Halusinasi",
+      text: "Maya Style & Fashion Curator • Tren 2026 Live Web",
       iconURL: botAvatarUrl,
     })
     .setTimestamp();
 
+  const buttons: ButtonBuilder[] = [];
+
   outfits.forEach((item, idx) => {
     const num = idx + 1;
-    const content =
+    let content =
       `**Vibe Style**: ${item.vibe}\n` +
-      `**Cocok Untuk**: ${item.occasion}\n` +
-      `**Atasan**: ${item.top}\n` +
-      `**Bawahan**: ${item.bottom}\n` +
-      `**Alas Kaki**: ${item.footwear}\n` +
-      `**Aksesoris**: ${item.accessories}\n` +
-      `**Palet Warna**: ${item.colorPalette}\n` +
-      `> *Tips Padu Padan: ${item.stylingTips}*`;
+      `**Cocok Untuk**: ${item.occasion}\n`;
+
+    if (item.top) content += `**Atasan**: ${item.top}\n`;
+    if (item.bottom) content += `**Bawahan**: ${item.bottom}\n`;
+    if (item.footwear) content += `**Alas Kaki**: ${item.footwear}\n`;
+    if (item.colorPalette) content += `**Palet Warna**: ${item.colorPalette}\n`;
+
+    content += `> *Tips / Ulasan: ${item.stylingTips}*`;
+
+    if (item.url) {
+      content += `\n**Sumber Resmi**: [${item.source}](${item.url})`;
+    }
 
     embed.addFields({
       name: `${num}. ${item.name} (${item.gender})`,
       value: content,
       inline: false,
     });
+
+    if (buttons.length < 4 && item.url && item.url.startsWith("http")) {
+      const srcShort = item.source.length > 18 ? item.source.substring(0, 15) + "..." : item.source;
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel(`Baca Tren #${num} (${srcShort})`)
+          .setStyle(ButtonStyle.Link)
+          .setURL(item.url)
+      );
+    }
   });
 
-  return { embed };
+  const components: ActionRowBuilder<ButtonBuilder>[] = [];
+  if (buttons.length > 0) {
+    components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons));
+  }
+
+  return { embed, components };
 }

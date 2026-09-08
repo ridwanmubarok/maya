@@ -249,43 +249,76 @@ export async function searchScholarships(filter: ScholarshipFilter | string = ""
 
   logger.info(`EduScraper: Memulai pencarian beasiswa (Scope: '${scope}', Level: '${level}', Keyword: '${keyword}')`);
 
-  // 1. Scraping Live Portal INDBeasiswa
+  // 1. Scraping Live Feeds from INDBeasiswa Network (Real-time 2026 data)
+  const targetFeeds: string[] = [];
+  if (level.includes("s1")) targetFeeds.push("https://indbeasiswa.com/category/beasiswa-s1/feed/");
+  if (level.includes("s2")) targetFeeds.push("https://indbeasiswa.com/category/beasiswa-s2/feed/");
+  if (level.includes("s3")) targetFeeds.push("https://indbeasiswa.com/category/beasiswa-s3/feed/");
+  if (scope === "luar-negeri" || scope === "ln") targetFeeds.push("https://indbeasiswa.com/category/beasiswa-luar-negeri/feed/");
+  if (scope === "nasional" || scope === "dn") targetFeeds.push("https://indbeasiswa.com/category/beasiswa-dalam-negeri/feed/");
+  
+  targetFeeds.push("https://indbeasiswa.com/feed/");
+  const uniqueFeeds = Array.from(new Set(targetFeeds));
+
   const scrapedItems: ScholarshipItem[] = [];
   try {
-    const searchUrl = "https://indbeasiswa.com/category/beasiswa-full-scholarship/";
-    const res = await axios.get(searchUrl, {
-      timeout: 5000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      },
-    });
-
-    const $ = cheerio.load(res.data);
-    $("article, .post").each((i, el) => {
-      if (scrapedItems.length >= 3) return;
-      const title = $(el).find(".entry-title a, h2 a").text().trim();
-      const href = $(el).find(".entry-title a, h2 a").attr("href");
-
-      if (title && href) {
-        const isAbroad = /luar negeri|jepang|korea|inggris|eropa|australia|turki|amerika/i.test(title);
-        scrapedItems.push({
-          id: `scraped-idb-${i}`,
-          title: title,
-          organizer: "Penyelenggara Terverifikasi",
-          level: "S1 / S2 / S3",
-          scope: isAbroad ? "Luar Negeri" : "Nasional",
-          coverage: "Beasiswa Penuh (Full Scholarship)",
-          deadline: "Informasi Pendaftaran Aktif",
-          url: href,
-          source: "INDBeasiswa",
+    const feedPromises = uniqueFeeds.map(async (feedUrl) => {
+      try {
+        const res = await axios.get(feedUrl, {
+          timeout: 4500,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          },
         });
+        const $ = cheerio.load(res.data, { xmlMode: true });
+        const items: ScholarshipItem[] = [];
+        $("item").each((_, el) => {
+          const rawTitle = $(el).find("title").text().trim();
+          const href = $(el).find("link").text().trim();
+          const desc = $(el).find("description").text().replace(/<[^>]+>/g, "").trim();
+
+          if (!rawTitle || !href) return;
+
+          const dlMatch = rawTitle.match(/Deadline:\s*([^)]+)/i) || desc.match(/Deadline:\s*([^\n.]+)/i);
+          const deadline = dlMatch ? `Deadline: ${dlMatch[1].trim()}` : "Pendaftaran Dibuka / Aktif";
+          const cleanTitle = rawTitle.replace(/\(Deadline:[^)]+\)/i, "").trim();
+
+          let itemLevel = "S1 / S2";
+          if (/s3|doktor|phd/i.test(rawTitle + desc)) itemLevel = "S3";
+          else if (/s2|magister|master/i.test(rawTitle + desc)) itemLevel = "S2";
+          else if (/s1|sarjana/i.test(rawTitle + desc)) itemLevel = "S1";
+          else if (/d3|d4|diploma|vokasi/i.test(rawTitle + desc)) itemLevel = "D3 / D4";
+          else if (/sma|smk/i.test(rawTitle + desc)) itemLevel = "SMA / SMK";
+
+          const isAbroad = /luar negeri|inggris|jepang|korea|australia|eropa|amerika|turki|singapura|jerman|taiwan|belanda|world|global/i.test(rawTitle + desc);
+
+          items.push({
+            id: `live-sch-${href.replace(/[^a-zA-Z0-9]/g, "").slice(-20)}`,
+            title: cleanTitle,
+            organizer: "Penyelenggara Terverifikasi",
+            level: itemLevel,
+            scope: isAbroad ? "Luar Negeri" : "Nasional",
+            coverage: /full|sepenuhnya|biaya kuliah|uang saku/i.test(rawTitle + desc) ? "Bantuan Pendidikan / Beasiswa Penuh" : "Bantuan Biaya Studi & Sertifikasi",
+            deadline,
+            url: href,
+            source: "INDBeasiswa Live Feed",
+          });
+        });
+        return items;
+      } catch (_) {
+        return [];
       }
     });
+
+    const results = await Promise.all(feedPromises);
+    scrapedItems.push(...results.flat());
+    logger.info(`EduScraper: Berhasil mengambil ${scrapedItems.length} beasiswa live dari feed internet`);
   } catch (error) {
-    logger.warn("EduScraper: Live scrape timeout/gagal, menggunakan direktori terverifikasi.");
+    logger.warn("EduScraper: Gagal scraping feed live, menggunakan direktori terverifikasi.");
   }
 
   const allList = [...scrapedItems, ...OFFICIAL_SCHOLARSHIPS];
+
 
   // 2. Filter data
   let filtered = allList.filter((item) => {
@@ -392,12 +425,83 @@ export function createScholarshipEmbed(
   return { embed, components };
 }
 
+async function fetchLiveCoursesFromWeb(queryTopic: string = ""): Promise<CourseItem[]> {
+  const liveItems: CourseItem[] = [];
+  const normalized = (queryTopic || "").toLowerCase();
+
+  // 1. Fetch ClassCentral 2026 curated course guides & programs
+  try {
+    const res = await axios.get("https://www.classcentral.com/report/feed/", {
+      timeout: 4500,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+    });
+    const $ = cheerio.load(res.data, { xmlMode: true });
+    $("item").each((i, el) => {
+      const title = $(el).find("title").text().trim();
+      const link = $(el).find("link").text().trim();
+      const desc = $(el).find("description").text().replace(/<[^>]+>/g, "").trim();
+
+      if (!title || !link) return;
+
+      if (!normalized || normalized === "semua" || title.toLowerCase().includes(normalized) || desc.toLowerCase().includes(normalized)) {
+        liveItems.push({
+          id: `live-cc-${i}`,
+          title,
+          provider: "Class Central (Top Universities)",
+          topic: desc.substring(0, 80) + "...",
+          certificate: "Gratis / Bersertifikat Audit",
+          duration: "Self-paced",
+          url: link,
+          source: "Class Central Guide",
+        });
+      }
+    });
+  } catch (err) {
+    logger.warn("EduScraper: Error fetching ClassCentral live feed:", err);
+  }
+
+  // 2. Fetch freeCodeCamp live tutorials & courses
+  try {
+    const res = await axios.get("https://www.freecodecamp.org/news/rss/", {
+      timeout: 4500,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+    });
+    const $ = cheerio.load(res.data, { xmlMode: true });
+    $("item").each((i, el) => {
+      const title = $(el).find("title").text().replace(/\s+/g, " ").trim();
+      const link = $(el).find("link").text().trim();
+      const cat = $(el).find("category").map((_, c) => $(c).text().trim()).get().join(", ");
+
+      if (!title || !link) return;
+
+      if (!normalized || normalized === "semua" || title.toLowerCase().includes(normalized) || cat.toLowerCase().includes(normalized)) {
+        liveItems.push({
+          id: `live-fcc-${i}`,
+          title,
+          provider: "freeCodeCamp",
+          topic: cat || "Programming & Tech",
+          certificate: "Kurikulum Interaktif Gratis",
+          duration: "Self-paced",
+          url: link,
+          source: "freeCodeCamp Live",
+        });
+      }
+    });
+  } catch (err) {
+    logger.warn("EduScraper: Error fetching freeCodeCamp live feed:", err);
+  }
+
+  return liveItems;
+}
+
 /**
  * Search Free Courses
  */
 export async function searchFreeCourses(topik: string = "", platform: string = ""): Promise<CourseItem[]> {
   const normalizedTopic = (topik || "").toLowerCase();
   const normalizedPlatform = (platform || "").toLowerCase();
+
+  const liveCourses = await fetchLiveCoursesFromWeb(normalizedTopic);
 
   const officialCourses: CourseItem[] = [
     {
@@ -472,7 +576,8 @@ export async function searchFreeCourses(topik: string = "", platform: string = "
     },
   ];
 
-  let filtered = officialCourses;
+  const allCourses = [...liveCourses, ...officialCourses];
+  let filtered = allCourses;
 
   if (normalizedTopic && normalizedTopic !== "semua") {
     filtered = filtered.filter(
