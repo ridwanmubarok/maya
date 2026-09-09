@@ -93,22 +93,27 @@ export async function sendHistoryAnnouncement(
 export async function broadcastMayaAdjustmentHistory(client: MayaClient) {
   logger.info("HistoryLogger: Menjalankan broadcast silent history penyesuaian Maya...");
   await sendHistoryAnnouncement(client, {
-    title: "📜 Riwayat Penyesuaian & Pembaruan Sistem Maya",
-    description: "Halo! Maya telah mendapatkan pembaruan dan penyesuaian sistem terbaru untuk meningkatkan performa dan kemudahan penggunaan:\n",
+    title: "📜 Riwayat Pembaruan Sistem Maya: Peningkatan Mesin AI",
+    description: "Halo! Maya telah mendapatkan pembaruan sistem dan peningkatan mesin AI terbaru:\n",
     fields: [
       {
-        name: "🎵 Fitur Musik Ditiadakan",
-        value: "Fitur pemutar musik (`/music`, antrean lagu, dan tombol kontrol musik) telah dinonaktifkan sepenuhnya untuk memprioritaskan latensi rendah serta stabilitas interaksi voice & AI.",
+        name: "🧠 Peningkatan Model AI (DeepSeek V4 Flash 0731)",
+        value: "Maya kini ditenagai model utama **DeepSeek V4 Flash** (`deepseek-ai/deepseek-v4-flash-0731`) dengan arsitektur 304B MoE (13B aktif), kapasitas konteks 1M token, serta penalaran bahasa Indonesia yang lebih cerdas, mengalir, dan ekspresif.",
         inline: false
       },
       {
-        name: "👛 Penyesuaian Rogatekno Koin (RTK)",
-        value: "Sub-command `/cash pay` untuk transfer koin antar member telah ditiadakan. Anda tetap dapat memeriksa total saldo dengan `/cash saldo` dan memantau peringkat server dengan `/cash leaderboard`.",
+        name: "🛡️ Multi-Level Fallback Otomatis & Pembersihan EOL",
+        value: "Model lama yang telah End of Life (`nvidia/nemotron-3-nano-30b-a3b`) telah dibersihkan. Maya kini dilengkapi mekanisme cadangan bertingkat super cepat jika model utama sedang mengalami antrean server agar respon obrolan tetap lancar.",
+        inline: false
+      },
+      {
+        name: "⚡ Optimasi Kecepatan & Stabilitas Respon",
+        value: "Peningkatan manajemen request AI serta penanganan timeout dinamis untuk memastikan Maya selalu sigap dan stabil saat berinteraksi di Discord.",
         inline: false
       },
       {
         name: "🔕 Catatan Pengumuman",
-        value: "Pemberitahuan riwayat ini dikirimkan secara *silent* ke channel history tanpa menandai/mentag siapapun.",
+        value: "Pemberitahuan riwayat sistem ini dikirimkan secara *silent* ke channel history tanpa menandai/mentag siapapun.",
         inline: false
       }
     ],

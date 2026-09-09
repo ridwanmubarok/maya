@@ -25,7 +25,8 @@ async function saveConfig() {
     maxStrikes: automodMaxStrikesInput ? automodMaxStrikesInput.value : 3,
     muteDuration: automodMuteDurationInput ? automodMuteDurationInput.value : 10,
 
-    aiPersonality: aiPersonalityInput ? aiPersonalityInput.value : ''
+    aiPersonality: aiPersonalityInput ? aiPersonalityInput.value : '',
+    aiModel: (aiModelInput && aiModelInput.value.trim()) ? aiModelInput.value.trim() : 'deepseek-ai/deepseek-v4-flash-0731'
   };
   
   try {

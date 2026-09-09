@@ -41,32 +41,83 @@ PRINSIP KOMUNIKASI & KEPRIBADIAN MAYA:
    - Tidak perlu menggunakan tabel berlebihan saat chatan santai.
 `.trim();
 
+export const DEFAULT_AI_MODEL = "deepseek-ai/deepseek-v4-flash-0731";
+
+export interface AiModelOption {
+  id: string;
+  name: string;
+  description: string;
+  tag: string;
+  isDefault?: boolean;
+}
+
+export const AVAILABLE_AI_MODELS: AiModelOption[] = [
+  {
+    id: "deepseek-ai/deepseek-v4-flash-0731",
+    name: "DeepSeek V4 Flash (0731)",
+    description: "304B MoE (13B aktif), 1M context length, penalaran tajam & multimodal-ready.",
+    tag: "Pilihan Utama",
+    isDefault: true
+  },
+  {
+    id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    name: "NVIDIA Nemotron 3 Nano Omni",
+    description: "Model 30B super cepat (~3s latensi), interaksi luwes & sangat fasih berbahasa Indonesia.",
+    tag: "Tercepat & Responsif"
+  },
+  {
+    id: "nvidia/nemotron-3.5-lightning-30b-a3b",
+    name: "NVIDIA Nemotron 3.5 Lightning",
+    description: "Model 30B terbaru pengganti Nemotron 3 Nano yang telah EOL.",
+    tag: "Stabil & Handal"
+  },
+  {
+    id: "meta/llama-3.2-11b-vision-instruct",
+    name: "Meta LLaMA 3.2 11B Vision Instruct",
+    description: "Model vision dan chat kompak dari Meta dengan pemahaman konteks luas.",
+    tag: "Alternatif Chat"
+  },
+  {
+    id: "poolside/laguna-xs-2.1",
+    name: "Poolside Laguna XS 2.1",
+    description: "Model instruksi ringan berkecepatan tinggi.",
+    tag: "Ringan"
+  }
+];
+
 export function initAI() {
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) {
     logger.warn("NVIDIA_API_KEY tidak ditemukan di .env. Fitur AI tidak akan berfungsi.");
     return;
   }
-  logger.info("NVIDIA Build AI Client berhasil diinisialisasi.");
+  logger.info(`NVIDIA Build AI Client berhasil diinisialisasi. Default model: ${process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL}`);
 }
 
 export async function askNvidia(
   prompt: string, 
   personality?: string, 
-  historyMessages: { role: string; content: string }[] = []
+  historyMessages: { role: string; content: string }[] = [],
+  preferredModel?: string
 ): Promise<string> {
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) {
     return "Maaf, fitur AI tidak dapat diakses karena NVIDIA API Key belum dikonfigurasi.";
   }
 
-  const modelCandidates = [
-    process.env.NVIDIA_MODEL,
-    "meta/llama-3.2-11b-vision-instruct",
-    "openai/gpt-oss-20b",
-    "nvidia/nemotron-3-nano-30b-a3b",
-    "minimaxai/minimax-m3"
-  ].filter(Boolean) as string[];
+  const primaryModel = preferredModel?.trim() || process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL;
+
+  // Prioritaskan model pilihan, disusul kandidat fallback yang aktif dan terbukti stabil
+  const modelCandidates = Array.from(
+    new Set([
+      primaryModel,
+      DEFAULT_AI_MODEL,
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+      "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "meta/llama-3.2-11b-vision-instruct",
+      "poolside/laguna-xs-2.1"
+    ].filter(Boolean) as string[])
+  );
 
   const messages: { role: string; content: string }[] = [];
   
@@ -89,6 +140,8 @@ export async function askNvidia(
 
   for (const modelName of modelCandidates) {
     try {
+      // Timeout dinamis: beri waktu hingga 20s untuk model utama, jika lambat langsung fallback
+      const timeoutMs = 20000;
       const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -101,7 +154,7 @@ export async function askNvidia(
           temperature: 0.75,
           max_tokens: 1024
         }),
-        signal: AbortSignal.timeout(12000)
+        signal: AbortSignal.timeout(timeoutMs)
       });
 
       if (!response.ok) {
@@ -113,8 +166,12 @@ export async function askNvidia(
       let responseText = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content;
       
       if (responseText && responseText.trim()) {
-        // Strip out internal reasoning/thinking tags if model provides them
-        responseText = responseText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+        // Bersihkan tag thinking atau instruksi penalaran internal jika muncul di output
+        responseText = responseText
+          .replace(/<think>[\s\S]*?<\/think>/gi, "")
+          .replace(/^Here's a thinking process:[\s\S]*?\n\n/gi, "")
+          .trim();
+
         if (responseText) {
           return responseText;
         }

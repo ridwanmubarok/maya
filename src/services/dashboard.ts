@@ -24,6 +24,7 @@ import { announcePantunSessionStart, closeAndEvaluateDailyPantun, getTodayPantun
 import { tebakManager } from "./tebakManager";
 import { voiceChatManager } from "./voiceChatManager";
 import { sendHistoryAnnouncement, broadcastMayaAdjustmentHistory } from "../utils/historyLogger";
+import { AVAILABLE_AI_MODELS, DEFAULT_AI_MODEL } from "./aiClient";
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
@@ -112,6 +113,7 @@ export function startDashboard(client: MayaClient) {
           welcomeImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
           welcomeThumbnail: true,
           aiPersonality: "Kamu adalah Maya, teman yang seru, cerdas, dan suportif di server Discord ini. Ngobrollah dengan santai, akrab, dan menyenangkan.",
+          aiModel: process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
           bannedWords: "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
           maxStrikes: 3,
           muteDuration: 10,
@@ -130,6 +132,11 @@ export function startDashboard(client: MayaClient) {
           createdAt: new Date(),
           updatedAt: new Date()
         };
+      }
+
+      // Pastikan fallback aiModel ada jika null di database
+      if (!config.aiModel) {
+        config.aiModel = process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL;
       }
 
       // Fetch guild channels to let the user select target channel
@@ -171,6 +178,7 @@ export function startDashboard(client: MayaClient) {
           welcomeImage: "",
           welcomeThumbnail: true,
           aiPersonality: "",
+          aiModel: process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
           bannedWords: "",
           maxStrikes: 3,
           muteDuration: 10
@@ -668,6 +676,7 @@ export function startDashboard(client: MayaClient) {
       welcomeImage, 
       welcomeThumbnail,
       aiPersonality,
+      aiModel,
       bannedWords,
       maxStrikes,
       muteDuration,
@@ -709,6 +718,7 @@ export function startDashboard(client: MayaClient) {
       if (welcomeImage !== undefined) updateData.welcomeImage = welcomeImage;
       if (welcomeThumbnail !== undefined) updateData.welcomeThumbnail = Boolean(welcomeThumbnail);
       if (aiPersonality !== undefined) updateData.aiPersonality = aiPersonality;
+      if (aiModel !== undefined) updateData.aiModel = aiModel ? String(aiModel).trim() : null;
       if (bannedWords !== undefined) updateData.bannedWords = bannedWords;
       if (maxStrikes !== undefined) updateData.maxStrikes = Number(maxStrikes);
       if (muteDuration !== undefined) updateData.muteDuration = Number(muteDuration);
@@ -1019,6 +1029,19 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error(`Error clearing AI chat history for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal menghapus memori percakapan AI." });
+    }
+  });
+
+  // Get available AI models list (Requires Auth)
+  app.get("/api/ai/models", authMiddleware, (req: Request, res: Response) => {
+    try {
+      res.json({
+        defaultModel: process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
+        models: AVAILABLE_AI_MODELS
+      });
+    } catch (error) {
+      logger.error("Error fetching AI models list:", error);
+      res.status(500).json({ error: "Gagal memuat daftar model AI." });
     }
   });
 

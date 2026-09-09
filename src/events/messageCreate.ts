@@ -512,10 +512,11 @@ const event: BotEvent = {
         }
 
         const personality = config?.aiPersonality || undefined;
+        const preferredModel = config?.aiModel || undefined;
         const authorName = message.member?.displayName || message.author.displayName || message.author.username;
         const promptWithUser = `${authorName}: ${userPrompt}${contextAddition}`;
 
-        const aiResponse = await askNvidia(promptWithUser, personality, historyMessages);
+        const aiResponse = await askNvidia(promptWithUser, personality, historyMessages, preferredModel);
         const cleanResponse = aiResponse
           .replace(/^(\[User:.*?\]|\bMaya:\s*|\bAI:\s*)/i, "")
           .trim();

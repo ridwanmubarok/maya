@@ -12,7 +12,7 @@ let guildConfig = {};
 let loginOverlay, appContainer, guildsList, mainContent, emptyState;
 let welcomeChannelSelect, welcomeTitleInput, welcomeMessageInput, welcomeImageInput, welcomeThumbnailCheckbox;
 let automodWordsInput, automodLogChannelSelect, automodMaxStrikesInput, automodMuteDurationInput;
-let aiPersonalityInput;
+let aiPersonalityInput, aiModelInput;
 let rulesChannelSelect, rulesTitleInput, rulesDescriptionInput, rulesColorInput, rulesColorPicker, rulesThumbnailInput, rulesBannerInput;
 let announceChannelSelect, announceTitleInput, announceDescriptionInput, announceColorInput, announceColorPicker, announceThumbnailInput, announceBannerInput, announceBtnLabelInput, announceBtnUrlInput;
 let genAnnounceChannelSelect, genAnnounceTitleInput, genAnnounceMentionSelect, genAnnounceDescriptionInput, genAnnounceColorInput, genAnnounceColorPicker, genAnnounceThumbnailInput, genAnnounceBannerInput, genAnnounceBtnLabelInput, genAnnounceBtnUrlInput;
@@ -62,6 +62,7 @@ function initDomReferences() {
 
   // AI Inputs
   aiPersonalityInput = document.getElementById('ai-personality');
+  aiModelInput = document.getElementById('ai-model');
 
   // Rules Inputs
   rulesChannelSelect = document.getElementById('rules-channel');
@@ -371,6 +372,7 @@ async function selectGuild(guildId) {
     if (automodMuteDurationInput) automodMuteDurationInput.value = config.muteDuration || 10;
 
     if (aiPersonalityInput) aiPersonalityInput.value = config.aiPersonality || '';
+    if (aiModelInput) aiModelInput.value = config.aiModel || 'deepseek-ai/deepseek-v4-flash-0731';
 
     if (typeof loadDailyRiddleConfig === 'function') {
       loadDailyRiddleConfig(config, channels);
