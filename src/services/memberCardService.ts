@@ -16,16 +16,25 @@ const CARD_HEIGHT = 2048;
 
 function getBackgroundPath(): string {
   const possiblePaths = [
+    // Jalur di dalam dist/assets (hasil build copy-assets)
+    path.join(__dirname, "../assets", "checkpoint-card.png"),
+    path.join(__dirname, "../assets", "checkpoint-card.jpg"),
+    path.join(process.cwd(), "dist", "assets", "checkpoint-card.png"),
+    path.join(process.cwd(), "dist", "assets", "checkpoint-card.jpg"),
+
+    // Jalur di dalam root assets/ (development / ts-node / container root)
     path.join(process.cwd(), "assets", "checkpoint-card.png"),
     path.join(process.cwd(), "assets", "checkpoint-card.jpg"),
     path.join(__dirname, "../../assets", "checkpoint-card.png"),
-    path.join(__dirname, "../../assets", "checkpoint-card.jpg")
+    path.join(__dirname, "../../assets", "checkpoint-card.jpg"),
+    path.join(__dirname, "../../../assets", "checkpoint-card.png"),
+    path.join(__dirname, "../../../assets", "checkpoint-card.jpg")
   ];
 
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) return p;
   }
-  throw new Error("Template aset kartu checkpoint-card tidak ditemukan di folder assets/");
+  throw new Error(`Template aset kartu checkpoint-card tidak ditemukan di folder assets/. Jalur yang dicek: ${possiblePaths.join(", ")}`);
 }
 
 function escapeXml(value: string): string {

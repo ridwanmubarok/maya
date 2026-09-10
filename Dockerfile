@@ -47,10 +47,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Copy dependencies and dist output directly from the builder stage
+# Copy dependencies, dist output, and assets directly from the builder stage
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/bin ./bin
+COPY --from=builder /usr/src/app/assets ./assets
 
 EXPOSE 3000
 
