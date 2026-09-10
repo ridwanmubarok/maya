@@ -12,6 +12,13 @@ try {
   } else {
     console.warn('⚠️ Warning: src/public directory does not exist!');
   }
+
+  const assetsSrc = path.join(__dirname, '../assets');
+  const assetsDest = path.join(__dirname, '../dist/assets');
+  if (fs.existsSync(assetsSrc)) {
+    fs.cpSync(assetsSrc, assetsDest, { recursive: true });
+    console.log('✅ Image assets (assets/) successfully copied to dist/assets');
+  }
 } catch (err) {
   console.error('❌ Error copying assets:', err);
   process.exit(1);

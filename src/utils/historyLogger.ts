@@ -93,30 +93,25 @@ export async function sendHistoryAnnouncement(
 export async function broadcastMayaAdjustmentHistory(client: MayaClient) {
   logger.info("HistoryLogger: Menjalankan broadcast silent history penyesuaian Maya...");
   await sendHistoryAnnouncement(client, {
-    title: "📜 Riwayat Pembaruan Sistem Maya: Peningkatan Mesin AI",
-    description: "Halo! Maya telah mendapatkan pembaruan sistem dan peningkatan mesin AI terbaru:\n",
+    title: "📜 Riwayat Pembaruan Sistem Maya: Checkpoint Member Card & Perintah /card",
+    description: "Halo! Maya telah mendapatkan pembaruan sistem dan penambahan fitur kartu member terbaru:\n",
     fields: [
       {
-        name: "🧠 Peningkatan Model AI (DeepSeek V4 Flash 0731)",
-        value: "Maya kini ditenagai model utama **DeepSeek V4 Flash** (`deepseek-ai/deepseek-v4-flash-0731`) dengan arsitektur 304B MoE (13B aktif), kapasitas konteks 1M token, serta penalaran bahasa Indonesia yang lebih cerdas, mengalir, dan ekspresif.",
+        name: "🪪 Fitur Baru: Perintah `/card` (Cek Diri Sendiri & Orang Lain)",
+        value: "Kini member dapat melihat Checkpoint Member Card resmi server dengan perintah `/card` (cek kartu sendiri) atau `/card user:@username` (cek kartu member lain). Juga mendukung chat biasa: `/card @user`, `/card <username>`, atau me-reply chat member dengan `/card`!",
         inline: false
       },
       {
-        name: "🛡️ Multi-Level Fallback Otomatis & Pembersihan EOL",
-        value: "Model lama yang telah End of Life (`nvidia/nemotron-3-nano-30b-a3b`) telah dibersihkan. Maya kini dilengkapi mekanisme cadangan bertingkat super cepat jika model utama sedang mengalami antrean server agar respon obrolan tetap lancar.",
+        name: "📐 Kalibrasi Presisi Barcode / QR Code",
+        value: "Ukuran dan posisi QR code telah disesuaikan secara presisi (230x230px) tepat di dalam kurung siku reticle template tanpa meluber atau melebihi batas bingkai.",
         inline: false
       },
       {
-        name: "⚡ Optimasi Kecepatan & Stabilitas Respon",
-        value: "Peningkatan manajemen request AI serta penanganan timeout dinamis untuk memastikan Maya selalu sigap dan stabil saat berinteraksi di Discord.",
-        inline: false
-      },
-      {
-        name: "🔕 Catatan Pengumuman",
-        value: "Pemberitahuan riwayat sistem ini dikirimkan secara *silent* ke channel history tanpa menandai/mentag siapapun.",
+        name: "✨ Perapian Avatar Socket & Aksen Neon",
+        value: "Avatar member kini dipotong bulat sempurna dengan masking presisi konsentris di dalam soket logam template, dibalut aksen neon cyan halus tanpa artefak sudut kotak.",
         inline: false
       }
     ],
-    footerText: "Maya System Changelog • Silent History Log"
+    footerText: "Maya System Changelog • The Checkpoint"
   });
 }

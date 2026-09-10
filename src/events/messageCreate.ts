@@ -15,6 +15,7 @@ import { fetchIndonesianNews, createNewsEmbed } from "../services/newsScraper";
 import { searchJobs, createJobEmbed } from "../services/jobScraper";
 import { searchOutfitTrends, createOutfitEmbed } from "../services/outfitService";
 import { fetchCurrencyRates, createCurrencyEmbed } from "../services/financialService";
+import { buildMemberCardPayload } from "../commands/utility/card";
 
 // Helper deterministic query parsers (Bypasses AI reasoning for precision and speed ONLY on explicit search/catalog requests)
 function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
@@ -174,6 +175,55 @@ const event: BotEvent = {
 
       // Pass message to Pantun Manager if sent in pantun channel
       await handlePantunMessage(message);
+
+      // Direct text command trigger: /card, !card, .card (@user, username, id, or reply)
+      const trimmedContent = message.content.trim();
+      if (/^(?:\/card|!card|\.card)(?:\s+.*)?$/i.test(trimmedContent)) {
+        if ("sendTyping" in message.channel) {
+          await message.channel.sendTyping().catch(() => {});
+        }
+
+        let targetUser = message.author;
+
+        // 1. Mentions (prioritize non-bot mentions)
+        const nonBotMention = message.mentions.users.filter(u => !u.bot).first();
+        if (nonBotMention) {
+          targetUser = nonBotMention;
+        } else if (message.mentions.users.first()) {
+          targetUser = message.mentions.users.first()!;
+        } else if (message.reference?.messageId) {
+          // 2. Reply to another user's message
+          try {
+            const refMsg = await message.channel.messages.fetch(message.reference.messageId);
+            if (refMsg?.author) targetUser = refMsg.author;
+          } catch (_) {}
+        } else {
+          // 3. Username or User ID argument (e.g. "/card amubhya" atau "/card 123456789")
+          const args = trimmedContent.split(/\s+/).slice(1).join(" ").trim().replace(/^@/, "");
+          if (args) {
+            try {
+              const members = await message.guild.members.fetch({ query: args, limit: 1 });
+              const foundMember = members.first();
+              if (foundMember) {
+                targetUser = foundMember.user;
+              } else {
+                const byId = await message.guild.members.fetch(args).catch(() => null);
+                if (byId) targetUser = byId.user;
+              }
+            } catch (_) {}
+          }
+        }
+
+        try {
+          const payload = await buildMemberCardPayload(message.guild, targetUser, message.author);
+          await message.reply(payload);
+          return;
+        } catch (cardErr) {
+          logger.error("Gagal mengirim kartu member via text command:", cardErr);
+          await message.reply({ content: "❌ Gagal memproses kartu member." }).catch(() => {});
+          return;
+        }
+      }
 
       // Fetch server configuration
       const config = await prisma.guildConfig.findUnique({

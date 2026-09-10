@@ -1,6 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, GuildMember } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, GuildMember, AttachmentBuilder } from "discord.js";
 import { Command } from "../../types";
 import { prisma } from "../../services/database";
+import { generateMemberCard, getMemberNumber } from "../../services/memberCardService";
+import { logger } from "../../utils/logger";
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -64,6 +66,9 @@ const command: Command = {
       dailyScore = 0;
     }
 
+    // Hitung nomor urut member bergabung di server
+    const memberNumber = member ? await getMemberNumber(guild, targetUser.id) : (guild.memberCount || 1);
+
     const joinedAtText = member?.joinedAt 
       ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:f> (<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>)`
       : "Tidak diketahui";
@@ -111,6 +116,7 @@ const command: Command = {
         `> **Peringkat Server**: **Rank #${rank}**\n` +
         `> **Perolehan Hari Ini**: **+${dailyScore.toLocaleString('id-ID')} RTK**\n\n` +
         `### Waktu & Keanggotaan\n` +
+        `> **Nomor Member**: **#${memberNumber.toString().padStart(3, "0")}** (Member ke-${memberNumber.toLocaleString("id-ID")})\n` +
         `> **Bergabung Server**: ${joinedAtText}\n` +
         `> **Akun Terdaftar**: ${createdAtText}\n\n` +
         `### Peran Member\n` +
@@ -119,7 +125,22 @@ const command: Command = {
       .setFooter({ text: `Maya System • Server ${guild.name}` })
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    // Generate The Checkpoint Sci-Fi Member Card
+    let cardAttachment: AttachmentBuilder | null = null;
+    if (member) {
+      try {
+        const cardBuffer = await generateMemberCard({ member, memberNumber });
+        cardAttachment = new AttachmentBuilder(cardBuffer, { name: "checkpoint-member-card.png" });
+        embed.setImage("attachment://checkpoint-member-card.png");
+      } catch (cardErr) {
+        logger.error("Gagal men-generate kartu profil member:", cardErr);
+      }
+    }
+
+    await interaction.editReply({
+      embeds: [embed],
+      files: cardAttachment ? [cardAttachment] : []
+    });
   }
 };
 
