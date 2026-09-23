@@ -533,13 +533,34 @@ const event: BotEvent = {
         const dbHistory = await prisma.aiChatMessage.findMany({
           where: { guildId, userId: message.author.id },
           orderBy: { createdAt: "desc" },
-          take: 8
+          take: 12
         });
 
         const historyMessages = dbHistory.reverse().map(msg => ({
           role: msg.role,
           content: msg.content
         }));
+
+        // If this is a reply to Maya's message, inject that replied-to message into context
+        // so Gemini knows what Maya said and can continue naturally without repeating
+        if (isReplyToMaya && message.reference?.messageId) {
+          try {
+            const refMsg = await message.channel.messages.fetch(message.reference.messageId);
+            if (refMsg && refMsg.content) {
+              // Check if it's already in history (avoid duplication)
+              const alreadyInHistory = historyMessages.some(
+                h => h.role === "assistant" && h.content.trim().startsWith(refMsg.content.trim().slice(0, 80))
+              );
+              if (!alreadyInHistory) {
+                // Insert the replied-to message as the most recent assistant context
+                historyMessages.push({
+                  role: "assistant",
+                  content: refMsg.content
+                });
+              }
+            }
+          } catch (_) {}
+        }
 
         // Extract other mentioned members for live context awareness ONLY when asking about whereabouts
         let contextAddition = "";
