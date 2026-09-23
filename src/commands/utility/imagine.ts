@@ -5,6 +5,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  AttachmentBuilder,
 } from "discord.js";
 import { Command } from "../../types";
 import { generateFreeImage } from "../../services/imageGenService";
@@ -14,7 +15,7 @@ export const imaginePromptCache = new Map<string, { prompt: string; style: strin
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("imagine")
-    .setDescription("Hasilkan gambar AI HD 1024x1024 dari deskripsi teks (FLUX.1 Engine)")
+    .setDescription("Hasilkan gambar AI HD dari deskripsi teks (Google Gemini / Imagen 3 Engine)")
     .addStringOption((opt) =>
       opt
         .setName("prompt")
@@ -46,7 +47,7 @@ const command: Command = {
 
     if (!result) {
       await interaction.editReply({
-        content: "Gagal merender gambar AI. Silakan periksa koneksi dan coba lagi.",
+        content: "Gagal merender gambar AI Gemini. Silakan periksa koneksi dan coba lagi.",
       });
       return;
     }
@@ -55,29 +56,43 @@ const command: Command = {
     const cacheKey = `img_${Date.now()}`;
     imaginePromptCache.set(cacheKey, { prompt: userPrompt, style });
 
+    const files: AttachmentBuilder[] = [];
+    let displayImageUrl = result.imageUrl;
+
+    if (result.imageBuffer) {
+      const fileName = `maya-gemini-${Date.now()}.jpg`;
+      files.push(new AttachmentBuilder(result.imageBuffer, { name: fileName }));
+      displayImageUrl = `attachment://${fileName}`;
+    }
+
     const embed = new EmbedBuilder()
       .setTitle(`Maya Image Generator • ${style}`)
-      .setColor("#3B82F6")
+      .setColor("#4285F4")
       .setDescription(
         `**Prompt**:\n> ${userPrompt}\n\n` +
-        `**AI Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
+        `**Gemini Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
       )
-      .setImage(result.imageUrl)
-      .setFooter({ text: `Engine: FLUX.1 HD • Seed: ${result.seed}` })
+      .setImage(displayImageUrl)
+      .setFooter({ text: `Engine: Google Gemini (Imagen 3) • Seed: ${result.seed}` })
       .setTimestamp();
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`imagine_regen:${cacheKey}`)
         .setLabel("🔄 Buat Ulang")
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setURL(result.imageUrl)
-        .setLabel("🔍 Buka Gambar HD (Full Res)")
-        .setStyle(ButtonStyle.Link)
+        .setStyle(ButtonStyle.Primary)
     );
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    if (result.imageUrl && result.imageUrl.startsWith("http")) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setURL(result.imageUrl)
+          .setLabel("🔍 Buka Gambar HD (Full Res)")
+          .setStyle(ButtonStyle.Link)
+      );
+    }
+
+    await interaction.editReply({ embeds: [embed], files, components: [row] });
   },
 };
 

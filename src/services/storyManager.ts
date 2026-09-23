@@ -1,4 +1,4 @@
-import { EmbedBuilder, TextChannel, Message, Guild } from "discord.js";
+import { EmbedBuilder, TextChannel, Message, Guild, AttachmentBuilder } from "discord.js";
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
@@ -269,12 +269,18 @@ SYARAT FORMAT:
       }
     }
 
-    // Generate AI Illustration Image
+    // Generate AI Illustration Image with Gemini
     let imageUrl: string | undefined = undefined;
+    let imageAttachment: AttachmentBuilder | undefined = undefined;
     try {
       const imgRes = await generateFreeImage(imagePrompt, "Digital Art");
-      if (imgRes && imgRes.imageUrl) {
-        imageUrl = imgRes.imageUrl;
+      if (imgRes) {
+        if (imgRes.imageBuffer) {
+          imageAttachment = new AttachmentBuilder(imgRes.imageBuffer, { name: "daily-story.jpg" });
+          imageUrl = "attachment://daily-story.jpg";
+        } else if (imgRes.imageUrl) {
+          imageUrl = imgRes.imageUrl;
+        }
       }
     } catch (_) {}
 
@@ -319,7 +325,7 @@ SYARAT FORMAT:
     // Build Clean Embed Output
     const embed = new EmbedBuilder()
       .setTitle(`📖 MAYA STORY CHAIN • ${todayStr}`)
-      .setColor("#5865F2")
+      .setColor("#4285F4")
       .setDescription(
         `### ${title}\n` +
         `${storyText}\n\n` +
@@ -328,16 +334,18 @@ SYARAT FORMAT:
         `💬 *"${mvpReason}"*\n\n` +
         `👥 **Total Kontributor**: **${uniqueUserIds.size} Member** (${words.length} Kalimat)`
       )
-      .setFooter({ text: "Maya Story Chain • Terima kasih telah berkolaborasi hari ini!" })
+      .setFooter({ text: "Maya Story Chain • Powered by Google Gemini" })
       .setTimestamp();
 
     if (imageUrl) {
       embed.setImage(imageUrl);
     }
 
+    const files = imageAttachment ? [imageAttachment] : [];
     await targetChannel.send({
       content: "📢 @everyone **CERITA MAYA STORY CHAIN HARI INI TELAH DIRENDER!** 🎉",
-      embeds: [embed]
+      embeds: [embed],
+      files
     });
 
     logger.info(`StoryManager: Successfully compiled daily story for ${guild.name}`);

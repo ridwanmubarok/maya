@@ -372,7 +372,11 @@ async function selectGuild(guildId) {
     if (automodMuteDurationInput) automodMuteDurationInput.value = config.muteDuration || 10;
 
     if (aiPersonalityInput) aiPersonalityInput.value = config.aiPersonality || '';
-    if (aiModelInput) aiModelInput.value = config.aiModel || 'deepseek-ai/deepseek-v4-flash-0731';
+    if (typeof syncAiModelDisplay === 'function') {
+      syncAiModelDisplay(config.aiModel || 'gemini-3.6-flash');
+    } else if (aiModelInput) {
+      aiModelInput.value = config.aiModel || 'gemini-3.6-flash';
+    }
 
     if (typeof loadDailyRiddleConfig === 'function') {
       loadDailyRiddleConfig(config, channels);

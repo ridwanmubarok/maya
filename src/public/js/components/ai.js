@@ -1,4 +1,74 @@
-// AI Memory & History Logic
+// AI Settings, Model Selection & Memory Logic
+
+function initAiModelSelector() {
+  const modelSelect = document.getElementById('ai-model-select');
+  const modelInput = document.getElementById('ai-model');
+
+  if (!modelSelect || !modelInput) return;
+
+  modelSelect.addEventListener('change', () => {
+    if (modelSelect.value !== 'custom') {
+      modelInput.value = modelSelect.value;
+    } else {
+      modelInput.focus();
+    }
+  });
+
+  modelInput.addEventListener('input', () => {
+    const val = modelInput.value.trim();
+    const matchingOption = Array.from(modelSelect.options).find(opt => opt.value === val);
+    if (matchingOption) {
+      modelSelect.value = val;
+    } else {
+      modelSelect.value = 'custom';
+    }
+  });
+}
+
+function syncAiModelDisplay(modelId) {
+  const modelSelect = document.getElementById('ai-model-select');
+  const modelInput = document.getElementById('ai-model');
+  const activeModel = modelId || 'gemini-2.5-flash';
+
+  if (modelInput) {
+    modelInput.value = activeModel;
+  }
+
+  if (modelSelect) {
+    const matchingOption = Array.from(modelSelect.options).find(opt => opt.value === activeModel);
+    if (matchingOption) {
+      modelSelect.value = activeModel;
+    } else {
+      modelSelect.value = 'custom';
+    }
+  }
+}
+
+async function saveAiSettings() {
+  const saveBtn = document.getElementById('save-ai-btn');
+  const originalHtml = saveBtn ? saveBtn.innerHTML : '';
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...`;
+  }
+
+  try {
+    if (typeof saveConfig === 'function') {
+      await saveConfig();
+    }
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = originalHtml;
+    }
+  }
+}
+
+// Initialize listeners on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  initAiModelSelector();
+});
 
 async function loadAiHistory() {
   const historyList = document.getElementById('ai-history-list');

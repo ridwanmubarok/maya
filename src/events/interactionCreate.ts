@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, GuildMember } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Events, Interaction, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, GuildMember, AttachmentBuilder } from "discord.js";
 import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { createEmbed } from "../utils/embeds";
@@ -602,29 +602,43 @@ const event: BotEvent = {
         const result = await generateFreeImage(cached.prompt, cached.style);
         if (!result) return;
 
+        const files: AttachmentBuilder[] = [];
+        let displayImageUrl = result.imageUrl;
+
+        if (result.imageBuffer) {
+          const fileName = `maya-gemini-${Date.now()}.jpg`;
+          files.push(new AttachmentBuilder(result.imageBuffer, { name: fileName }));
+          displayImageUrl = `attachment://${fileName}`;
+        }
+
         const embed = new EmbedBuilder()
           .setTitle(`Maya Image Generator • ${cached.style}`)
-          .setColor("#3B82F6")
+          .setColor("#4285F4")
           .setDescription(
             `**Prompt**:\n> ${cached.prompt}\n\n` +
-            `**AI Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
+            `**Gemini Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
           )
-          .setImage(result.imageUrl)
-          .setFooter({ text: `Engine: FLUX.1 HD • Seed: ${result.seed}` })
+          .setImage(displayImageUrl)
+          .setFooter({ text: `Engine: Google Gemini (Imagen 3) • Seed: ${result.seed}` })
           .setTimestamp();
 
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(`imagine_regen:${cacheKey}`)
             .setLabel("🔄 Buat Ulang")
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setURL(result.imageUrl)
-            .setLabel("🔍 Buka Gambar HD (Full Res)")
-            .setStyle(ButtonStyle.Link)
+            .setStyle(ButtonStyle.Primary)
         );
 
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        if (result.imageUrl && result.imageUrl.startsWith("http")) {
+          row.addComponents(
+            new ButtonBuilder()
+              .setURL(result.imageUrl)
+              .setLabel("🔍 Buka Gambar HD (Full Res)")
+              .setStyle(ButtonStyle.Link)
+          );
+        }
+
+        await interaction.editReply({ embeds: [embed], files, components: [row] });
         return;
       }
     }

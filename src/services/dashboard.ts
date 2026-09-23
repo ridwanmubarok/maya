@@ -113,7 +113,7 @@ export function startDashboard(client: MayaClient) {
           welcomeImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
           welcomeThumbnail: true,
           aiPersonality: "Kamu adalah Maya, teman yang seru, cerdas, dan suportif di server Discord ini. Ngobrollah dengan santai, akrab, dan menyenangkan.",
-          aiModel: process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
+          aiModel: process.env.GEMINI_MODEL || process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
           bannedWords: "anjing,babi,bangsat,kontol,memek,goblok,tolol,bajingan",
           maxStrikes: 3,
           muteDuration: 10,
@@ -136,7 +136,7 @@ export function startDashboard(client: MayaClient) {
 
       // Pastikan fallback aiModel ada jika null di database
       if (!config.aiModel) {
-        config.aiModel = process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL;
+        config.aiModel = process.env.GEMINI_MODEL || process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL;
       }
 
       // Fetch guild channels to let the user select target channel
@@ -178,7 +178,7 @@ export function startDashboard(client: MayaClient) {
           welcomeImage: "",
           welcomeThumbnail: true,
           aiPersonality: "",
-          aiModel: process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
+          aiModel: process.env.GEMINI_MODEL || process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
           bannedWords: "",
           maxStrikes: 3,
           muteDuration: 10
@@ -1036,7 +1036,7 @@ export function startDashboard(client: MayaClient) {
   app.get("/api/ai/models", authMiddleware, (req: Request, res: Response) => {
     try {
       res.json({
-        defaultModel: process.env.NVIDIA_MODEL || DEFAULT_AI_MODEL,
+        defaultModel: process.env.GEMINI_MODEL || DEFAULT_AI_MODEL,
         models: AVAILABLE_AI_MODELS
       });
     } catch (error) {

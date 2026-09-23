@@ -26,7 +26,7 @@ async function saveConfig() {
     muteDuration: automodMuteDurationInput ? automodMuteDurationInput.value : 10,
 
     aiPersonality: aiPersonalityInput ? aiPersonalityInput.value : '',
-    aiModel: (aiModelInput && aiModelInput.value.trim()) ? aiModelInput.value.trim() : 'deepseek-ai/deepseek-v4-flash-0731'
+    aiModel: (aiModelInput && aiModelInput.value.trim()) ? aiModelInput.value.trim() : 'gemini-3.6-flash'
   };
   
   try {
