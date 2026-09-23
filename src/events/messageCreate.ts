@@ -592,10 +592,51 @@ const event: BotEvent = {
             ]
           }).catch(() => {});
 
-          await message.reply({
-            content: cleanResponse.length > 2000 ? cleanResponse.substring(0, 1997) + "..." : cleanResponse,
-            allowedMentions: { repliedUser: true }
-          }).catch(() => {});
+          // Split long responses into chunks to respect Discord's 2000-char limit
+          const DISCORD_LIMIT = 1900;
+          if (cleanResponse.length <= DISCORD_LIMIT) {
+            await message.reply({
+              content: cleanResponse,
+              allowedMentions: { repliedUser: true }
+            }).catch(() => {});
+          } else {
+            // Split by paragraphs/sentences to avoid cutting mid-word
+            const chunks: string[] = [];
+            let remaining = cleanResponse;
+            while (remaining.length > 0) {
+              if (remaining.length <= DISCORD_LIMIT) {
+                chunks.push(remaining);
+                break;
+              }
+              // Try to cut at the last newline or sentence boundary within limit
+              let cutAt = remaining.lastIndexOf("\n", DISCORD_LIMIT);
+              if (cutAt < DISCORD_LIMIT * 0.5) {
+                cutAt = remaining.lastIndexOf(". ", DISCORD_LIMIT);
+              }
+              if (cutAt <= 0) {
+                cutAt = remaining.lastIndexOf(" ", DISCORD_LIMIT);
+              }
+              if (cutAt <= 0) {
+                cutAt = DISCORD_LIMIT;
+              }
+              chunks.push(remaining.slice(0, cutAt + 1).trim());
+              remaining = remaining.slice(cutAt + 1).trim();
+            }
+
+            // Send first chunk as reply, rest as follow-up messages
+            let replyMsg: any = null;
+            for (let i = 0; i < chunks.length; i++) {
+              if (!chunks[i]) continue;
+              if (i === 0) {
+                replyMsg = await message.reply({
+                  content: chunks[i],
+                  allowedMentions: { repliedUser: true }
+                }).catch(() => null);
+              } else {
+                await (message.channel as any).send({ content: chunks[i] }).catch(() => {});
+              }
+            }
+          }
         }
       }
     } catch (error) {
