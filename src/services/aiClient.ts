@@ -171,10 +171,10 @@ async function callGeminiApi(
       contents,
       generationConfig: {
         temperature: 0.75,
-        maxOutputTokens: 1024
+        maxOutputTokens: 4096
       }
     }),
-    signal: AbortSignal.timeout(timeoutMs)
+    signal: AbortSignal.timeout(40000)
   });
 
   if (!response.ok) {
