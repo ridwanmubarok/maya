@@ -25,6 +25,13 @@ import { tebakManager } from "./tebakManager";
 import { voiceChatManager } from "./voiceChatManager";
 import { sendHistoryAnnouncement, broadcastMayaAdjustmentHistory } from "../utils/historyLogger";
 import { AVAILABLE_AI_MODELS, DEFAULT_AI_MODEL } from "./aiClient";
+import {
+  getGuildJoinRequests,
+  actionGuildJoinRequest,
+  getPendingGuildMembers,
+  approvePendingMember,
+  kickPendingMember,
+} from "./joinRequestService";
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
@@ -1415,6 +1422,77 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error(`Error deleting reaction role menu ${menuId} for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal menghapus Reaction Role menu." });
+    }
+  });
+
+  // --- GUILD JOIN REQUESTS & MEMBER APPROVALS ---
+
+  // Get join requests for guild
+  app.get("/api/join-requests/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const status = (req.query.status as any) || "SUBMITTED";
+    try {
+      const data = await getGuildJoinRequests(guildId, status);
+      res.json(data);
+    } catch (error: any) {
+      logger.error(`Error fetching join requests for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengambil daftar join request." });
+    }
+  });
+
+  // Action (approve or reject) a join request
+  app.post("/api/join-requests/:guildId/:requestId/action", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, requestId } = req.params;
+    const { action, rejectionReason } = req.body;
+
+    if (!action || !["APPROVED", "REJECTED"].includes(action)) {
+      return res.status(400).json({ error: "Action harus 'APPROVED' atau 'REJECTED'." });
+    }
+
+    try {
+      const updatedRequest = await actionGuildJoinRequest(guildId, requestId, action, rejectionReason);
+      res.json({ success: true, request: updatedRequest });
+    } catch (error: any) {
+      logger.error(`Error executing action ${action} on join request ${requestId}:`, error);
+      res.status(400).json({ error: error.message || `Gagal mengeksekusi ${action} pada permohonan.` });
+    }
+  });
+
+  // Get pending members inside guild (Membership screening)
+  app.get("/api/join-requests/:guildId/pending-members", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const data = await getPendingGuildMembers(client, guildId);
+      res.json(data);
+    } catch (error: any) {
+      logger.error(`Error fetching pending members for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengambil data pending members." });
+    }
+  });
+
+  // Approve pending member by giving role
+  app.post("/api/join-requests/:guildId/pending-members/:userId/approve", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, userId } = req.params;
+    const { roleId } = req.body;
+    try {
+      const result = await approvePendingMember(client, guildId, userId, roleId);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(`Error approving pending member ${userId} in guild ${guildId}:`, error);
+      res.status(400).json({ error: error.message || "Gagal menyetujui pending member." });
+    }
+  });
+
+  // Reject / kick pending member
+  app.post("/api/join-requests/:guildId/pending-members/:userId/reject", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId, userId } = req.params;
+    const { reason } = req.body;
+    try {
+      const result = await kickPendingMember(client, guildId, userId, reason);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(`Error kicking pending member ${userId} in guild ${guildId}:`, error);
+      res.status(400).json({ error: error.message || "Gagal menolak / kick pending member." });
     }
   });
 

@@ -414,6 +414,7 @@ async function selectGuild(guildId) {
 
     switchTab(activeTab);
     updateEmbedPreview();
+    if (typeof updatePendingBadge === 'function') updatePendingBadge();
   } catch (error) {
     if (error.message !== '401 Unauthorized') {
       showToast('Gagal Memuat Konfigurasi', error.message || 'Gagal memuat setting server ini.', 'error');
@@ -438,7 +439,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'daily-story' || tabId === 'menfess' || tabId === 'pantun' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
+    if (tabId === 'join-requests' || tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'daily-story' || tabId === 'menfess' || tabId === 'pantun' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');
@@ -446,7 +447,9 @@ function switchTab(tabId) {
   }
 
   // Trigger component data fetch
-  if (tabId === 'warnings') {
+  if (tabId === 'join-requests') {
+    if (typeof loadJoinRequestsData === 'function') loadJoinRequestsData();
+  } else if (tabId === 'warnings') {
     loadWarnings();
   } else if (tabId === 'rules') {
     updateRulesPreview();
