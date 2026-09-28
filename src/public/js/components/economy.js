@@ -106,8 +106,8 @@ function renderSeasonCandidates(candidateIds, balances = []) {
 
   if (!candidateIds || candidateIds.length === 0) {
     container.innerHTML = `
-      <div class="col-span-3 p-4 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-400">
-        Belum ada Golden Candidates terpilih untuk season ini. Klik tombol <strong>Acak Ulang Kandidat</strong> di atas untuk mengundi!
+      <div class="col-span-1 md:col-span-2 p-4 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-400">
+        Belum ada Golden Candidates terpilih untuk season ini. Kandidat akan dievaluasi otomatis pada H-5 dari member teraktif, atau klik tombol <strong>Acak Ulang Kandidat</strong> di atas untuk mengundi!
       </div>
     `;
     return;
@@ -142,7 +142,7 @@ function renderSeasonCandidates(candidateIds, balances = []) {
 
 async function triggerH5Warning() {
   if (!selectedGuildId) return;
-  if (!confirm('Kirim pengumuman & notifikasi peringatan H-5 sekarang ke server Discord dan channel #history? (Notifikasi akan mem-ping @amubhya dan 3 Golden Candidates)')) return;
+  if (!confirm('Kirim pengumuman & notifikasi peringatan H-5 sekarang ke server Discord dan channel #history? (Notifikasi akan mem-ping @amubhya dan 2 Golden Candidates)')) return;
 
   try {
     const res = await apiFetch(`/api/economy/${selectedGuildId}/season/trigger-h5`, { method: 'POST' });
@@ -156,7 +156,7 @@ async function triggerH5Warning() {
 
 async function rerollCandidates() {
   if (!selectedGuildId) return;
-  if (!confirm('Acak ulang 3 Golden Candidates untuk season ini?')) return;
+  if (!confirm('Acak ulang 2 Golden Candidates untuk season ini dari member yang teraktif?')) return;
 
   try {
     const res = await apiFetch(`/api/economy/${selectedGuildId}/season/pick-candidates`, { method: 'POST' });

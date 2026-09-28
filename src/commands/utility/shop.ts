@@ -45,7 +45,7 @@ const command: Command = {
     try {
       currentRedeemed = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
     } catch (_) {}
-    const quotaMax = config?.monthlyRedeemQuota || 3;
+    const quotaMax = config?.monthlyRedeemQuota || 2;
     const remainingSlots = Math.max(0, quotaMax - currentRedeemed.length);
 
     // Embed Katalog Minimalis & Elegan
@@ -64,7 +64,7 @@ const command: Command = {
         `\nPilih produk dari menu di bawah untuk melakukan penukaran.`
       )
       .setColor("#3B82F6")
-      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop • Maks 3 Pemenang/Bulan` })
+      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop • Maks 2 Pemenang/Bulan` })
       .setTimestamp();
 
     // Set banner image jika ada produk yang memiliki imageUrl

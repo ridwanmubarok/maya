@@ -49,14 +49,16 @@ async function checkMonthlySeasonTriggers(client: Client) {
         continue;
       }
 
-      // Ensure 3 Golden Candidates are selected for current month
+      // Evaluate Golden Candidates only when reaching the redeem window (H-5 onwards)
       let candidates: string[] = [];
       try {
         candidates = JSON.parse(config.goldenCandidateIds || "[]");
       } catch (_) {}
 
-      if (candidates.length < 3) {
-        await pickMonthlyGoldenCandidates(client, guildId);
+      // If we are at or after H-5 (last 5 days) and candidates have not been evaluated, pick the 2 most active
+      if (dateInfo.daysRemaining <= 5 && candidates.length < 2) {
+        logger.info(`MonthlyResetScheduler: Mengevaluasi keaktifan member & memilih 2 Golden Candidates untuk guild ${guildId}...`);
+        candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
       }
 
       // 1. H-5 Alert (at or after 10:00 WIB)
@@ -80,8 +82,6 @@ async function checkMonthlySeasonTriggers(client: Client) {
       if (isMonthEndWindow && config.lastMonthlyResetDate !== dateInfo.dateStr) {
         logger.info(`MonthlyResetScheduler: Triggering Month-End Reset & Archive for guild ${guildId}...`);
         await archiveAndResetSeason(client, guildId);
-        // Pick new candidates for upcoming month
-        await pickMonthlyGoldenCandidates(client, guildId, true);
       }
     } catch (err) {
       logger.error(`MonthlyResetScheduler: Error processing guild ${guildId}:`, err);

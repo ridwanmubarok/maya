@@ -89,7 +89,7 @@ export async function processShopPurchase(
     return { success: false, reason: "Produk tidak ditemukan atau sudah tidak aktif." };
   }
 
-  // Validasi Kuota Bulanan (Maks 3 orang), Cooldown, dan Syarat Keaktifan
+  // Validasi Kuota Bulanan (Maks 2 orang), Cooldown, dan Syarat Keaktifan
   const redeemCheck = await canUserRedeemShop(guildId, userId);
   if (!redeemCheck.canRedeem) {
     return {

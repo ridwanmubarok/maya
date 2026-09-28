@@ -88,15 +88,19 @@ const command: Command = {
       const isActive = isUserActiveInMonth(record);
 
       const maxCeiling = isGolden ? "50.000 RTK (Golden Candidate)" : "20.000 RTK (Member Reguler)";
-      const quotaMax = config?.monthlyRedeemQuota || 3;
+      const quotaMax = config?.monthlyRedeemQuota || 2;
 
       let redeemEligibility = "✅ Memenuhi Syarat";
-      if (isCooldown) {
+      if (dateInfo.daysRemaining > 5) {
+        redeemEligibility = `⏳ Masa Redeem Belum Dibuka (Buka tgl ${dateInfo.daysInMonth - 5} ${dateInfo.monthName} pukul 10:00 WIB)`;
+      } else if (isCooldown) {
         redeemEligibility = "⏳ Masa Istirahat (Pemenang Bulan Lalu)";
       } else if (hasRedeemed) {
         redeemEligibility = "✅ Sudah Klaim Hadiah Bulan Ini";
+      } else if (goldenCandidates.length > 0 && !isGolden) {
+        redeemEligibility = "❌ Khusus 2 Golden Candidates Terpilih";
       } else if (currentRedeemed.length >= quotaMax) {
-        redeemEligibility = "❌ Kuota Habis (3/3 Pemenang)";
+        redeemEligibility = "❌ Kuota Habis (2/2 Pemenang)";
       } else if (!isActive) {
         redeemEligibility = "❌ Belum Memenuhi (Minimal aktif di 1 fitur/voice)";
       }
@@ -119,7 +123,7 @@ const command: Command = {
           { name: "🎟️ Status Kelayakan Redeem Toko", value: `> **${redeemEligibility}**\n> Kuota Server: **${currentRedeemed.length}/${quotaMax} Terisi**`, inline: false },
           { name: "⏳ Siklus Reset Akhir Bulan", value: `Sisa **${dateInfo.daysRemaining} Hari** (Reset tgl ${dateInfo.daysInMonth} ${dateInfo.monthName} pukul 23:59 WIB)\n*⚠️ Poin akan direset ke 0 & hangus jika tidak ditukarkan sebelum akhir bulan!*`, inline: false }
         )
-        .setFooter({ text: "Rogatekno Economy Engine • Gunakan /shop untuk belanja!" })
+        .setFooter({ text: "Rogatekno Economy Engine • Belanja di /shop saat masa redeem dibuka!" })
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
@@ -133,11 +137,12 @@ const command: Command = {
         return;
       }
 
+      const quotaMax = config?.monthlyRedeemQuota || 2;
       const embed = new EmbedBuilder()
         .setTitle(`🏆 Leaderboard Rogatekno Koin (RTK) • Season ${dateInfo.monthName} ${dateInfo.year}`)
         .setDescription(
           `Daftar 10 besar anggota server dengan akumulasi **Rogatekno Koin (RTK)** terbanyak:\n` +
-          `*Poin akan direset ke 0 pada akhir bulan ${dateInfo.monthName}! Kuota redeem: **${currentRedeemed.length}/${config?.monthlyRedeemQuota || 3} Pemenang**.*`
+          `*Poin akan direset ke 0 pada akhir bulan ${dateInfo.monthName}! Kuota redeem: **${currentRedeemed.length}/${quotaMax} Pemenang**.*`
         )
         .setColor("#F59E0B")
         .setFooter({ text: "Rogatekno Economy Engine • Belanja di /shop sebelum akhir bulan!" })
@@ -153,17 +158,17 @@ const command: Command = {
 
       embed.addFields(
         { name: "Peringkat Saldo Terbanyak", value: text },
-        { name: "💡 Tips Season", value: `> *Hanya 3 orang random aktif yang dapat menembus 50.000 RTK per season! Member lain memiliki batas 20.000 RTK.*` }
+        { name: "💡 Tips Season", value: `> *Hanya 2 orang random aktif yang dapat menembus 50.000 RTK per season! Member lain memiliki batas 20.000 RTK.*` }
       );
       await interaction.editReply({ embeds: [embed] });
     }
     else if (subcommand === "season") {
       await interaction.deferReply();
 
-      const quotaMax = config?.monthlyRedeemQuota || 3;
+      const quotaMax = config?.monthlyRedeemQuota || 2;
       const candidatesStr = goldenCandidates.length > 0 
         ? goldenCandidates.map((id, i) => `${i + 1}. <@${id}>`).join("\n") 
-        : "*Belum ditentukan*";
+        : `*Sedang dalam periode akumulasi keaktifan. 2 Golden Candidates akan diundi pada masa H-5 (tgl ${dateInfo.daysInMonth - 5} ${dateInfo.monthName}) dari member teraktif!*`;
 
       const redeemedStr = currentRedeemed.length > 0
         ? currentRedeemed.map((id, i) => `${i + 1}. <@${id}> (Sudah Redeem)`).join("\n")
@@ -185,7 +190,7 @@ const command: Command = {
         )
         .addFields(
           {
-            name: "✨ 3 Golden Candidates Season Ini (Cap 50.000 RTK)",
+            name: "✨ 2 Golden Candidates Season Ini (Cap 50.000 RTK)",
             value: candidatesStr,
             inline: false
           },

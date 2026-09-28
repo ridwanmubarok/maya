@@ -294,12 +294,12 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Manual Re-roll / Pick 3 Golden Candidates (Admin)
+  // Manual Re-roll / Pick 2 Golden Candidates (Admin)
   app.post("/api/economy/:guildId/season/pick-candidates", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
       const candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
-      res.json({ success: true, candidates, message: `Berhasil memilih ulang 3 Golden Candidates: ${candidates.join(", ")}` });
+      res.json({ success: true, candidates, message: `Berhasil memilih ulang 2 Golden Candidates: ${candidates.join(", ")}` });
     } catch (error: any) {
       logger.error(`Error picking golden candidates for guild ${guildId}:`, error);
       res.status(500).json({ error: error.message || "Gagal memilih golden candidates." });
@@ -311,8 +311,7 @@ export function startDashboard(client: MayaClient) {
     const { guildId } = req.params;
     try {
       await archiveAndResetSeason(client, guildId);
-      const newCandidates = await pickMonthlyGoldenCandidates(client, guildId, true);
-      res.json({ success: true, newCandidates, message: "Season berhasil diarsipkan ke database, poin direset ke 0, dan kandidat baru telah dipilih!" });
+      res.json({ success: true, message: "Season berhasil diarsipkan ke database dan seluruh poin direset ke 0! Kandidat baru akan dievaluasi pada H-5 dari keaktifan member." });
     } catch (error: any) {
       logger.error(`Error resetting season for guild ${guildId}:`, error);
       res.status(500).json({ error: error.message || "Gagal mereset season." });
