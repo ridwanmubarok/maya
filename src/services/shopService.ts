@@ -1,7 +1,7 @@
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
 import { Client, EmbedBuilder } from "discord.js";
-import { canUserRedeemShop, recordShopRedemption } from "./monthlySeasonManager";
+import { canUserRedeemShop, recordShopRedemption, releaseShopRedemption } from "./monthlySeasonManager";
 
 export interface CreateShopItemInput {
   guildId: string;
@@ -242,6 +242,9 @@ export async function rejectShopOrder(client: Client, orderId: string, reason?: 
       notes: reason || "Ditolak oleh Admin (Koin RTK dikembalikan)"
     }
   });
+
+  // Lepaskan kuota pemenang bulanan agar slot dapat digunakan kembali
+  await releaseShopRedemption(order.guildId, order.userId);
 
   // Kirim DM Notifikasi ke Member
   try {

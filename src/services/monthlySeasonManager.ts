@@ -234,6 +234,7 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
   try {
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     const maxQuota = config?.monthlyRedeemQuota || MONTHLY_REDEEM_QUOTA;
+    const dateInfo = getWibDateInfo();
 
     let cooldownUsers: string[] = [];
     try {
@@ -245,7 +246,32 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
       currentRedeemed = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
     } catch (_) {}
 
-    // 1. Check cooldown from previous month
+    let goldenCandidates: string[] = [];
+    try {
+      goldenCandidates = JSON.parse(config?.goldenCandidateIds || "[]");
+    } catch (_) {}
+
+    // 1. Check if we are within the redeem window (H-5 to month end)
+    if (dateInfo.daysRemaining > 5) {
+      return {
+        canRedeem: false,
+        reason: `Masa penukaran hadiah /shop untuk Season ${dateInfo.monthName} baru dibuka pada masa H-5 (mulai tanggal ${dateInfo.daysInMonth - 5} ${dateInfo.monthName} pukul 10:00 WIB). Kumpulkan koinmu sebanyak mungkin sekarang!`,
+        currentQuota: currentRedeemed.length,
+        maxQuota,
+      };
+    }
+
+    // 2. Check if user is one of the 3 Golden Candidates
+    if (goldenCandidates.length > 0 && !goldenCandidates.includes(userId)) {
+      return {
+        canRedeem: false,
+        reason: "Penukaran hadiah /shop bulan ini dikhususkan untuk 3 akun member terpilih (Golden Candidates). Terus aktif di komunitas agar terpilih di season depan!",
+        currentQuota: currentRedeemed.length,
+        maxQuota,
+      };
+    }
+
+    // 3. Check cooldown from previous month
     if (cooldownUsers.includes(userId)) {
       return {
         canRedeem: false,
@@ -255,7 +281,7 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
       };
     }
 
-    // 2. Check if already redeemed this month
+    // 4. Check if already redeemed this month
     if (currentRedeemed.includes(userId)) {
       return {
         canRedeem: false,
@@ -265,7 +291,7 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
       };
     }
 
-    // 3. Check quota limit (max 3 users)
+    // 5. Check quota limit (max 3 users)
     if (currentRedeemed.length >= maxQuota) {
       return {
         canRedeem: false,
@@ -275,7 +301,7 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
       };
     }
 
-    // 4. Check flexible activity (Voice OR any community feature)
+    // 6. Check flexible activity (Voice OR any community feature)
     const scoreRecord = await prisma.triviaScore.findUnique({
       where: { guildId_userId: { guildId, userId } },
     });
@@ -297,6 +323,28 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
   } catch (error) {
     logger.error("canUserRedeemShop: Error validating redeem:", error);
     return { canRedeem: true, currentQuota: 0, maxQuota: MONTHLY_REDEEM_QUOTA };
+  }
+}
+
+/**
+ * Release redemption slot when an order is cancelled or refunded
+ */
+export async function releaseShopRedemption(guildId: string, userId: string) {
+  try {
+    const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+    let currentRedeemed: string[] = [];
+    try {
+      currentRedeemed = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
+    } catch (_) {}
+
+    const filtered = currentRedeemed.filter((id) => id !== userId);
+    await prisma.guildConfig.update({
+      where: { guildId },
+      data: { currentMonthRedeemedUsers: JSON.stringify(filtered) },
+    });
+    logger.info(`MonthlySeason: User ${userId} dihapus dari currentMonthRedeemedUsers di guild ${guildId} (Order Refunded/Rejected).`);
+  } catch (error) {
+    logger.error("releaseShopRedemption: Error releasing redemption:", error);
   }
 }
 
@@ -398,6 +446,28 @@ export async function sendH5Notification(client: Client, guildId: string) {
         allowedMentions: { parse: [] },
       });
       logger.info(`MonthlySeason: Berhasil mencatat notifikasi H-5 ke #${historyChannel.name} di guild ${guild.name}`);
+    }
+
+    // 3. Send direct DM notification to @amubhya and each of the 3 candidates
+    for (const cid of candidates) {
+      try {
+        const member = guild.members.cache.get(cid) || (await guild.members.fetch(cid).catch(() => null));
+        if (member) {
+          await member.send({
+            content: `🚨 **PEMBERITAHUAN MASA REDEEM MAYA • SEASON ${dateInfo.monthName.toUpperCase()}**\n\nHalo <@${member.id}>! Selamat, kamu terpilih sebagai salah satu dari **3 member** yang berhak menukarkan poin Rogatekno Koin (RTK) di \`/shop\` server **${guild.name}**!\n\n⚠️ **Peringatan Poin Hangus:** Batas akhir penukaran adalah **${dateInfo.daysInMonth} ${dateInfo.monthName} pukul 23:59 WIB**. Jika terlambat, saldo poin akan **hangus & direset ke 0** demi pembukaan season baru. Segera buka server dan gunakan perintah \`/shop\`!`,
+            embeds: [embed],
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+
+    if (amubhya) {
+      try {
+        await amubhya.send({
+          content: `🔔 **Laporan Season Maya Bot ke Server Owner (${guild.name})**:\nPemberitahuan H-5 masa redeem poin telah resmi dikirimkan. Terdapat 3 member aktif yang berhak menukarkan poin di \`/shop\`:\n${candidateMentions}`,
+          embeds: [embed],
+        }).catch(() => {});
+      } catch (_) {}
     }
 
     // Record date

@@ -794,7 +794,10 @@ export function startDashboard(client: MayaClient) {
       pantunStartHour,
       pantunCloseHour,
       pantunRewardAmount,
-      pantunMvpReward
+      pantunMvpReward,
+      monthlyResetEnabled,
+      monthlyResetChannelId,
+      monthlyRedeemQuota
     } = req.body;
 
     try {
@@ -837,6 +840,9 @@ export function startDashboard(client: MayaClient) {
       if (pantunCloseHour !== undefined) updateData.pantunCloseHour = Number(pantunCloseHour);
       if (pantunRewardAmount !== undefined) updateData.pantunRewardAmount = Number(pantunRewardAmount);
       if (pantunMvpReward !== undefined) updateData.pantunMvpReward = Number(pantunMvpReward);
+      if (monthlyResetEnabled !== undefined) updateData.monthlyResetEnabled = Boolean(monthlyResetEnabled);
+      if (monthlyResetChannelId !== undefined) updateData.monthlyResetChannelId = monthlyResetChannelId || null;
+      if (monthlyRedeemQuota !== undefined) updateData.monthlyRedeemQuota = Number(monthlyRedeemQuota);
 
       const updatedConfig = await prisma.guildConfig.upsert({
         where: { guildId },
