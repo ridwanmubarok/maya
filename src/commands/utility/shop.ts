@@ -48,14 +48,27 @@ const command: Command = {
     const quotaMax = config?.monthlyRedeemQuota || 2;
     const remainingSlots = Math.max(0, quotaMax - currentRedeemed.length);
 
+    let statusText = "";
+    if (dateInfo.isRedeemPeriod) {
+      statusText = `🟢 **PERIODE REDEEM RESMI DIBUKA (TGL 3–5)**\n` +
+        `🎟️ **Kuota Pemenang**: **${currentRedeemed.length}/${quotaMax} Pemenang** (Sisa **${remainingSlots} Slot**!)\n` +
+        `⏳ **Batas Akhir Penukaran**: **5 ${dateInfo.monthName} pukul 23:59 WIB**\n` +
+        `⚠️ *Poin akan hangus & direset ke 0 tepat tgl 5 jam 23:59 WIB jika tidak ditukarkan!*`;
+    } else if (dateInfo.day < 3) {
+      statusText = `⏳ **PERIODE REDEEM BELUM DIBUKA**\n` +
+        `Penukaran hadiah di /shop baru dibuka pada **Tanggal 3 s.d. 5 ${dateInfo.monthName}** untuk 2 Golden Candidates terpilih.\n` +
+        `Kumpulkan poinmu sebanyak-banyaknya sekarang!`;
+    } else {
+      statusText = `🔒 **PERIODE REDEEM BULAN INI TELAH DITUTUP**\n` +
+        `Penukaran hadiah telah berakhir pada tanggal 5 pukul 23:59 WIB. Periode penukaran berikutnya dibuka tanggal 3 bulan depan!`;
+    }
+
     // Embed Katalog Minimalis & Elegan
     const embed = new EmbedBuilder()
       .setTitle(`🛒 Toko Server & Penukaran Hadiah • Season ${dateInfo.monthName}`)
       .setDescription(
         `Penukaran hadiah menggunakan **Rogatekno Koin (RTK)**.\n\n` +
-        `🎟️ **Kuota Pemenang Bulan Ini**: **${currentRedeemed.length}/${quotaMax} Pemenang** (Sisa **${remainingSlots} Slot**!)\n` +
-        `⏳ **Batas Waktu**: Sisa **${dateInfo.daysRemaining} Hari** (s.d. tgl ${dateInfo.daysInMonth} jam 23:59 WIB)\n` +
-        `⚠️ *Poin akan hangus & direset ke 0 pada akhir bulan jika tidak ditukarkan!*\n\n` +
+        `${statusText}\n\n` +
         `**Katalog Produk:**\n` +
         items.map((item, idx) => 
           `**${idx + 1}. ${item.title}** — **${item.priceRtk.toLocaleString("id-ID")} RTK**\n` +
@@ -63,8 +76,8 @@ const command: Command = {
         ).join("\n") +
         `\nPilih produk dari menu di bawah untuk melakukan penukaran.`
       )
-      .setColor("#3B82F6")
-      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop • Maks 2 Pemenang/Bulan` })
+      .setColor(dateInfo.isRedeemPeriod ? "#10B981" : "#3B82F6")
+      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop • Maks 2 Pemenang (Tgl 3-5)` })
       .setTimestamp();
 
     // Set banner image jika ada produk yang memiliki imageUrl

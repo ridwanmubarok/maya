@@ -34,6 +34,9 @@ import {
 } from "./joinRequestService";
 import {
   getWibDateInfo,
+  sendDay1Announcement,
+  sendDay3RedeemOpenNotification,
+  sendDay5LastCallNotification,
   sendH5Notification,
   sendH3Notification,
   archiveAndResetSeason,
@@ -265,12 +268,13 @@ export function startDashboard(client: MayaClient) {
           dateInfo,
           config: {
             monthlyResetEnabled: config?.monthlyResetEnabled ?? true,
-            monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 3,
+            monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 2,
             goldenCandidateIds,
             currentMonthRedeemedUsers,
             cooldownUserIds,
-            lastMonthlyWarningH5Date: config?.lastMonthlyWarningH5Date,
-            lastMonthlyWarningH3Date: config?.lastMonthlyWarningH3Date,
+            lastMonthlyAnnouncementDate: config?.lastMonthlyAnnouncementDate,
+            lastMonthlyRedeemOpenDate: config?.lastMonthlyRedeemOpenDate,
+            lastMonthlyRedeemClosingDate: config?.lastMonthlyRedeemClosingDate,
             lastMonthlyResetDate: config?.lastMonthlyResetDate,
           },
           archives: pastArchives
@@ -282,15 +286,51 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Manual Trigger H-5 Warning Notification to @amubhya and Candidates (Admin)
+  // Manual Trigger Day 1 Announcement (Pengumuman 2 Golden Candidates)
+  app.post("/api/economy/:guildId/season/trigger-day1", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      await sendDay1Announcement(client, guildId);
+      res.json({ success: true, message: "Pengumuman Golden Candidates (Day 1) berhasil dikirim ke server & dicatat di #history!" });
+    } catch (error: any) {
+      logger.error(`Error triggering Day 1 announcement for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengirim pengumuman Day 1." });
+    }
+  });
+
+  // Manual Trigger Day 3 Notification (Pembukaan Resmi Redeem /shop)
+  app.post("/api/economy/:guildId/season/trigger-day3", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      await sendDay3RedeemOpenNotification(client, guildId);
+      res.json({ success: true, message: "Notifikasi Pembukaan Redeem (Day 3) berhasil dikirim ke server & dicatat di #history!" });
+    } catch (error: any) {
+      logger.error(`Error triggering Day 3 notification for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengirim notifikasi Day 3." });
+    }
+  });
+
+  // Manual Trigger Day 5 Notification (Peringatan Hari Terakhir Penukaran)
+  app.post("/api/economy/:guildId/season/trigger-day5", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      await sendDay5LastCallNotification(client, guildId);
+      res.json({ success: true, message: "Notifikasi Hari Terakhir (Day 5) berhasil dikirim ke server & dicatat di #history!" });
+    } catch (error: any) {
+      logger.error(`Error triggering Day 5 notification for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengirim notifikasi Day 5." });
+    }
+  });
+
+  // Legacy route alias for trigger-h5
   app.post("/api/economy/:guildId/season/trigger-h5", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
-      await sendH5Notification(client, guildId);
-      res.json({ success: true, message: "Notifikasi H-5 berhasil dikirim ke server & dicatat di #history!" });
+      await sendDay3RedeemOpenNotification(client, guildId);
+      res.json({ success: true, message: "Notifikasi pembukaan redeem berhasil dikirim ke server & dicatat di #history!" });
     } catch (error: any) {
-      logger.error(`Error triggering H-5 warning for guild ${guildId}:`, error);
-      res.status(500).json({ error: error.message || "Gagal mengirim notifikasi H-5." });
+      logger.error(`Error triggering notification for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengirim notifikasi." });
     }
   });
 
@@ -311,7 +351,7 @@ export function startDashboard(client: MayaClient) {
     const { guildId } = req.params;
     try {
       await archiveAndResetSeason(client, guildId);
-      res.json({ success: true, message: "Season berhasil diarsipkan ke database dan seluruh poin direset ke 0! Kandidat baru akan dievaluasi pada H-5 dari keaktifan member." });
+      res.json({ success: true, message: "Season berhasil diarsipkan ke database dan seluruh poin direset ke 0! Kandidat baru akan dievaluasi pada Tanggal 1 dari keaktifan member." });
     } catch (error: any) {
       logger.error(`Error resetting season for guild ${guildId}:`, error);
       res.status(500).json({ error: error.message || "Gagal mereset season." });

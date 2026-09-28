@@ -7,6 +7,12 @@ const REGULAR_MEMBER_MAX_POINTS = 20000;
 const GOLDEN_MEMBER_MAX_POINTS = 50000;
 const MONTHLY_REDEEM_QUOTA = 2;
 
+let globalDiscordClient: Client | null = null;
+
+export function setSeasonManagerClient(client: Client) {
+  globalDiscordClient = client;
+}
+
 export interface WibDateInfo {
   year: number;
   month: number;
@@ -17,6 +23,10 @@ export interface WibDateInfo {
   monthName: string;
   daysInMonth: number;
   daysRemaining: number;
+  isDay1: boolean;
+  isDay3: boolean;
+  isDay5: boolean;
+  isRedeemPeriod: boolean; // day >= 3 && day <= 5
   isH5: boolean;
   isH3: boolean;
   isH1: boolean;
@@ -52,6 +62,11 @@ export function getWibDateInfo(): WibDateInfo {
   const daysInMonth = new Date(year, month, 0).getDate();
   const daysRemaining = Math.max(0, daysInMonth - day);
 
+  const isDay1 = day === 1;
+  const isDay3 = day === 3;
+  const isDay5 = day === 5;
+  const isRedeemPeriod = day >= 3 && day <= 5;
+
   return {
     year,
     month,
@@ -62,6 +77,10 @@ export function getWibDateInfo(): WibDateInfo {
     monthName: MONTH_NAMES_ID[month - 1] || `Bulan ${month}`,
     daysInMonth,
     daysRemaining,
+    isDay1,
+    isDay3,
+    isDay5,
+    isRedeemPeriod,
     isH5: daysRemaining === 5,
     isH3: daysRemaining === 3,
     isH1: daysRemaining === 1,
@@ -89,6 +108,16 @@ export async function getAmubhyaMember(guild: Guild): Promise<GuildMember | null
     logger.error("getAmubhyaMember: Error locating @amubhya:", error);
   }
   return null;
+}
+
+/**
+ * Check if a userId is @amubhya or the server owner
+ */
+export async function isAmubhyaOrOwner(guild: Guild, userId: string): Promise<boolean> {
+  if (guild.ownerId && guild.ownerId === userId) return true;
+  const amubhya = await getAmubhyaMember(guild);
+  if (amubhya && amubhya.id === userId) return true;
+  return false;
 }
 
 /**
@@ -126,6 +155,7 @@ export function getUserActivityChecklist(record: any): { name: string; completed
  */
 export async function pickMonthlyGoldenCandidates(client: Client, guildId: string, force = false): Promise<string[]> {
   try {
+    globalDiscordClient = client;
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     if (!config) return [];
 
@@ -147,11 +177,23 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
       cooldownUsers = [];
     }
 
-    // 1. Find genuinely active members in TriviaScore who are NOT in cooldown and have score > 0
+    // Identify user IDs to exclude: cooldown users, guild owner, and @amubhya
+    const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
+    const excludedUserIds = new Set<string>(cooldownUsers);
+
+    if (guild) {
+      if (guild.ownerId) excludedUserIds.add(guild.ownerId);
+      const amubhya = await getAmubhyaMember(guild);
+      if (amubhya) excludedUserIds.add(amubhya.id);
+    }
+
+    const excludedList = Array.from(excludedUserIds);
+
+    // 1. Find genuinely active members in TriviaScore who are NOT in cooldown, NOT owner/amubhya, and have score > 0
     const activeScores = await prisma.triviaScore.findMany({
       where: {
         guildId,
-        userId: { notIn: cooldownUsers },
+        userId: { notIn: excludedList },
         score: { gt: 0 },
         OR: [
           { participatedVoice: true },
@@ -166,12 +208,12 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
 
     let eligibleUserIds = activeScores.map((s) => s.userId);
 
-    // Fallback: If not enough active users in DB, pick from any non-cooldown members with score > 0
+    // Fallback: If not enough active users in DB, pick from any eligible members with score > 0
     if (eligibleUserIds.length < 2) {
       const anyScoreUsers = await prisma.triviaScore.findMany({
         where: {
           guildId,
-          userId: { notIn: cooldownUsers },
+          userId: { notIn: excludedList },
           score: { gt: 0 },
         },
         orderBy: { score: "desc" },
@@ -180,11 +222,10 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
       eligibleUserIds = Array.from(combined);
     }
 
-    // Fallback 2: Server members (non-bot, non-cooldown) if completely empty
-    const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
+    // Fallback 2: Server members (non-bot, non-excluded) if completely empty
     if (guild && eligibleUserIds.length < 2) {
       await guild.members.fetch().catch(() => {});
-      const fallbackMembers = guild.members.cache.filter((m) => !m.user.bot && !cooldownUsers.includes(m.id));
+      const fallbackMembers = guild.members.cache.filter((m) => !m.user.bot && !excludedUserIds.has(m.id));
       const combined = new Set([...eligibleUserIds, ...fallbackMembers.map((m) => m.id)]);
       eligibleUserIds = Array.from(combined);
     }
@@ -202,7 +243,7 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
       data: { goldenCandidateIds: JSON.stringify(pickedCandidates) },
     });
 
-    logger.info(`MonthlySeason: Terpilih 2 Golden Candidates aktif untuk guild ${guildId}: ${pickedCandidates.join(", ")}`);
+    logger.info(`MonthlySeason: Terpilih 2 Golden Candidates aktif untuk guild ${guildId} (mengecualikan Owner/@amubhya): ${pickedCandidates.join(", ")}`);
     return pickedCandidates;
   } catch (error) {
     logger.error(`MonthlySeason: Gagal memilih golden candidates untuk guild ${guildId}:`, error);
@@ -267,21 +308,43 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
       goldenCandidates = JSON.parse(config?.goldenCandidateIds || "[]");
     } catch (_) {}
 
-    // 1. Check if we are within the redeem window (H-5 to month end)
-    if (dateInfo.daysRemaining > 5) {
-      return {
-        canRedeem: false,
-        reason: `Masa penukaran hadiah /shop untuk Season ${dateInfo.monthName} baru dibuka pada masa H-5 (mulai tanggal ${dateInfo.daysInMonth - 5} ${dateInfo.monthName} pukul 10:00 WIB). Kumpulkan koinmu sebanyak mungkin sekarang!`,
-        currentQuota: currentRedeemed.length,
-        maxQuota,
-      };
+    // 0. Exclude server owner / @amubhya from redeeming
+    if (globalDiscordClient) {
+      const guild = globalDiscordClient.guilds.cache.get(guildId);
+      if (guild && (await isAmubhyaOrOwner(guild, userId))) {
+        return {
+          canRedeem: false,
+          reason: "Sebagai pemilik server (@amubhya), akun kamu dikecualikan dari penukaran hadiah /shop agar seluruh hadiah dinikmati oleh member komunitas!",
+          currentQuota: currentRedeemed.length,
+          maxQuota,
+        };
+      }
+    }
+
+    // 1. Check if we are within the redeem window (Tanggal 3 s.d. 5)
+    if (!dateInfo.isRedeemPeriod) {
+      if (dateInfo.day < 3) {
+        return {
+          canRedeem: false,
+          reason: `Periode penukaran hadiah /shop belum dibuka! Penukaran baru dibuka pada tanggal 3 s.d. 5 ${dateInfo.monthName} untuk 2 Golden Candidates terpilih. Kumpulkan koinmu sekarang!`,
+          currentQuota: currentRedeemed.length,
+          maxQuota,
+        };
+      } else {
+        return {
+          canRedeem: false,
+          reason: `Periode penukaran hadiah /shop bulan ini telah berakhir pada tanggal 5 ${dateInfo.monthName} pukul 23:59 WIB. Penukaran berikutnya dibuka pada tanggal 3 bulan depan!`,
+          currentQuota: currentRedeemed.length,
+          maxQuota,
+        };
+      }
     }
 
     // 2. Check if user is one of the 2 Golden Candidates
     if (goldenCandidates.length > 0 && !goldenCandidates.includes(userId)) {
       return {
         canRedeem: false,
-        reason: "Penukaran hadiah /shop bulan ini dikhususkan untuk 2 akun member terpilih (Golden Candidates). Terus aktif di komunitas agar terpilih di season depan!",
+        reason: "Penukaran hadiah /shop periode ini (tgl 3–5) dikhususkan untuk 2 akun member terpilih (Golden Candidates). Terus aktif di komunitas agar terpilih di season depan!",
         currentQuota: currentRedeemed.length,
         maxQuota,
       };
@@ -389,10 +452,11 @@ export async function recordShopRedemption(guildId: string, userId: string) {
 }
 
 /**
- * Send H-5 Warning Notification to @amubhya, the 2 Golden Candidates, and channel #history
+ * Send Day 1 Golden Candidate Announcement (Evaluates and locks 2 candidates from previous month)
  */
-export async function sendH5Notification(client: Client, guildId: string) {
+export async function sendDay1Announcement(client: Client, guildId: string) {
   try {
+    globalDiscordClient = client;
     const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
     if (!guild) return;
 
@@ -401,7 +465,7 @@ export async function sendH5Notification(client: Client, guildId: string) {
 
     const dateInfo = getWibDateInfo();
 
-    // Ensure 2 active candidates are evaluated and picked on H-5
+    // Evaluate 2 active candidates from previous month
     const candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
     if (!candidates || candidates.length === 0) return;
 
@@ -413,23 +477,25 @@ export async function sendH5Notification(client: Client, guildId: string) {
     ].filter(Boolean).join(" ");
 
     const embed = new EmbedBuilder()
-      .setColor("#EF4444")
-      .setTitle(`🔔 PEMBERITAHUAN MASA REDEEM H-5 • SEASON ${dateInfo.monthName.toUpperCase()} ${dateInfo.year}`)
+      .setColor("#F59E0B")
+      .setTitle(`🌟 PENGUMUMAN 2 GOLDEN CANDIDATES • BULAN ${dateInfo.monthName.toUpperCase()} ${dateInfo.year}`)
       .setDescription(
         `Halo ${amubhya ? `<@${amubhya.id}>` : "Admin"} dan seluruh warga **${guild.name}**!\n\n` +
-        `Sisa waktu menuju akhir bulan tinggal **5 HARI LAGI**! Berdasarkan seleksi keaktifan komunitas server sepanjang bulan ini, terdapat **2 member terpilih** yang memiliki tiket emas untuk menukarkan poin Rogatekno Koin (RTK) di \`/shop\`:\n\n` +
+        `Rekapitulasi keaktifan sebulan penuh telah selesai! Berdasarkan keaktifan di Voice dan aktivitas komunitas server, terdapat **2 member terpilih (Golden Candidates)** yang berhak menukarkan poin Rogatekno Koin (RTK) di \`/shop\`:\n\n` +
         `${candidateMentions}\n\n` +
-        `⚠️ **PERINGATAN PENTING — SALDO AKAN HANGUS!**\n` +
-        `> Batas akhir penukaran hadiah di \`/shop\` adalah **${dateInfo.daysInMonth} ${dateInfo.monthName} ${dateInfo.year} pukul 23:59 WIB**.\n` +
-        `> **Jika terlambat menukarkan poin sebelum akhir bulan, maka seluruh saldo poin akan HANGUS & DIRESET KEMBALI KE 0** demi pembukaan season baru!\n\n` +
-        `Gunakan perintah \`/shop\` sekarang untuk memilih hadiah kamu!`
+        `📅 **Jadwal & Ketentuan Penukaran Hadiah:**\n` +
+        `> • **Pembukaan Jendela Redeem:** Tanggal **3 ${dateInfo.monthName} pukul 00:00 WIB**\n` +
+        `> • **Batas Akhir Penukaran:** Tanggal **5 ${dateInfo.monthName} pukul 23:59 WIB**\n` +
+        `> • ⚠️ **Peringatan Poin Hangus:** Tepat tanggal **5 ${dateInfo.monthName} pukul 23:59 WIB**, seluruh saldo poin RTK akan **HANGUS & DIRESET KEMBALI KE 0** demi pembukaan season baru!\n\n` +
+        `Siapkan pilihan hadiah kamu di katalog \`/shop\`!`
       )
       .addFields(
-        { name: "🎟️ Kuota Pemenang Redeem", value: `Maksimal **2 Orang** per bulan`, inline: true },
-        { name: "⏳ Waktu Tersisa", value: `**5 Hari** (s.d. tgl ${dateInfo.daysInMonth} jam 23:59 WIB)`, inline: true }
+        { name: "🎟️ Kuota Pemenang", value: `Maksimal **2 Orang**`, inline: true },
+        { name: "🗓️ Periode Redeem", value: `**Tgl 3 s.d. 5 ${dateInfo.monthName}**`, inline: true },
+        { name: "🔄 Reset Poin ke 0", value: `**5 ${dateInfo.monthName} 23:59 WIB**`, inline: true }
       )
       .setFooter({
-        text: `Maya Season Engine • Peringatan H-5 • Jangan sampai koinmu hangus!`,
+        text: `Maya Season Engine • Pengumuman Golden Candidates`,
         iconURL: client.user?.displayAvatarURL(),
       })
       .setTimestamp();
@@ -448,10 +514,10 @@ export async function sendH5Notification(client: Client, guildId: string) {
 
     if (targetChannel) {
       await targetChannel.send({
-        content: `🚨 **PENGUMUMAN PENTING SEASON AKHIR BULAN!** ${pingMentions}`,
+        content: `📢 **PENGUMUMAN GOLDEN CANDIDATES SEASON BULANAN!** ${pingMentions}`,
         embeds: [embed],
       });
-      logger.info(`MonthlySeason: Berhasil mengirim notifikasi H-5 ke channel #${targetChannel.name} di guild ${guild.name}`);
+      logger.info(`MonthlySeason: Berhasil mengirim pengumuman Day 1 ke #${targetChannel.name} di guild ${guild.name}`);
     }
 
     // 2. Send to #history channel permanently
@@ -461,7 +527,7 @@ export async function sendH5Notification(client: Client, guildId: string) {
         embeds: [embed],
         allowedMentions: { parse: [] },
       });
-      logger.info(`MonthlySeason: Berhasil mencatat notifikasi H-5 ke #${historyChannel.name} di guild ${guild.name}`);
+      logger.info(`MonthlySeason: Berhasil mencatat pengumuman Day 1 ke #${historyChannel.name} di guild ${guild.name}`);
     }
 
     // 3. Send direct DM notification to @amubhya and each of the 2 candidates
@@ -470,7 +536,7 @@ export async function sendH5Notification(client: Client, guildId: string) {
         const member = guild.members.cache.get(cid) || (await guild.members.fetch(cid).catch(() => null));
         if (member) {
           await member.send({
-            content: `🚨 **PEMBERITAHUAN MASA REDEEM MAYA • SEASON ${dateInfo.monthName.toUpperCase()}**\n\nHalo <@${member.id}>! Selamat, kamu terpilih sebagai salah satu dari **2 member** yang berhak menukarkan poin Rogatekno Koin (RTK) di \`/shop\` server **${guild.name}**!\n\n⚠️ **Peringatan Poin Hangus:** Batas akhir penukaran adalah **${dateInfo.daysInMonth} ${dateInfo.monthName} pukul 23:59 WIB**. Jika terlambat, saldo poin akan **hangus & direset ke 0** demi pembukaan season baru. Segera buka server dan gunakan perintah \`/shop\`!`,
+            content: `🌟 **PEMBERITAHUAN GOLDEN CANDIDATE • MAYA ${dateInfo.monthName.toUpperCase()}**\n\nHalo <@${member.id}>! Selamat, kamu terpilih sebagai **1 dari 2 Golden Candidates** di server **${guild.name}**!\n\nJendela penukaran hadiah di \`/shop\` resmi dibuka pada **Tanggal 3 s.d. 5 ${dateInfo.monthName}**.\n⚠️ **Peringatan:** Batas akhir penukaran adalah **5 ${dateInfo.monthName} pukul 23:59 WIB**. Jika terlambat, saldo poin akan **hangus & direset ke 0**!`,
             embeds: [embed],
           }).catch(() => {});
         }
@@ -480,7 +546,7 @@ export async function sendH5Notification(client: Client, guildId: string) {
     if (amubhya) {
       try {
         await amubhya.send({
-          content: `🔔 **Laporan Season Maya Bot ke Server Owner (${guild.name})**:\nPemberitahuan H-5 masa redeem poin telah resmi dikirimkan. Terdapat 2 member aktif yang berhak menukarkan poin di \`/shop\`:\n${candidateMentions}`,
+          content: `🔔 **Laporan Season Maya Bot ke Server Owner (${guild.name})**:\nPengumuman 2 Golden Candidates tanggal 1 telah dikirimkan. Penukaran hadiah akan dibuka pada tanggal 3 s.d. 5:\n${candidateMentions}`,
           embeds: [embed],
         }).catch(() => {});
       } catch (_) {}
@@ -489,18 +555,139 @@ export async function sendH5Notification(client: Client, guildId: string) {
     // Record date
     await prisma.guildConfig.update({
       where: { guildId },
-      data: { lastMonthlyWarningH5Date: dateInfo.dateStr },
+      data: { lastMonthlyAnnouncementDate: dateInfo.dateStr },
     });
   } catch (error) {
-    logger.error(`MonthlySeason: Error sending H-5 notification for guild ${guildId}:`, error);
+    logger.error(`MonthlySeason: Error sending Day 1 announcement for guild ${guildId}:`, error);
   }
 }
 
 /**
- * Send H-3 General Announcement to server and #history
+ * Send Day 3 Redeem Open Notification to @amubhya, the 2 Golden Candidates, and channel #history
  */
-export async function sendH3Notification(client: Client, guildId: string) {
+export async function sendDay3RedeemOpenNotification(client: Client, guildId: string) {
   try {
+    globalDiscordClient = client;
+    const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
+    if (!guild) return;
+
+    const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+    if (!config || config.monthlyResetEnabled === false) return;
+
+    const dateInfo = getWibDateInfo();
+
+    // Ensure candidates exist
+    let candidates: string[] = [];
+    try {
+      candidates = JSON.parse(config.goldenCandidateIds || "[]");
+    } catch (_) {}
+
+    if (candidates.length < 2) {
+      candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
+    }
+    if (!candidates || candidates.length === 0) return;
+
+    const amubhya = await getAmubhyaMember(guild);
+    const candidateMentions = candidates.map((id, idx) => `${idx + 1}. <@${id}>`).join("\n");
+    const pingMentions = [
+      amubhya ? `<@${amubhya.id}>` : "",
+      ...candidates.map((id) => `<@${id}>`),
+    ].filter(Boolean).join(" ");
+
+    const embed = new EmbedBuilder()
+      .setColor("#10B981")
+      .setTitle(`🎉 PERIODE REDEEM HADIAH RESMI DIBUKA (TGL 3–5) • BULAN ${dateInfo.monthName.toUpperCase()}`)
+      .setDescription(
+        `Halo ${amubhya ? `<@${amubhya.id}>` : "Admin"} dan seluruh warga **${guild.name}**!\n\n` +
+        `Katalog penukaran hadiah \`/shop\` resmi **DIBUKA HARI INI** (Tanggal 3 s.d. 5 ${dateInfo.monthName})!\n\n` +
+        `Selamat kepada **2 Golden Candidates** yang berhak menukarkan poin Rogatekno Koin (RTK):\n\n` +
+        `${candidateMentions}\n\n` +
+        `⚠️ **PERINGATAN PENTING — SALDO AKAN HANGUS!**\n` +
+        `> Batas akhir penukaran hadiah di \`/shop\` adalah **5 ${dateInfo.monthName} pukul 23:59 WIB**.\n` +
+        `> **Jika terlambat menukarkan poin sebelum batas waktu, maka seluruh saldo poin akan HANGUS & DIRESET KEMBALI KE 0** demi pembukaan season baru!\n\n` +
+        `Gunakan perintah \`/shop\` sekarang untuk memilih hadiah kamu!`
+      )
+      .addFields(
+        { name: "🎟️ Kuota Pemenang Redeem", value: `Maksimal **2 Orang** per bulan`, inline: true },
+        { name: "⏳ Batas Akhir Redeem", value: `**5 ${dateInfo.monthName} jam 23:59 WIB**`, inline: true }
+      )
+      .setFooter({
+        text: `Maya Season Engine • Periode Redeem Resmi Dibuka!`,
+        iconURL: client.user?.displayAvatarURL(),
+      })
+      .setTimestamp();
+
+    // 1. Send to target announcement channel or general channel
+    let targetChannel: TextChannel | null = null;
+    if (config.monthlyResetChannelId) {
+      targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
+    }
+    if (!targetChannel && config.welcomeChannelId) {
+      targetChannel = (guild.channels.cache.get(config.welcomeChannelId) as TextChannel) || null;
+    }
+    if (!targetChannel) {
+      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /chat|general|umum|announcement|pengumuman/i.test(c.name)) as TextChannel) || null;
+    }
+
+    if (targetChannel) {
+      await targetChannel.send({
+        content: `🚨 **PERIODE REDEEM HADIAH RESMI DIBUKA!** ${pingMentions}`,
+        embeds: [embed],
+      });
+      logger.info(`MonthlySeason: Berhasil mengirim notifikasi Day 3 ke #${targetChannel.name} di guild ${guild.name}`);
+    }
+
+    // 2. Send to #history channel permanently
+    const historyChannel = findHistoryChannel(guild);
+    if (historyChannel && historyChannel.id !== targetChannel?.id) {
+      await historyChannel.send({
+        embeds: [embed],
+        allowedMentions: { parse: [] },
+      });
+      logger.info(`MonthlySeason: Berhasil mencatat notifikasi Day 3 ke #${historyChannel.name} di guild ${guild.name}`);
+    }
+
+    // 3. Send direct DM notification to @amubhya and each of the 2 candidates
+    for (const cid of candidates) {
+      try {
+        const member = guild.members.cache.get(cid) || (await guild.members.fetch(cid).catch(() => null));
+        if (member) {
+          await member.send({
+            content: `🚨 **PERIODE REDEEM MAYA TELAH DIBUKA!**\n\nHalo <@${member.id}>! Jendela penukaran hadiah di \`/shop\` server **${guild.name}** telah resmi dibuka hari ini!\n\n⚠️ **Peringatan Poin Hangus:** Batas akhir penukaran adalah **5 ${dateInfo.monthName} pukul 23:59 WIB**. Jika terlambat, saldo poin akan **hangus & direset ke 0** demi pembukaan season baru. Segera buka server dan gunakan perintah \`/shop\`!`,
+            embeds: [embed],
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+
+    if (amubhya) {
+      try {
+        await amubhya.send({
+          content: `🔔 **Laporan Season Maya Bot ke Server Owner (${guild.name})**:\nPeriode redeem hadiah tanggal 3 telah resmi DIBUKA. Terdapat 2 member aktif yang berhak menukarkan poin di \`/shop\`:\n${candidateMentions}`,
+          embeds: [embed],
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
+    // Record date
+    await prisma.guildConfig.update({
+      where: { guildId },
+      data: {
+        lastMonthlyRedeemOpenDate: dateInfo.dateStr,
+        lastMonthlyWarningH5Date: dateInfo.dateStr,
+      },
+    });
+  } catch (error) {
+    logger.error(`MonthlySeason: Error sending Day 3 notification for guild ${guildId}:`, error);
+  }
+}
+
+/**
+ * Send Day 5 Closing Warning to server, candidates, @amubhya, and #history
+ */
+export async function sendDay5LastCallNotification(client: Client, guildId: string) {
+  try {
+    globalDiscordClient = client;
     const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
     if (!guild) return;
 
@@ -513,21 +700,34 @@ export async function sendH3Notification(client: Client, guildId: string) {
       currentRedeemed = JSON.parse(config.currentMonthRedeemedUsers || "[]");
     } catch (_) {}
 
+    let goldenCandidates: string[] = [];
+    try {
+      goldenCandidates = JSON.parse(config.goldenCandidateIds || "[]");
+    } catch (_) {}
+
     const remainingQuota = Math.max(0, (config.monthlyRedeemQuota || MONTHLY_REDEEM_QUOTA) - currentRedeemed.length);
+    const unredeemedCandidates = goldenCandidates.filter((id) => !currentRedeemed.includes(id));
+
+    const amubhya = await getAmubhyaMember(guild);
+    const pingMentions = [
+      amubhya ? `<@${amubhya.id}>` : "",
+      ...unredeemedCandidates.map((id) => `<@${id}>`),
+    ].filter(Boolean).join(" ");
 
     const embed = new EmbedBuilder()
-      .setColor("#F59E0B")
-      .setTitle(`🔥 PERIODE REDEEM HADIAH RESMI DIBUKA (H-3) • ${dateInfo.monthName.toUpperCase()}`)
+      .setColor("#EF4444")
+      .setTitle(`🔥 HARI TERAKHIR PENUKARAN HADIAH & PERSIAPAN RESET SALDO • TGL 5 ${dateInfo.monthName.toUpperCase()}`)
       .setDescription(
-        `Waktu semakin mendekat! Sisa **3 HARI** lagi sebelum seluruh saldo koin RTK di server **${guild.name}** direset ke 0!\n\n` +
-        `📦 **Status Kuota Penukaran Bulan Ini:**\n` +
+        `Perhatian seluruh warga **${guild.name}**!\n\n` +
+        `Hari ini adalah **HARI TERAKHIR** kesempatan menukarkan poin di \`/shop\`!\n\n` +
+        `📦 **Status Kuota Penukaran:**\n` +
         `> Terisi: **${currentRedeemed.length}/${config.monthlyRedeemQuota || MONTHLY_REDEEM_QUOTA} Pemenang** (Sisa ${remainingQuota} slot lagi!)\n\n` +
-        `⚠️ **Peringatan Poin Hangus:**\n` +
-        `Seluruh saldo RTK yang tidak dibelanjakan sebelum **${dateInfo.daysInMonth} ${dateInfo.monthName} pukul 23:59 WIB** akan otomatis hangus saat season baru dimulai.\n\n` +
-        `Gunakan perintah \`/shop\` untuk menukarkan hadiahmu sekarang!`
+        `⚠️ **PERINGATAN POIN HANGUS MALAM INI:**\n` +
+        `Tepat pukul **23:59 WIB malam ini**, jendela penukaran resmi ditutup dan **SELURUH SALDO RTK AKAN DIRESET KEMBALI KE 0**!\n\n` +
+        `Bagi Golden Candidates yang belum menukarkan koin, segera gunakan perintah \`/shop\` sekarang sebelum koinmu hangus!`
       )
       .setFooter({
-        text: `Maya Season Engine • Peringatan H-3`,
+        text: `Maya Season Engine • Peringatan Hari Terakhir Penukaran`,
         iconURL: client.user?.displayAvatarURL(),
       })
       .setTimestamp();
@@ -541,7 +741,10 @@ export async function sendH3Notification(client: Client, guildId: string) {
     }
 
     if (targetChannel) {
-      await targetChannel.send({ embeds: [embed] });
+      await targetChannel.send({
+        content: `🚨 **PERINGATAN HARI TERAKHIR PENUKARAN HADIAH!** ${pingMentions}`,
+        embeds: [embed],
+      });
     }
 
     const historyChannel = findHistoryChannel(guild);
@@ -549,13 +752,43 @@ export async function sendH3Notification(client: Client, guildId: string) {
       await historyChannel.send({ embeds: [embed], allowedMentions: { parse: [] } });
     }
 
+    // Direct DM to unredeemed candidates
+    for (const cid of unredeemedCandidates) {
+      try {
+        const member = guild.members.cache.get(cid) || (await guild.members.fetch(cid).catch(() => null));
+        if (member) {
+          await member.send({
+            content: `🔥 **HARI TERAKHIR PENUKARAN POIN MAYA!**\n\nHalo <@${member.id}>! Hari ini adalah batas akhir penukaran hadiah di \`/shop\` server **${guild.name}**!\n\nTepat pukul **23:59 WIB malam ini**, seluruh saldo koin RTK akan **HANGUS & DIRESET KE 0**. Segera gunakan perintah \`/shop\` sekarang juga!`,
+            embeds: [embed],
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+
     await prisma.guildConfig.update({
       where: { guildId },
-      data: { lastMonthlyWarningH3Date: dateInfo.dateStr },
+      data: {
+        lastMonthlyRedeemClosingDate: dateInfo.dateStr,
+        lastMonthlyWarningH3Date: dateInfo.dateStr,
+      },
     });
   } catch (error) {
-    logger.error(`MonthlySeason: Error sending H-3 notification for guild ${guildId}:`, error);
+    logger.error(`MonthlySeason: Error sending Day 5 notification for guild ${guildId}:`, error);
   }
+}
+
+/**
+ * Backward compatibility alias for H-5 (maps to Day 3 Redeem Open)
+ */
+export async function sendH5Notification(client: Client, guildId: string) {
+  return sendDay3RedeemOpenNotification(client, guildId);
+}
+
+/**
+ * Backward compatibility alias for H-3 (maps to Day 5 Last Call)
+ */
+export async function sendH3Notification(client: Client, guildId: string) {
+  return sendDay5LastCallNotification(client, guildId);
 }
 
 /**
@@ -631,13 +864,14 @@ export async function archiveAndResetSeason(client: Client, guildId: string) {
 
     const embed = new EmbedBuilder()
       .setColor("#10B981")
-      .setTitle(`🏆 SEASON BERAKHIR & SALDO DIRESET • ${seasonName.toUpperCase()}`)
+      .setTitle(`🏆 PERIODE REDEEM SELESAI & SALDO DIRESET • TGL 5 ${seasonName.toUpperCase()}`)
       .setDescription(
-        `Selamat kepada seluruh anggota **${guild.name}** atas partisipasinya sepanjang bulan **${seasonName}**!\n\n` +
-        `🎖️ **Pemenang Redeem Hadiah Bulan Ini (Maks 2):**\n${redeemedList}\n\n` +
-        `🌟 **Top 10 Hall of Fame Saldo Tertinggi Bulan Ini:**\n${winnersList}\n\n` +
+        `Masa penukaran hadiah /shop tanggal 3–5 ${seasonName} telah resmi ditutup!\n\n` +
+        `🎖️ **Pemenang Redeem Hadiah Season Ini (Maks 2):**\n${redeemedList}\n\n` +
+        `🌟 **Top 10 Hall of Fame Saldo Tertinggi:**\n${winnersList}\n\n` +
         `🔄 **RESET SALDO KE 0 TELAH DILAKUKAN!**\n` +
-        `Seluruh saldo RTK telah dinolkan kembali untuk menyambut season bulan baru. Dua member yang telah redeem bulan ini akan beristirahat (cooldown) agar rekan-rekan lain berkesempatan menang!\n\n` +
+        `Seluruh saldo RTK telah dinolkan kembali untuk menyambut season kompetisi baru. Dua member yang telah redeem bulan ini akan beristirahat (cooldown) agar rekan-rekan lain berkesempatan menang!\n\n` +
+        `Golden Candidates berikutnya akan dievaluasi dan diumumkan pada Tanggal 1 bulan depan berdasarkan keaktifan kalian di server!\n\n` +
         `Mari mulai kumpulkan Rogatekno Koin (RTK) kembali dari Voice, Tebak-Tebakan, Pantun, Story, dan Poll!`
       )
       .setFooter({

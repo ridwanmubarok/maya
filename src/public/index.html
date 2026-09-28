@@ -1628,7 +1628,7 @@
                   <i class="fa-solid fa-hourglass-half text-rose-400"></i>
                 </div>
                 <div id="stat-season-days" class="text-2xl font-bold text-white font-outfit">- Hari</div>
-                <p id="stat-season-reset-date" class="text-[10px] text-gray-400">Reset ke 0 akhir bulan</p>
+                <p id="stat-season-reset-date" class="text-[10px] text-gray-400">Reset tgl 5 pukul 23:59 WIB</p>
               </div>
 
               <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
@@ -1637,7 +1637,7 @@
                   <i class="fa-solid fa-ticket text-emerald-400"></i>
                 </div>
                 <div id="stat-season-quota" class="text-2xl font-bold text-white font-outfit">0/2</div>
-                <p class="text-[10px] text-gray-400">Maks 2 pemenang per bulan</p>
+                <p class="text-[10px] text-gray-400">Maks 2 pemenang per bulan (Tgl 3-5)</p>
               </div>
             </div>
 
@@ -1648,18 +1648,24 @@
                   <i class="fa-solid fa-crown text-base"></i>
                   <div>
                     <h4 class="text-sm font-bold text-white">Season Bulanan &amp; 2 Golden Candidates (Plafon 50.000 RTK)</h4>
-                    <p class="text-[11px] text-gray-400">Hanya 2 orang terpilih dari member teraktif yang bisa mencapai 50k poin per bulan. Member lainnya dibatasi 20k poin.</p>
+                    <p class="text-[11px] text-gray-400">Dua member teraktif diumumkan tgl 1, redeem dibuka tgl 3–5, dan reset saldo tgl 5 malam. (Owner/@amubhya dikecualikan)</p>
                   </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  <button onclick="triggerH5Warning()" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-bell"></i> Tes Peringatan H-5
+                <div class="flex items-center flex-wrap gap-2">
+                  <button onclick="triggerDay1Announcement()" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Pengumuman Golden Candidates (Tgl 1)">
+                    <i class="fa-solid fa-bullhorn"></i> Notif Tgl 1
                   </button>
-                  <button onclick="rerollCandidates()" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-dice"></i> Acak Ulang Kandidat
+                  <button onclick="triggerDay3RedeemOpen()" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Notifikasi Buka Redeem (Tgl 3)">
+                    <i class="fa-solid fa-door-open"></i> Buka Tgl 3
+                  </button>
+                  <button onclick="triggerDay5Closing()" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Peringatan Hari Terakhir (Tgl 5)">
+                    <i class="fa-solid fa-clock"></i> Notif Tgl 5
+                  </button>
+                  <button onclick="rerollCandidates()" class="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-dice"></i> Acak Ulang
                   </button>
                   <button onclick="confirmResetSeason()" class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-arrows-rotate"></i> Reset Season Sekarang
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset Saldo
                   </button>
                 </div>
               </div>

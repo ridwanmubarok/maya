@@ -3,8 +3,10 @@ import { prisma } from "./database";
 import { logger } from "../utils/logger";
 import {
   getWibDateInfo,
-  sendH5Notification,
-  sendH3Notification,
+  setSeasonManagerClient,
+  sendDay1Announcement,
+  sendDay3RedeemOpenNotification,
+  sendDay5LastCallNotification,
   archiveAndResetSeason,
   pickMonthlyGoldenCandidates,
 } from "./monthlySeasonManager";
@@ -13,15 +15,17 @@ let monthlySchedulerInitialized = false;
 
 /**
  * Initialize automatic monthly season scheduler
- * - H-5 alert to @amubhya and 3 golden candidates (10:00 WIB)
- * - H-3 public broadcast (10:00 WIB)
- * - Month-end season archive and point reset to 0 (23:59 WIB)
+ * - Tanggal 1: Evaluasi & Pengumuman 2 Golden Candidates (10:00 WIB)
+ * - Tanggal 3: Pembukaan Resmi Periode Redeem /shop (10:00 WIB)
+ * - Tanggal 5: Peringatan Hari Terakhir Penukaran (10:00 WIB)
+ * - Tanggal 5 (23:59 WIB): Penutupan Redeem, Season Archive, & Reset Poin ke 0
  */
 export function initMonthlyResetScheduler(client: Client) {
   if (monthlySchedulerInitialized) return;
   monthlySchedulerInitialized = true;
+  setSeasonManagerClient(client);
 
-  logger.info("MonthlyResetScheduler: Initialized automatic monthly season scheduler (WIB Timezone).");
+  logger.info("MonthlyResetScheduler: Initialized automatic monthly season scheduler (WIB Timezone - Cycle: Tgl 1 Announcement, Tgl 3 Open, Tgl 5 Close & Reset).");
 
   // Initial check on startup
   checkMonthlySeasonTriggers(client).catch((err) => {
@@ -49,38 +53,42 @@ async function checkMonthlySeasonTriggers(client: Client) {
         continue;
       }
 
-      // Evaluate Golden Candidates only when reaching the redeem window (H-5 onwards)
       let candidates: string[] = [];
       try {
         candidates = JSON.parse(config.goldenCandidateIds || "[]");
       } catch (_) {}
 
-      // If we are at or after H-5 (last 5 days) and candidates have not been evaluated, pick the 2 most active
-      if (dateInfo.daysRemaining <= 5 && candidates.length < 2) {
+      // If we are within the redeem window (day 3-5) and candidates haven't been picked, pick now
+      if (dateInfo.isRedeemPeriod && candidates.length < 2) {
         logger.info(`MonthlyResetScheduler: Mengevaluasi keaktifan member & memilih 2 Golden Candidates untuk guild ${guildId}...`);
         candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
       }
 
-      // 1. H-5 Alert (at or after 10:00 WIB)
-      if (dateInfo.daysRemaining === 5 && dateInfo.hour >= 10 && config.lastMonthlyWarningH5Date !== dateInfo.dateStr) {
-        logger.info(`MonthlyResetScheduler: Triggering H-5 warning for guild ${guildId}...`);
-        await sendH5Notification(client, guildId);
+      // 1. Tanggal 1 Alert (Evaluasi & Pengumuman Golden Candidates pada jam >= 10:00 WIB)
+      if (dateInfo.day === 1 && dateInfo.hour >= 10 && config.lastMonthlyAnnouncementDate !== dateInfo.dateStr) {
+        logger.info(`MonthlyResetScheduler: Triggering Day 1 Golden Candidate announcement for guild ${guildId}...`);
+        await sendDay1Announcement(client, guildId);
       }
 
-      // 2. H-3 Alert (at or after 10:00 WIB)
-      if (dateInfo.daysRemaining === 3 && dateInfo.hour >= 10 && config.lastMonthlyWarningH3Date !== dateInfo.dateStr) {
-        logger.info(`MonthlyResetScheduler: Triggering H-3 warning for guild ${guildId}...`);
-        await sendH3Notification(client, guildId);
+      // 2. Tanggal 3 Alert (Pembukaan Resmi Periode Redeem pada jam >= 10:00 WIB)
+      if (dateInfo.day === 3 && dateInfo.hour >= 10 && config.lastMonthlyRedeemOpenDate !== dateInfo.dateStr) {
+        logger.info(`MonthlyResetScheduler: Triggering Day 3 Redeem Open notification for guild ${guildId}...`);
+        await sendDay3RedeemOpenNotification(client, guildId);
       }
 
-      // 3. Month-End Season Archive & Point Reset
-      // Trigger at 23:55+ WIB on last day of month OR 00:00-00:30 WIB on 1st day of next month
-      const isMonthEndWindow =
-        (dateInfo.isLastDay && dateInfo.hour === 23 && dateInfo.minute >= 50) ||
-        (dateInfo.day === 1 && dateInfo.hour === 0 && dateInfo.minute <= 30);
+      // 3. Tanggal 5 Pagi Alert (Peringatan Hari Terakhir Penukaran pada jam >= 10:00 WIB)
+      if (dateInfo.day === 5 && dateInfo.hour >= 10 && config.lastMonthlyRedeemClosingDate !== dateInfo.dateStr) {
+        logger.info(`MonthlyResetScheduler: Triggering Day 5 Closing Warning for guild ${guildId}...`);
+        await sendDay5LastCallNotification(client, guildId);
+      }
 
-      if (isMonthEndWindow && config.lastMonthlyResetDate !== dateInfo.dateStr) {
-        logger.info(`MonthlyResetScheduler: Triggering Month-End Reset & Archive for guild ${guildId}...`);
+      // 4. Tanggal 5 Malam (23:50+) atau Tanggal 6 Dini Hari (00:00-00:30): Penutupan Redeem & Reset Poin ke 0
+      const isResetWindow =
+        (dateInfo.day === 5 && dateInfo.hour === 23 && dateInfo.minute >= 50) ||
+        (dateInfo.day === 6 && dateInfo.hour === 0 && dateInfo.minute <= 30);
+
+      if (isResetWindow && config.lastMonthlyResetDate !== dateInfo.dateStr) {
+        logger.info(`MonthlyResetScheduler: Triggering Season Reset & Archive (End of Day 5) for guild ${guildId}...`);
         await archiveAndResetSeason(client, guildId);
       }
     } catch (err) {

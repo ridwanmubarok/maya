@@ -44,8 +44,14 @@ async function loadEconomyBalances() {
       const resetElem = document.getElementById('stat-season-reset-date');
       const quotaElem = document.getElementById('stat-season-quota');
 
-      if (daysElem) daysElem.innerText = `${season.dateInfo.daysRemaining} Hari`;
-      if (resetElem) resetElem.innerText = `Reset ${season.dateInfo.daysInMonth} ${season.dateInfo.monthName} 23:59 WIB`;
+      if (season.dateInfo.isRedeemPeriod) {
+        if (daysElem) daysElem.innerText = 'Redeem BUKA';
+      } else if (season.dateInfo.day < 3) {
+        if (daysElem) daysElem.innerText = 'Buka Tgl 3';
+      } else {
+        if (daysElem) daysElem.innerText = 'Tutup (Tgl 6+)';
+      }
+      if (resetElem) resetElem.innerText = `Reset 5 ${season.dateInfo.monthName} 23:59 WIB`;
       if (quotaElem) quotaElem.innerText = `${season.config.currentMonthRedeemedUsers.length}/${season.config.monthlyRedeemQuota} Pemenang`;
 
       renderSeasonCandidates(season.config.goldenCandidateIds, balances);
@@ -140,18 +146,52 @@ function renderSeasonCandidates(candidateIds, balances = []) {
   }).join('');
 }
 
-async function triggerH5Warning() {
+async function triggerDay1Announcement() {
   if (!selectedGuildId) return;
-  if (!confirm('Kirim pengumuman & notifikasi peringatan H-5 sekarang ke server Discord dan channel #history? (Notifikasi akan mem-ping @amubhya dan 2 Golden Candidates)')) return;
+  if (!confirm('Kirim pengumuman 2 Golden Candidates (Day 1) sekarang ke server Discord dan channel #history? (Notifikasi akan mem-ping @amubhya dan 2 Golden Candidates)')) return;
 
   try {
-    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/trigger-h5`, { method: 'POST' });
+    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/trigger-day1`, { method: 'POST' });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Gagal mengirim peringatan H-5.');
+    if (!res.ok) throw new Error(data.error || 'Gagal mengirim pengumuman Day 1.');
+    showToast('Sukses!', data.message, 'success');
+    loadEconomyBalances();
+  } catch (err) {
+    showToast('Gagal Notif Tgl 1', err.message, 'error');
+  }
+}
+
+async function triggerDay3RedeemOpen() {
+  if (!selectedGuildId) return;
+  if (!confirm('Kirim notifikasi pembukaan resmi redeem /shop (Day 3) sekarang ke server Discord dan channel #history? (Notifikasi akan mem-ping @amubhya dan 2 Golden Candidates)')) return;
+
+  try {
+    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/trigger-day3`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal mengirim notifikasi Day 3.');
+    showToast('Sukses!', data.message, 'success');
+    loadEconomyBalances();
+  } catch (err) {
+    showToast('Gagal Buka Redeem Tgl 3', err.message, 'error');
+  }
+}
+
+async function triggerDay5Closing() {
+  if (!selectedGuildId) return;
+  if (!confirm('Kirim peringatan hari terakhir penukaran (Day 5) sekarang ke server Discord dan channel #history?')) return;
+
+  try {
+    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/trigger-day5`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal mengirim notifikasi Day 5.');
     showToast('Sukses!', data.message, 'success');
   } catch (err) {
-    showToast('Gagal Peringatan H-5', err.message, 'error');
+    showToast('Gagal Notif Tgl 5', err.message, 'error');
   }
+}
+
+async function triggerH5Warning() {
+  return triggerDay3RedeemOpen();
 }
 
 async function rerollCandidates() {

@@ -82,23 +82,32 @@ const command: Command = {
       });
       const rank = higherCount + 1;
 
+      const isOwnerOrAmubhya = (interaction.guild?.ownerId === targetUser.id) || /(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(targetUser.username);
       const isGolden = goldenCandidates.includes(targetUser.id);
       const isCooldown = cooldownUsers.includes(targetUser.id);
       const hasRedeemed = currentRedeemed.includes(targetUser.id);
       const isActive = isUserActiveInMonth(record);
 
-      const maxCeiling = isGolden ? "50.000 RTK (Golden Candidate)" : "20.000 RTK (Member Reguler)";
+      const maxCeiling = isOwnerOrAmubhya
+        ? "👑 Pemilik Server (@amubhya) • Dikecualikan dari Penukaran"
+        : isGolden
+        ? "50.000 RTK (Golden Candidate)"
+        : "20.000 RTK (Member Reguler)";
       const quotaMax = config?.monthlyRedeemQuota || 2;
 
-      let redeemEligibility = "✅ Memenuhi Syarat";
-      if (dateInfo.daysRemaining > 5) {
-        redeemEligibility = `⏳ Masa Redeem Belum Dibuka (Buka tgl ${dateInfo.daysInMonth - 5} ${dateInfo.monthName} pukul 10:00 WIB)`;
+      let redeemEligibility = "✅ Memenuhi Syarat & Berhak Redeem di /shop!";
+      if (isOwnerOrAmubhya) {
+        redeemEligibility = "👑 Akun Pemilik Server (@amubhya) Dikecualikan dari Penukaran Hadiah";
+      } else if (dateInfo.day < 3) {
+        redeemEligibility = `⏳ Masa Redeem Belum Dibuka (Buka tgl 3 s.d. 5 ${dateInfo.monthName} untuk 2 Golden Candidates)`;
+      } else if (dateInfo.day > 5) {
+        redeemEligibility = `🔒 Masa Redeem Bulan Ini Telah Ditutup (Buka kembali tgl 3 bulan depan)`;
       } else if (isCooldown) {
         redeemEligibility = "⏳ Masa Istirahat (Pemenang Bulan Lalu)";
       } else if (hasRedeemed) {
         redeemEligibility = "✅ Sudah Klaim Hadiah Bulan Ini";
       } else if (goldenCandidates.length > 0 && !isGolden) {
-        redeemEligibility = "❌ Khusus 2 Golden Candidates Terpilih";
+        redeemEligibility = "❌ Khusus 2 Golden Candidates Terpilih (Tgl 3–5)";
       } else if (currentRedeemed.length >= quotaMax) {
         redeemEligibility = "❌ Kuota Habis (2/2 Pemenang)";
       } else if (!isActive) {
@@ -121,9 +130,9 @@ const command: Command = {
           { name: "🎯 Plafon Poin Season Ini", value: `**${maxCeiling}**`, inline: false },
           { name: "📋 Keaktifan Komunitas Bulan Ini", value: checklistStr, inline: false },
           { name: "🎟️ Status Kelayakan Redeem Toko", value: `> **${redeemEligibility}**\n> Kuota Server: **${currentRedeemed.length}/${quotaMax} Terisi**`, inline: false },
-          { name: "⏳ Siklus Reset Akhir Bulan", value: `Sisa **${dateInfo.daysRemaining} Hari** (Reset tgl ${dateInfo.daysInMonth} ${dateInfo.monthName} pukul 23:59 WIB)\n*⚠️ Poin akan direset ke 0 & hangus jika tidak ditukarkan sebelum akhir bulan!*`, inline: false }
+          { name: "⏳ Siklus Reset & Penukaran Hadiah", value: `• **Jendela Redeem Hadiah:** Tanggal 3 s.d. 5 ${dateInfo.monthName}\n• **Batas Akhir & Reset ke 0:** 5 ${dateInfo.monthName} pukul 23:59 WIB\n*⚠️ Poin akan direset ke 0 & hangus jika tidak ditukarkan sebelum tanggal 5 pukul 23:59 WIB!*`, inline: false }
         )
-        .setFooter({ text: "Rogatekno Economy Engine • Belanja di /shop saat masa redeem dibuka!" })
+        .setFooter({ text: "Rogatekno Economy Engine • Belanja di /shop pada tgl 3-5!" })
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
@@ -142,10 +151,10 @@ const command: Command = {
         .setTitle(`🏆 Leaderboard Rogatekno Koin (RTK) • Season ${dateInfo.monthName} ${dateInfo.year}`)
         .setDescription(
           `Daftar 10 besar anggota server dengan akumulasi **Rogatekno Koin (RTK)** terbanyak:\n` +
-          `*Poin akan direset ke 0 pada akhir bulan ${dateInfo.monthName}! Kuota redeem: **${currentRedeemed.length}/${quotaMax} Pemenang**.*`
+          `*Poin akan direset ke 0 pada tgl 5 ${dateInfo.monthName} 23:59 WIB! Kuota redeem: **${currentRedeemed.length}/${quotaMax} Pemenang**.*`
         )
         .setColor("#F59E0B")
-        .setFooter({ text: "Rogatekno Economy Engine • Belanja di /shop sebelum akhir bulan!" })
+        .setFooter({ text: "Rogatekno Economy Engine • Belanja di /shop pada tgl 3-5!" })
         .setTimestamp();
 
       let text = "";
@@ -168,7 +177,7 @@ const command: Command = {
       const quotaMax = config?.monthlyRedeemQuota || 2;
       const candidatesStr = goldenCandidates.length > 0 
         ? goldenCandidates.map((id, i) => `${i + 1}. <@${id}>`).join("\n") 
-        : `*Sedang dalam periode akumulasi keaktifan. 2 Golden Candidates akan diundi pada masa H-5 (tgl ${dateInfo.daysInMonth - 5} ${dateInfo.monthName}) dari member teraktif!*`;
+        : `*Sedang dalam periode akumulasi keaktifan. 2 Golden Candidates akan diumumkan pada Tanggal 1 ${dateInfo.monthName} dari member teraktif sebulan penuh!*`;
 
       const redeemedStr = currentRedeemed.length > 0
         ? currentRedeemed.map((id, i) => `${i + 1}. <@${id}> (Sudah Redeem)`).join("\n")
@@ -182,11 +191,12 @@ const command: Command = {
         .setTitle(`🌟 STATUS SEASON BULANAN • ${dateInfo.monthName.toUpperCase()} ${dateInfo.year}`)
         .setColor("#6366F1")
         .setDescription(
-          `Sistem ekonomi Maya berputar secara musiman setiap bulan. Seluruh poin direset ke 0 di akhir bulan demi keadilan rotasi hadiah!\n\n` +
-          `⏳ **Sisa Waktu Season**: **${dateInfo.daysRemaining} Hari** (s.d. ${dateInfo.daysInMonth} ${dateInfo.monthName} 23:59 WIB)\n` +
+          `Sistem ekonomi Maya berputar secara musiman. Jendela penukaran dibuka tanggal 3 s.d. 5, dan seluruh poin direset ke 0 pada tanggal 5 pukul 23:59 WIB demi keadilan rotasi hadiah!\n\n` +
+          `📅 **Jadwal Periode Redeem**: Tanggal **3 s.d. 5 ${dateInfo.monthName}**\n` +
+          `🔄 **Reset Saldo ke 0**: Tanggal **5 ${dateInfo.monthName} pukul 23:59 WIB**\n` +
           `🎟️ **Kuota Pemenang Redeem /shop**: **${currentRedeemed.length}/${quotaMax} Slot Terisi**\n\n` +
           `⚠️ **Peringatan Poin Hangus**:\n` +
-          `> Jika terlambat menukarkan poin sebelum akhir bulan, maka seluruh saldo poin akan **HANGUS & DIRESET KE 0**!`
+          `> Jika Golden Candidates tidak menukarkan poin sebelum tanggal 5 pukul 23:59 WIB, seluruh saldo poin akan **HANGUS & DIRESET KE 0**!`
         )
         .addFields(
           {
