@@ -1,27 +1,39 @@
 // FRONTEND COMPONENT: LEVELING & XP SYSTEM
 
+function loadLevelingConfig(config, channels) {
+  const enabledCheckbox = document.getElementById('leveling-enabled');
+  const channelSelect = document.getElementById('leveling-channel');
+  const messageInput = document.getElementById('leveling-message');
+
+  if (enabledCheckbox) {
+    enabledCheckbox.checked = config?.levelingEnabled !== false;
+  }
+
+  if (channelSelect) {
+    const channelList = (channels && channels.length > 0)
+      ? channels
+      : (typeof guildChannels !== 'undefined' && guildChannels.length > 0 ? guildChannels : []);
+
+    const selectedId = config?.levelUpChannelId || '';
+    channelSelect.innerHTML = '<option value="">-- Gunakan Channel Asal (Default) --</option>' +
+      channelList.map(c => `<option value="${c.id}" ${selectedId === c.id ? 'selected' : ''}>#${escapeHtml(c.name)}</option>`).join('');
+
+    if (selectedId) {
+      channelSelect.value = selectedId;
+    }
+  }
+
+  if (messageInput) {
+    messageInput.value = config?.levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!";
+  }
+}
+
 async function loadLevelingData() {
   if (!selectedGuildId) return;
 
   const tableBody = document.getElementById('leveling-leaderboard-table-body');
-  const channelSelect = document.getElementById('leveling-channel');
-  const enabledCheckbox = document.getElementById('leveling-enabled');
-  const messageInput = document.getElementById('leveling-message');
   const statMembers = document.getElementById('stat-leveling-members');
   const statHighestLevel = document.getElementById('stat-leveling-highest');
-
-  // Populate channel dropdown from cached guildChannels
-  if (channelSelect && typeof guildChannels !== 'undefined' && guildChannels.length > 0) {
-    const currentVal = channelSelect.value;
-    channelSelect.innerHTML = '<option value="">-- Gunakan Channel Asal (Default) --</option>';
-    guildChannels.forEach(ch => {
-      const opt = document.createElement('option');
-      opt.value = ch.id;
-      opt.textContent = `#${ch.name}`;
-      channelSelect.appendChild(opt);
-    });
-    if (currentVal) channelSelect.value = currentVal;
-  }
 
   try {
     const res = await apiFetch(`/api/leveling/${selectedGuildId}`);
@@ -30,16 +42,11 @@ async function loadLevelingData() {
     const data = await res.json();
     const config = data.config || {};
     const leaderboard = data.leaderboard || [];
+    const channels = (data.channels && data.channels.length > 0)
+      ? data.channels
+      : (typeof guildChannels !== 'undefined' ? guildChannels : []);
 
-    if (enabledCheckbox) {
-      enabledCheckbox.checked = config.levelingEnabled !== false;
-    }
-    if (channelSelect && config.levelUpChannelId) {
-      channelSelect.value = config.levelUpChannelId;
-    }
-    if (messageInput) {
-      messageInput.value = config.levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!";
-    }
+    loadLevelingConfig(config, channels);
 
     if (statMembers) {
       statMembers.innerText = (data.totalMembers || 0).toLocaleString('id-ID');
@@ -128,22 +135,36 @@ async function saveLevelingConfig() {
   const channelSelect = document.getElementById('leveling-channel');
   const messageInput = document.getElementById('leveling-message');
 
+  const selectedChannelVal = channelSelect ? channelSelect.value.trim() : '';
+
   const payload = {
     levelingEnabled: enabledCheckbox ? enabledCheckbox.checked : true,
-    levelUpChannelId: channelSelect ? channelSelect.value || null : null,
+    levelUpChannelId: selectedChannelVal ? selectedChannelVal : null,
     levelUpMessage: messageInput ? messageInput.value.trim() : '',
   };
 
   try {
     const res = await apiFetch(`/api/leveling/${selectedGuildId}/config`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error('Gagal menyimpan setting leveling.');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Gagal menyimpan setting leveling.');
+    }
+
+    const data = await res.json();
+    if (guildConfig) {
+      guildConfig.levelingEnabled = payload.levelingEnabled;
+      guildConfig.levelUpChannelId = payload.levelUpChannelId;
+      guildConfig.levelUpMessage = payload.levelUpMessage;
+    }
 
     if (typeof showToast === 'function') {
-      showToast('Berhasil Disimpan', 'Konfigurasi Level & XP berhasil diperbarui!', 'success');
+      const channelLabel = payload.levelUpChannelId ? 'channel khusus' : 'channel asal';
+      showToast('Berhasil Disimpan', `Pengaturan notifikasi level-up diarahkan ke ${channelLabel}!`, 'success');
     }
   } catch (err) {
     console.error("Error saving leveling config:", err);

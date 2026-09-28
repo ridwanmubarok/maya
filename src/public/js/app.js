@@ -402,6 +402,10 @@ async function selectGuild(guildId) {
       loadEconomyConfig(config);
     }
 
+    if (typeof loadLevelingConfig === 'function') {
+      loadLevelingConfig(config, channels);
+    }
+
     // Fetch server roles and await before showing tab (prevents stale roles on guild switch)
     try {
       const rolesRes = await apiFetch(`/api/roles/${guildId}`);

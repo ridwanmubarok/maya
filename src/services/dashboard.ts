@@ -488,6 +488,21 @@ export function startDashboard(client: MayaClient) {
         };
       });
 
+      let guild = client.guilds.cache.get(guildId);
+      if (!guild) {
+        guild = (await client.guilds.fetch(guildId).catch(() => null)) || undefined;
+      }
+      let channels: { id: string; name: string }[] = [];
+      if (guild) {
+        try {
+          const fetchedChannels = await guild.channels.fetch();
+          channels = Array.from(fetchedChannels.values())
+            .filter((c): c is any => c !== null && typeof c.isTextBased === "function" && c.isTextBased() && !c.isThread())
+            .map(c => ({ id: c.id, name: c.name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        } catch (_) {}
+      }
+
       res.json({
         success: true,
         config: config || {
@@ -497,6 +512,7 @@ export function startDashboard(client: MayaClient) {
         },
         leaderboard: formattedUsers,
         totalMembers,
+        channels,
       });
     } catch (error: any) {
       logger.error(`Error fetching leveling data for guild ${guildId}:`, error);
@@ -508,6 +524,7 @@ export function startDashboard(client: MayaClient) {
   app.post("/api/leveling/:guildId/config", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     const { levelingEnabled, levelUpChannelId, levelUpMessage } = req.body;
+    logger.info(`Dashboard: Saving leveling config for guild ${guildId}: levelingEnabled=${levelingEnabled}, levelUpChannelId=${levelUpChannelId}, levelUpMessage=${levelUpMessage}`);
     try {
       const updated = await prisma.guildConfig.upsert({
         where: { guildId },
@@ -928,7 +945,10 @@ export function startDashboard(client: MayaClient) {
       pantunMvpReward,
       monthlyResetEnabled,
       monthlyResetChannelId,
-      monthlyRedeemQuota
+      monthlyRedeemQuota,
+      levelingEnabled,
+      levelUpChannelId,
+      levelUpMessage
     } = req.body;
 
     try {
@@ -974,6 +994,9 @@ export function startDashboard(client: MayaClient) {
       if (monthlyResetEnabled !== undefined) updateData.monthlyResetEnabled = Boolean(monthlyResetEnabled);
       if (monthlyResetChannelId !== undefined) updateData.monthlyResetChannelId = monthlyResetChannelId || null;
       if (monthlyRedeemQuota !== undefined) updateData.monthlyRedeemQuota = Number(monthlyRedeemQuota);
+      if (levelingEnabled !== undefined) updateData.levelingEnabled = Boolean(levelingEnabled);
+      if (levelUpChannelId !== undefined) updateData.levelUpChannelId = levelUpChannelId || null;
+      if (levelUpMessage !== undefined) updateData.levelUpMessage = levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!";
 
       const updatedConfig = await prisma.guildConfig.upsert({
         where: { guildId },

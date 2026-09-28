@@ -26,7 +26,11 @@ async function saveConfig() {
     muteDuration: automodMuteDurationInput ? automodMuteDurationInput.value : 10,
 
     aiPersonality: aiPersonalityInput ? aiPersonalityInput.value : '',
-    aiModel: (aiModelInput && aiModelInput.value.trim()) ? aiModelInput.value.trim() : 'gemini-3.6-flash'
+    aiModel: (aiModelInput && aiModelInput.value.trim()) ? aiModelInput.value.trim() : 'gemini-3.6-flash',
+
+    levelingEnabled: document.getElementById('leveling-enabled')?.checked ?? true,
+    levelUpChannelId: document.getElementById('leveling-channel')?.value || null,
+    levelUpMessage: document.getElementById('leveling-message')?.value?.trim() || null
   };
   
   try {

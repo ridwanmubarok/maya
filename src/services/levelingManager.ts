@@ -192,7 +192,8 @@ async function sendLevelUpNotification(
 
     let targetChannel: TextChannel | null = null;
     if (config?.levelUpChannelId) {
-      targetChannel = (guild.channels.cache.get(config.levelUpChannelId) as TextChannel) || null;
+      targetChannel = (guild.channels.cache.get(config.levelUpChannelId) as TextChannel) ||
+        ((await guild.channels.fetch(config.levelUpChannelId).catch(() => null)) as unknown as TextChannel);
     }
     if (!targetChannel && sourceChannel) {
       targetChannel = sourceChannel;
@@ -204,6 +205,8 @@ async function sendLevelUpNotification(
     }
 
     if (!targetChannel) return;
+
+    logger.info(`LevelingManager: Sending level-up announcement for ${username} (${userId}) to channel #${targetChannel.name} (${targetChannel.id})`);
 
     const user = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
     const rawMsg = config?.levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!";
