@@ -1833,7 +1833,7 @@
               <div class="flex items-center justify-between border-b border-white/5 pb-4">
                 <div>
                   <h4 class="text-sm font-semibold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-gear text-indigo-400"></i> Pengaturan Leveling &amp; Notifikasi Level-Up
+                    <i class="fa-solid fa-ranking-star text-indigo-400"></i> Sistem Leveling &amp; Akumulasi XP
                   </h4>
                   <p class="text-xs text-gray-400 mt-1">Aktifkan sistem XP dari pesan chat, voice channel, trivia tebak-tebakan, pantun, story chain, dan polling</p>
                 </div>
@@ -1843,22 +1843,20 @@
                 </label>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1.5">
-                  <label for="leveling-channel" class="text-xs font-semibold text-gray-400">Channel Notifikasi Naik Level</label>
-                  <select id="leveling-channel" class="w-full px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none bg-discord-dark">
-                    <option value="">-- Gunakan Channel Asal (Default) --</option>
-                  </select>
-                </div>
-                <div class="flex flex-col gap-1.5">
-                  <label for="leveling-message" class="text-xs font-semibold text-gray-400">Pesan Pengumuman Level-Up (Placeholder: {user}, {username}, {level})</label>
-                  <input type="text" id="leveling-message" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none" placeholder="🎉 Selamat {user}, kamu telah naik ke **Level {level}**!">
+              <!-- ANTI-SPAM NOTICE -->
+              <div class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200 flex items-start gap-3">
+                <i class="fa-solid fa-bell-slash text-base text-indigo-400 mt-0.5"></i>
+                <div class="space-y-1">
+                  <p class="font-semibold text-white">Mode Hening &amp; Bebas Spam Aktif</p>
+                  <p class="text-gray-300 leading-relaxed">
+                    Pengumuman otomatis naik level ke channel obrolan maupun riwayat notifikasi dinonaktifkan agar obrolan server tetap bersih. Seluruh perolehan XP dan level tetap tercatat secara otomatis di sistem database. Member dapat mengecek status peringkat mereka kapan saja menggunakan slash command <code class="px-1.5 py-0.5 rounded bg-black/40 text-indigo-300 font-mono">/leaderboard</code> atau kartu grafis <code class="px-1.5 py-0.5 rounded bg-black/40 text-indigo-300 font-mono">/rank</code>.
+                  </p>
                 </div>
               </div>
 
               <div class="flex justify-end">
                 <button type="button" onclick="saveLevelingConfig()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/30">
-                  <i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan Leveling
+                  <i class="fa-solid fa-floppy-disk"></i> Simpan Status Leveling
                 </button>
               </div>
             </div>

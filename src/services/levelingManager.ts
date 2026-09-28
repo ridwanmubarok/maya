@@ -156,7 +156,8 @@ export async function awardActivityXp(
     // Check level up event
     if (newLevel > oldLevel) {
       logger.info(`LevelingManager: User ${username} (${userId}) LEVEL UP: ${oldLevel} -> ${newLevel} (+${amount} XP from ${source})`);
-      await sendLevelUpNotification(client, guildId, userId, username, newLevel, config, channel);
+      // Note: Level-up announcements/notifications to channels/users are disabled to prevent spam.
+      // Members can check their level & rank anytime using /leaderboard or /rank.
     }
 
     return {
@@ -169,73 +170,6 @@ export async function awardActivityXp(
   } catch (error) {
     logger.error(`LevelingManager: Error awarding XP for user ${userId} in guild ${guildId}:`, error);
     return null;
-  }
-}
-
-/**
- * Send congratulations level up notification
- */
-async function sendLevelUpNotification(
-  client: Client | null,
-  guildId: string,
-  userId: string,
-  username: string,
-  newLevel: number,
-  config: any,
-  sourceChannel?: TextChannel | null
-) {
-  if (!client) return;
-
-  try {
-    const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
-    if (!guild) return;
-
-    let targetChannel: TextChannel | null = null;
-    if (config?.levelUpChannelId) {
-      targetChannel = (guild.channels.cache.get(config.levelUpChannelId) as TextChannel) ||
-        ((await guild.channels.fetch(config.levelUpChannelId).catch(() => null)) as unknown as TextChannel);
-    }
-    if (!targetChannel && sourceChannel) {
-      targetChannel = sourceChannel;
-    }
-    if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find(
-        (c) => c.isTextBased() && /chat|general|umum|level|bot/i.test(c.name)
-      ) as TextChannel) || null;
-    }
-
-    if (!targetChannel) return;
-
-    logger.info(`LevelingManager: Sending level-up announcement for ${username} (${userId}) to channel #${targetChannel.name} (${targetChannel.id})`);
-
-    const user = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
-    const rawMsg = config?.levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!";
-    const formattedMsg = rawMsg
-      .replace(/{user}/g, `<@${userId}>`)
-      .replace(/{username}/g, username)
-      .replace(/{level}/g, newLevel.toString());
-
-    const embed = new EmbedBuilder()
-      .setColor("#6366F1")
-      .setTitle("🚀 LEVEL UP!")
-      .setDescription(
-        `${formattedMsg}\n\n` +
-        `> 🌟 **Level Baru:** **Level ${newLevel}**\n` +
-        `> 💬 Terus aktif mengobrol, nongkrong di Voice, dan ikuti aktivitas komunitas untuk membuka level berikutnya!`
-      )
-      .setThumbnail(user ? user.displayAvatarURL({ size: 128 }) : null)
-      .setFooter({
-        text: `Maya Leveling System • ${guild.name}`,
-        iconURL: client.user?.displayAvatarURL(),
-      })
-      .setTimestamp();
-
-    await targetChannel.send({
-      content: `🎉 <@${userId}> naik level!`,
-      embeds: [embed],
-    }).catch(() => {});
-  } catch (error) {
-    logger.error(`LevelingManager: Error sending level-up notification for user ${userId}:`, error);
   }
 }
 
