@@ -9,6 +9,8 @@ import {
 } from "discord.js";
 import { Command } from "../../types";
 import { getGuildShopItems } from "../../services/shopService";
+import { prisma } from "../../services/database";
+import { getWibDateInfo } from "../../services/monthlySeasonManager";
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -37,11 +39,23 @@ const command: Command = {
       return;
     }
 
+    const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+    const dateInfo = getWibDateInfo();
+    let currentRedeemed: string[] = [];
+    try {
+      currentRedeemed = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
+    } catch (_) {}
+    const quotaMax = config?.monthlyRedeemQuota || 3;
+    const remainingSlots = Math.max(0, quotaMax - currentRedeemed.length);
+
     // Embed Katalog Minimalis & Elegan
     const embed = new EmbedBuilder()
-      .setTitle(`Toko Server & Penukaran Hadiah`)
+      .setTitle(`🛒 Toko Server & Penukaran Hadiah • Season ${dateInfo.monthName}`)
       .setDescription(
-        `Penukaran item menggunakan **Rogatekno Koin (RTK)**.\n\n` +
+        `Penukaran hadiah menggunakan **Rogatekno Koin (RTK)**.\n\n` +
+        `🎟️ **Kuota Pemenang Bulan Ini**: **${currentRedeemed.length}/${quotaMax} Pemenang** (Sisa **${remainingSlots} Slot**!)\n` +
+        `⏳ **Batas Waktu**: Sisa **${dateInfo.daysRemaining} Hari** (s.d. tgl ${dateInfo.daysInMonth} jam 23:59 WIB)\n` +
+        `⚠️ *Poin akan hangus & direset ke 0 pada akhir bulan jika tidak ditukarkan!*\n\n` +
         `**Katalog Produk:**\n` +
         items.map((item, idx) => 
           `**${idx + 1}. ${item.title}** — **${item.priceRtk.toLocaleString("id-ID")} RTK**\n` +
@@ -50,7 +64,7 @@ const command: Command = {
         `\nPilih produk dari menu di bawah untuk melakukan penukaran.`
       )
       .setColor("#3B82F6")
-      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop` })
+      .setFooter({ text: `${interaction.guild?.name || "Server"} • Economy Shop • Maks 3 Pemenang/Bulan` })
       .setTimestamp();
 
     // Set banner image jika ada produk yang memiliki imageUrl

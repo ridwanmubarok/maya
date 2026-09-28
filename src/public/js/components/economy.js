@@ -14,7 +14,7 @@ function loadEconomyConfig(config) {
   }
 
   if (amountInput) {
-    amountInput.value = config.voiceRewardAmount ?? 5;
+    amountInput.value = config.voiceRewardAmount ?? 25;
   }
 
   loadEconomyBalances();
@@ -30,7 +30,7 @@ async function loadEconomyBalances() {
     const res = await apiFetch(`/api/economy/${selectedGuildId}`);
     if (!res.ok) throw new Error('Gagal memuat saldo dompet server.');
 
-    const { balances, totalCirculating, totalWallets } = await res.json();
+    const { balances, totalCirculating, totalWallets, season } = await res.json();
 
     const elemTotal = document.getElementById('stat-total-circulating');
     const elemWallets = document.getElementById('stat-total-wallets');
@@ -38,25 +38,45 @@ async function loadEconomyBalances() {
     if (elemTotal) elemTotal.innerText = `${totalCirculating.toLocaleString('id-ID')} RTK`;
     if (elemWallets) elemWallets.innerText = totalWallets;
 
+    // Render Season Details
+    if (season && season.dateInfo) {
+      const daysElem = document.getElementById('stat-season-days');
+      const resetElem = document.getElementById('stat-season-reset-date');
+      const quotaElem = document.getElementById('stat-season-quota');
+
+      if (daysElem) daysElem.innerText = `${season.dateInfo.daysRemaining} Hari`;
+      if (resetElem) resetElem.innerText = `Reset ${season.dateInfo.daysInMonth} ${season.dateInfo.monthName} 23:59 WIB`;
+      if (quotaElem) quotaElem.innerText = `${season.config.currentMonthRedeemedUsers.length}/${season.config.monthlyRedeemQuota} Pemenang`;
+
+      renderSeasonCandidates(season.config.goldenCandidateIds, balances);
+    }
+
     if (!balances || balances.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="4" class="p-6 text-center text-gray-500 text-xs">Belum ada saldo member yang tercatat di server ini.</td>
+          <td colspan="5" class="p-6 text-center text-gray-500 text-xs">Belum ada saldo member yang tercatat di server ini.</td>
         </tr>
       `;
       return;
     }
 
+    const goldenIds = season?.config?.goldenCandidateIds || [];
+
     tableBody.innerHTML = balances.map((b, idx) => {
       const rank = idx + 1;
       const rankBadge = rank === 1 ? '🥇 Peringkat 1' : rank === 2 ? '🥈 Peringkat 2' : rank === 3 ? '🥉 Peringkat 3' : `#${rank}`;
       const safeUsername = escapeHtml(b.username);
+      const isGold = goldenIds.includes(b.userId);
+
       return `
         <tr class="border-b border-white/5 hover:bg-white/2 transition-all">
           <td class="p-4 font-semibold text-xs text-white">${rankBadge}</td>
           <td class="p-4 text-xs text-white font-medium">
             <div class="flex flex-col">
-              <span class="font-bold">${safeUsername}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold">${safeUsername}</span>
+                ${isGold ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold">🌟 GOLDEN 50K</span>' : ''}
+              </div>
               <span class="text-[10px] text-gray-500 font-mono">${b.userId}</span>
             </div>
           </td>
@@ -77,6 +97,94 @@ async function loadEconomyBalances() {
     }).join('');
   } catch (error) {
     showToast('Economy Error', error.message || 'Gagal memuat data dompet.', 'error');
+  }
+}
+
+function renderSeasonCandidates(candidateIds, balances = []) {
+  const container = document.getElementById('season-candidates-container');
+  if (!container) return;
+
+  if (!candidateIds || candidateIds.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-3 p-4 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-400">
+        Belum ada Golden Candidates terpilih untuk season ini. Klik tombol <strong>Acak Ulang Kandidat</strong> di atas untuk mengundi!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = candidateIds.map((id, index) => {
+    const userBalance = balances.find(b => b.userId === id);
+    const scoreText = userBalance ? `${userBalance.score.toLocaleString('id-ID')} RTK` : '0 RTK';
+    const usernameText = userBalance ? userBalance.username : `User ${id}`;
+
+    return `
+      <div class="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 space-y-2 relative overflow-hidden">
+        <div class="absolute -right-2 -bottom-2 opacity-10 text-4xl text-amber-400 pointer-events-none">
+          <i class="fa-solid fa-crown"></i>
+        </div>
+        <div class="flex items-center justify-between text-xs text-amber-400 font-bold">
+          <span>Golden Candidate #${index + 1}</span>
+          <span class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-[10px]">Plafon 50k</span>
+        </div>
+        <div>
+          <div class="text-sm font-bold text-white truncate">${escapeHtml(usernameText)}</div>
+          <div class="text-[10px] text-gray-400 font-mono">${id}</div>
+        </div>
+        <div class="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
+          <span class="text-gray-400">Saldo Saat Ini:</span>
+          <span class="font-bold text-amber-400 font-mono">${scoreText}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function triggerH5Warning() {
+  if (!selectedGuildId) return;
+  if (!confirm('Kirim pengumuman & notifikasi peringatan H-5 sekarang ke server Discord dan channel #history? (Notifikasi akan mem-ping @amubhya dan 3 Golden Candidates)')) return;
+
+  try {
+    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/trigger-h5`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal mengirim peringatan H-5.');
+    showToast('Sukses!', data.message, 'success');
+  } catch (err) {
+    showToast('Gagal Peringatan H-5', err.message, 'error');
+  }
+}
+
+async function rerollCandidates() {
+  if (!selectedGuildId) return;
+  if (!confirm('Acak ulang 3 Golden Candidates untuk season ini?')) return;
+
+  try {
+    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/pick-candidates`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal mengundi kandidat.');
+    showToast('Kandidat Terpilih!', data.message, 'success');
+    loadEconomyBalances();
+  } catch (err) {
+    showToast('Gagal Acak Kandidat', err.message, 'error');
+  }
+}
+
+async function confirmResetSeason() {
+  if (!selectedGuildId) return;
+  const promptAns = prompt('PERINGATAN: Aksi ini akan mengarsipkan Top 10 Hall of Fame ke database, mencatat ke channel #history, MERESET SELURUH POIN RTK KE 0, dan mengaktifkan masa cooldown untuk peraih redeem bulan ini!\n\nKetik "RESET" untuk mengonfirmasi:');
+  if (promptAns !== 'RESET') {
+    showToast('Dibatalkan', 'Reset season dibatalkan.', 'info');
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/reset`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal mereset season.');
+    showToast('Season Direset!', data.message, 'success');
+    loadEconomyBalances();
+  } catch (err) {
+    showToast('Gagal Reset Season', err.message, 'error');
   }
 }
 
@@ -156,7 +264,7 @@ async function saveEconomyConfig() {
 
   const enabled = document.getElementById('voice-reward-enabled')?.checked ?? true;
   const interval = parseInt(document.getElementById('voice-reward-interval')?.value || '10', 10);
-  const amount = parseInt(document.getElementById('voice-reward-amount')?.value || '5', 10);
+  const amount = parseInt(document.getElementById('voice-reward-amount')?.value || '25', 10);
 
   try {
     const res = await apiFetch(`/api/configs/${selectedGuildId}`, {

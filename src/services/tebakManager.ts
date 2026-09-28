@@ -16,6 +16,7 @@ import {
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
+import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 
 export interface TebakQuestion {
   id: string;
@@ -465,14 +466,17 @@ Format JSON wajib:
       if (!session.answeredUserIds) session.answeredUserIds = new Set<string>();
       session.answeredUserIds.add(interaction.user.id);
 
-      // Base reward points:
-      // 1. First correct answer in daily quiz: 150 points
-      // 2. Subsequent correct answer: 120 points
-      const baseReward = isFirstDailyWinner ? 150 : 120;
+      // Base reward points from GuildConfig:
+      // 1. First correct answer in daily quiz: 400 points (default)
+      // 2. Subsequent correct answer: 300 points (default)
+      const config = await prisma.guildConfig.findUnique({ where: { guildId: session.guildId } }).catch(() => null);
+      const firstReward = config?.dailyRiddleRewardAmount ?? 400;
+      const closeReward = config?.dailyRiddleCloseRewardAmount ?? 300;
+      const baseReward = isFirstDailyWinner ? firstReward : closeReward;
 
-      // Deduct 15 points per previous wrong attempt (if answered on 2nd or 3rd try)
-      const wrongAttemptDeduction = (newAttempts - 1) * 15;
-      const earnedPoints = Math.max(15, baseReward - wrongAttemptDeduction);
+      // Deduct 25 points per previous wrong attempt (if answered on 2nd or 3rd try)
+      const wrongAttemptDeduction = (newAttempts - 1) * 25;
+      const earnedPoints = Math.max(50, baseReward - wrongAttemptDeduction);
 
       if (session.isDaily) {
         // Daily Mode: Multi-user participation!
@@ -792,15 +796,29 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
         where: { guildId_userId: { guildId, userId } },
       });
 
+      const currentScore = existing?.score ?? 0;
+      const allowed = await calculateAllowedEarnedPoints(guildId, userId, currentScore, points);
+
       if (existing) {
         const updated = await prisma.triviaScore.update({
           where: { id: existing.id },
-          data: { score: existing.score + points, username },
+          data: {
+            score: existing.score + allowed,
+            username,
+            participatedTrivia: true,
+          },
         });
         return updated.score;
       } else {
         const created = await prisma.triviaScore.create({
-          data: { guildId, userId, username, score: points, dailyScore: points },
+          data: {
+            guildId,
+            userId,
+            username,
+            score: allowed,
+            dailyScore: allowed,
+            participatedTrivia: true,
+          },
         });
         return created.score;
       }
@@ -820,22 +838,26 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
         where: { guildId_userId: { guildId, userId } },
       });
 
+      const currentScore = existing?.score ?? 0;
+      const allowed = await calculateAllowedEarnedPoints(guildId, userId, currentScore, points);
+
       if (existing) {
         const isNewDay = existing.lastDailyDate !== todayStr;
-        const newDaily = isNewDay ? points : existing.dailyScore + points;
+        const newDaily = isNewDay ? allowed : existing.dailyScore + allowed;
 
         const isNewQuizDay = existing.lastDailyQuizDate !== todayStr;
-        const newDailyQuiz = isNewQuizDay ? points : existing.dailyQuizScore + points;
+        const newDailyQuiz = isNewQuizDay ? allowed : existing.dailyQuizScore + allowed;
 
         const updated = await prisma.triviaScore.update({
           where: { id: existing.id },
           data: {
-            score: existing.score + points,
+            score: existing.score + allowed,
             dailyScore: newDaily,
             dailyQuizScore: newDailyQuiz,
             lastDailyDate: todayStr,
             lastDailyQuizDate: todayStr,
             username,
+            participatedTrivia: true,
           },
         });
         return updated.dailyQuizScore;
@@ -845,11 +867,12 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
             guildId,
             userId,
             username,
-            score: points,
-            dailyScore: points,
-            dailyQuizScore: points,
+            score: allowed,
+            dailyScore: allowed,
+            dailyQuizScore: allowed,
             lastDailyDate: todayStr,
             lastDailyQuizDate: todayStr,
+            participatedTrivia: true,
           },
         });
         return created.dailyQuizScore;

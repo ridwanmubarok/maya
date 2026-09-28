@@ -32,6 +32,13 @@ import {
   approvePendingMember,
   kickPendingMember,
 } from "./joinRequestService";
+import {
+  getWibDateInfo,
+  sendH5Notification,
+  sendH3Notification,
+  archiveAndResetSeason,
+  pickMonthlyGoldenCandidates,
+} from "./monthlySeasonManager";
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
@@ -226,15 +233,89 @@ export function startDashboard(client: MayaClient) {
         _count: { id: true }
       });
 
+      const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+      const dateInfo = getWibDateInfo();
+      const pastArchives = await prisma.monthlySeasonArchive.findMany({
+        where: { guildId },
+        orderBy: { createdAt: "desc" },
+        take: 5
+      });
+
+      let goldenCandidateIds: string[] = [];
+      try {
+        goldenCandidateIds = JSON.parse(config?.goldenCandidateIds || "[]");
+      } catch (_) {}
+
+      let currentMonthRedeemedUsers: string[] = [];
+      try {
+        currentMonthRedeemedUsers = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
+      } catch (_) {}
+
+      let cooldownUserIds: string[] = [];
+      try {
+        cooldownUserIds = JSON.parse(config?.cooldownUserIds || "[]");
+      } catch (_) {}
+
       res.json({
         success: true,
         balances: topBalances,
         totalCirculating: totalStats._sum.score || 0,
-        totalWallets: totalStats._count.id || 0
+        totalWallets: totalStats._count.id || 0,
+        season: {
+          dateInfo,
+          config: {
+            monthlyResetEnabled: config?.monthlyResetEnabled ?? true,
+            monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 3,
+            goldenCandidateIds,
+            currentMonthRedeemedUsers,
+            cooldownUserIds,
+            lastMonthlyWarningH5Date: config?.lastMonthlyWarningH5Date,
+            lastMonthlyWarningH3Date: config?.lastMonthlyWarningH3Date,
+            lastMonthlyResetDate: config?.lastMonthlyResetDate,
+          },
+          archives: pastArchives
+        }
       });
     } catch (error: any) {
       logger.error(`Error fetching economy data for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal memuat data ekonomi server." });
+    }
+  });
+
+  // Manual Trigger H-5 Warning Notification to @amubhya and Candidates (Admin)
+  app.post("/api/economy/:guildId/season/trigger-h5", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      await sendH5Notification(client, guildId);
+      res.json({ success: true, message: "Notifikasi H-5 berhasil dikirim ke server & dicatat di #history!" });
+    } catch (error: any) {
+      logger.error(`Error triggering H-5 warning for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengirim notifikasi H-5." });
+    }
+  });
+
+  // Manual Re-roll / Pick 3 Golden Candidates (Admin)
+  app.post("/api/economy/:guildId/season/pick-candidates", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
+      res.json({ success: true, candidates, message: `Berhasil memilih ulang 3 Golden Candidates: ${candidates.join(", ")}` });
+    } catch (error: any) {
+      logger.error(`Error picking golden candidates for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal memilih golden candidates." });
+    }
+  });
+
+  // Manual Season Archive & Reset Points (Admin)
+  app.post("/api/economy/:guildId/season/reset", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      await archiveAndResetSeason(client, guildId);
+      const newCandidates = await pickMonthlyGoldenCandidates(client, guildId, true);
+      res.json({ success: true, newCandidates, message: "Season berhasil diarsipkan ke database, poin direset ke 0, dan kandidat baru telah dipilih!" });
+    } catch (error: any) {
+      logger.error(`Error resetting season for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mereset season." });
     }
   });
 

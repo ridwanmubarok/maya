@@ -3,6 +3,7 @@ import { BotEvent, MayaClient } from "../types";
 import { logger } from "../utils/logger";
 import { initDailyRiddleScheduler } from "../services/dailyRiddleScheduler";
 import { initVoiceRewardTicker } from "../services/voiceRewardManager";
+import { initMonthlyResetScheduler } from "../services/monthlyResetScheduler";
 import { broadcastMayaAdjustmentHistory } from "../utils/historyLogger";
 
 const event: BotEvent = {
@@ -11,9 +12,10 @@ const event: BotEvent = {
   async execute(client: MayaClient) {
     logger.info(`Bot berhasil login sebagai ${client.user?.tag}!`);
 
-    // Initialize automatic daily riddle background scheduler & voice reward ticker
+    // Initialize automatic daily riddle background scheduler, voice reward ticker, and monthly season reset scheduler
     initDailyRiddleScheduler(client);
     initVoiceRewardTicker(client);
+    initMonthlyResetScheduler(client);
 
     // Kirim silent history announcement tentang penyesuaian terbaru
     broadcastMayaAdjustmentHistory(client);

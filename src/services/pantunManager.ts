@@ -2,6 +2,7 @@ import { EmbedBuilder, TextChannel, Message, Guild } from "discord.js";
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
+import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 
 /**
  * Get current date string in WIB timezone (YYYY-MM-DD)
@@ -377,25 +378,38 @@ export async function handlePantunMessage(message: Message) {
     });
 
     // Award participation reward points
-    const reward = config.pantunRewardAmount ?? 15;
+    const reward = config.pantunRewardAmount ?? 100;
     if (reward > 0) {
-      await prisma.triviaScore.upsert({
-        where: { guildId_userId: { guildId, userId: message.author.id } },
-        update: {
-          score: { increment: reward },
-          dailyScore: { increment: reward },
-          lastDailyDate: todayStr,
-          username: message.author.displayName || message.author.username
-        },
-        create: {
-          guildId,
-          userId: message.author.id,
-          username: message.author.displayName || message.author.username,
-          score: reward,
-          dailyScore: reward,
-          lastDailyDate: todayStr
-        }
+      const existingScore = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId, userId: message.author.id } }
       });
+      const currentPoints = existingScore?.score ?? 0;
+      const allowedPoints = await calculateAllowedEarnedPoints(guildId, message.author.id, currentPoints, reward);
+
+      if (existingScore) {
+        await prisma.triviaScore.update({
+          where: { id: existingScore.id },
+          data: {
+            score: { increment: allowedPoints },
+            dailyScore: { increment: allowedPoints },
+            lastDailyDate: todayStr,
+            username: message.author.displayName || message.author.username,
+            participatedPantun: true,
+          }
+        });
+      } else {
+        await prisma.triviaScore.create({
+          data: {
+            guildId,
+            userId: message.author.id,
+            username: message.author.displayName || message.author.username,
+            score: allowedPoints,
+            dailyScore: allowedPoints,
+            lastDailyDate: todayStr,
+            participatedPantun: true,
+          }
+        });
+      }
     }
 
     // React with appreciation emojis
@@ -534,26 +548,39 @@ Balas HANYA dalam format JSON persis tanpa markdown lain:
       }
     });
 
-    // Award MVP Bonus (+150 RTK Points)
-    const mvpReward = config.pantunMvpReward ?? 150;
+    // Award MVP Bonus (+500 RTK Points)
+    const mvpReward = config.pantunMvpReward ?? 500;
     if (mvpReward > 0 && mvpData.mvpUserId) {
-      await prisma.triviaScore.upsert({
-        where: { guildId_userId: { guildId: guild.id, userId: mvpData.mvpUserId } },
-        update: {
-          score: { increment: mvpReward },
-          dailyScore: { increment: mvpReward },
-          lastDailyDate: todayStr,
-          username: mvpData.mvpUsername
-        },
-        create: {
-          guildId: guild.id,
-          userId: mvpData.mvpUserId,
-          username: mvpData.mvpUsername,
-          score: mvpReward,
-          dailyScore: mvpReward,
-          lastDailyDate: todayStr
-        }
+      const existingScore = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId: guild.id, userId: mvpData.mvpUserId } }
       });
+      const currentPoints = existingScore?.score ?? 0;
+      const allowedPoints = await calculateAllowedEarnedPoints(guild.id, mvpData.mvpUserId, currentPoints, mvpReward);
+
+      if (existingScore) {
+        await prisma.triviaScore.update({
+          where: { id: existingScore.id },
+          data: {
+            score: { increment: allowedPoints },
+            dailyScore: { increment: allowedPoints },
+            lastDailyDate: todayStr,
+            username: mvpData.mvpUsername,
+            participatedPantun: true,
+          }
+        });
+      } else {
+        await prisma.triviaScore.create({
+          data: {
+            guildId: guild.id,
+            userId: mvpData.mvpUserId,
+            username: mvpData.mvpUsername,
+            score: allowedPoints,
+            dailyScore: allowedPoints,
+            lastDailyDate: todayStr,
+            participatedPantun: true,
+          }
+        });
+      }
     }
 
     // Full Complete Pantun Compilation

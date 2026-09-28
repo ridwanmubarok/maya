@@ -1603,14 +1603,14 @@
             </div>
 
             <!-- ECONOMY SUMMARY STAT CARDS -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
                 <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
                   <span>Total RTK Beredar</span>
                   <i class="fa-solid fa-coins text-amber-400"></i>
                 </div>
                 <div id="stat-total-circulating" class="text-2xl font-bold text-white font-outfit">0 RTK</div>
-                <p class="text-[10px] text-gray-400">Total Rogatekno Koin di server</p>
+                <p class="text-[10px] text-gray-400">Total koin aktif season ini</p>
               </div>
 
               <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
@@ -1620,6 +1620,53 @@
                 </div>
                 <div id="stat-total-wallets" class="text-2xl font-bold text-white font-outfit">0</div>
                 <p class="text-[10px] text-gray-400">Member yang memiliki saldo</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Sisa Waktu Season</span>
+                  <i class="fa-solid fa-hourglass-half text-rose-400"></i>
+                </div>
+                <div id="stat-season-days" class="text-2xl font-bold text-white font-outfit">- Hari</div>
+                <p id="stat-season-reset-date" class="text-[10px] text-gray-400">Reset ke 0 akhir bulan</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Kuota Redeem Toko</span>
+                  <i class="fa-solid fa-ticket text-emerald-400"></i>
+                </div>
+                <div id="stat-season-quota" class="text-2xl font-bold text-white font-outfit">0/3</div>
+                <p class="text-[10px] text-gray-400">Maks 3 pemenang per bulan</p>
+              </div>
+            </div>
+
+            <!-- SEASON ENGINE & CANDIDATES PANEL -->
+            <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+              <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div class="flex items-center gap-2.5 text-amber-400">
+                  <i class="fa-solid fa-crown text-base"></i>
+                  <div>
+                    <h4 class="text-sm font-bold text-white">Season Bulanan &amp; 3 Golden Candidates (Plafon 50.000 RTK)</h4>
+                    <p class="text-[11px] text-gray-400">Hanya 3 orang random aktif yang bisa mencapai 50k poin per bulan. Member lainnya dibatasi 20k poin.</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="triggerH5Warning()" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-bell"></i> Tes Peringatan H-5
+                  </button>
+                  <button onclick="rerollCandidates()" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-dice"></i> Acak Ulang Kandidat
+                  </button>
+                  <button onclick="confirmResetSeason()" class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset Season Sekarang
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="season-candidates-container">
+                <!-- Golden candidates list loaded dynamically -->
+                <div class="p-3 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-500">Memuat kandidat...</div>
               </div>
             </div>
 

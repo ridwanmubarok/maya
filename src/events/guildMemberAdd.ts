@@ -28,9 +28,9 @@ const event: BotEvent = {
         logger.error(`Auto-role: Gagal menambahkan role "Rotasi" ke member ${member.user.tag}:`, roleErr);
       }
 
-      // Award 50 RTK Points Welcome Bonus to new member
+      // Award 500 RTK Points Welcome Bonus to new member
       const todayStr = new Date().toISOString().split("T")[0];
-      const startingBonus = 50;
+      const startingBonus = 500;
       try {
         await prisma.triviaScore.upsert({
           where: { guildId_userId: { guildId: guild.id, userId: member.user.id } },
@@ -57,7 +57,7 @@ const event: BotEvent = {
       // Try sending friendly welcome DM with bonus notification
       member.send({
         content: `👋 Selamat datang di **${guild.name}**, ${member.user.username}!\n\n` +
-          `🎁 Sebagai hadiah selamat datang, kamu telah menerima bonus **+50 RTK Points** (Rogatekno Koin) di dompetmu!\n` +
+          `🎁 Sebagai hadiah selamat datang, kamu telah menerima bonus **+${startingBonus} RTK Points** (Rogatekno Koin) di dompetmu!\n` +
           `Gunakan perintah \`/cash saldo\` di server untuk melihat dompetmu, dan nikmati berbagai fitur seru seperti Pantun Harian, Tebak-Tebakan, Voice Cash, dan Penukaran Hadiah di \`/shop\`!`
       }).catch(() => {});
 
@@ -91,7 +91,7 @@ const event: BotEvent = {
       // Add Welcome Bonus Field to Embed
       welcomeEmbed.addFields({
         name: "🎁 Bonus Selamat Datang",
-        value: `Selamat! Kamu mendapatkan bonus modal awal **+50 RTK Points**! Cek saldomu dengan perintah \`/cash saldo\`.`,
+        value: `Selamat! Kamu mendapatkan bonus modal awal **+500 RTK Points**! Cek saldomu dengan perintah \`/cash saldo\`.`,
         inline: false
       });
 

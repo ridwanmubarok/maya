@@ -25,23 +25,23 @@ model GuildConfig {
   dailyRiddleEnabled     Boolean  @default(true)
   dailyRiddlePostHour    Int      @default(9)
   dailyLeaderboardPostHour Int    @default(21)
-  dailyRiddleRewardAmount  Int    @default(10)
-  dailyRiddleCloseRewardAmount Int @default(5)
+  dailyRiddleRewardAmount  Int    @default(400)
+  dailyRiddleCloseRewardAmount Int @default(300)
   dailyPollChannelId     String?
   dailyPollEnabled       Boolean  @default(true)
   dailyPollPostHour      Int      @default(10)
-  dailyPollRewardAmount  Int      @default(5)
+  dailyPollRewardAmount  Int      @default(50)
   menfessChannelId       String?
   menfessEnabled         Boolean  @default(true)
   voiceRewardEnabled     Boolean  @default(true)
   voiceRewardIntervalMin Int      @default(10)
-  voiceRewardAmount      Int      @default(5)
+  voiceRewardAmount      Int      @default(25)
   storyChannelId         String?
   storyEnabled           Boolean  @default(true)
   storyStartHour         Int      @default(17)
   storyPublishHour       Int      @default(20)
-  storyWordReward        Int      @default(10)
-  storyMvpReward         Int      @default(250)
+  storyWordReward        Int      @default(50)
+  storyMvpReward         Int      @default(500)
   lastRiddlePostDate     String?
   lastLeaderboardPostDate String?
   lastPollPostDate       String?
@@ -51,10 +51,19 @@ model GuildConfig {
   pantunChannelId        String?
   pantunStartHour        Int      @default(9)
   pantunCloseHour        Int      @default(23)
-  pantunRewardAmount     Int      @default(15)
-  pantunMvpReward        Int      @default(150)
+  pantunRewardAmount     Int      @default(100)
+  pantunMvpReward        Int      @default(500)
   lastPantunStartDate    String?
   lastPantunCloseDate    String?
+  monthlyResetEnabled       Boolean  @default(true)
+  monthlyResetChannelId      String?
+  monthlyRedeemQuota        Int      @default(3)
+  goldenCandidateIds        String   @default("[]")
+  currentMonthRedeemedUsers String   @default("[]")
+  cooldownUserIds           String   @default("[]")
+  lastMonthlyWarningH5Date  String?
+  lastMonthlyWarningH3Date  String?
+  lastMonthlyResetDate      String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -163,21 +172,45 @@ model ReactionRoleOption {
 }
 
 model TriviaScore {
-  id                Int      @id @default(autoincrement())
-  guildId           String
-  userId            String
-  username          String
-  score             Int      @default(0)
-  dailyScore        Int      @default(0)
-  dailyQuizScore    Int      @default(0)
-  lastDailyDate     String?  @default("")
-  lastDailyQuizDate String?  @default("")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  guildId             String
+  userId              String
+  username            String
+  score               Int      @default(0)
+  dailyScore          Int      @default(0)
+  dailyQuizScore      Int      @default(0)
+  lastDailyDate       String?  @default("")
+  lastDailyQuizDate   String?  @default("")
+  
+  // 5 Pilar Keaktifan Bulanan
+  participatedVoice   Boolean  @default(false)
+  participatedTrivia  Boolean  @default(false)
+  participatedPoll    Boolean  @default(false)
+  participatedStory   Boolean  @default(false)
+  participatedPantun  Boolean  @default(false)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, score])
   @@index([guildId, dailyQuizScore])
+}
+
+model MonthlySeasonArchive {
+  id                Int      @id @default(autoincrement())
+  guildId           String
+  seasonName        String
+  month             Int
+  year              Int
+  goldenCandidates  String   @default("[]")
+  redeemedWinners   String   @default("[]")
+  topWinners        String   @default("[]")
+  totalCirculating  Int      @default(0)
+  totalParticipants Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  @@index([guildId, year, month])
 }
 
 model MenfessLog {

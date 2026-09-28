@@ -3,6 +3,7 @@ import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 import { generateFreeImage } from "./imageGenService";
+import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 
 export interface StoryWordItem {
   id: number;
@@ -92,26 +93,39 @@ export async function handleStoryWordMessage(message: Message) {
       }
     });
 
-    // Award +10 RTK Points (or configured storyWordReward)
-    const wordReward = config.storyWordReward ?? 10;
+    // Award +50 RTK Points (or configured storyWordReward)
+    const wordReward = config.storyWordReward ?? 50;
     if (wordReward > 0) {
-      await prisma.triviaScore.upsert({
-        where: { guildId_userId: { guildId, userId: message.author.id } },
-        update: {
-          score: { increment: wordReward },
-          dailyScore: { increment: wordReward },
-          lastDailyDate: todayStr,
-          username: message.author.displayName || message.author.username
-        },
-        create: {
-          guildId,
-          userId: message.author.id,
-          username: message.author.displayName || message.author.username,
-          score: wordReward,
-          dailyScore: wordReward,
-          lastDailyDate: todayStr
-        }
+      const existingScore = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId, userId: message.author.id } }
       });
+      const currentPoints = existingScore?.score ?? 0;
+      const allowedPoints = await calculateAllowedEarnedPoints(guildId, message.author.id, currentPoints, wordReward);
+
+      if (existingScore) {
+        await prisma.triviaScore.update({
+          where: { id: existingScore.id },
+          data: {
+            score: { increment: allowedPoints },
+            dailyScore: { increment: allowedPoints },
+            lastDailyDate: todayStr,
+            username: message.author.displayName || message.author.username,
+            participatedStory: true,
+          }
+        });
+      } else {
+        await prisma.triviaScore.create({
+          data: {
+            guildId,
+            userId: message.author.id,
+            username: message.author.displayName || message.author.username,
+            score: allowedPoints,
+            dailyScore: allowedPoints,
+            lastDailyDate: todayStr,
+            participatedStory: true,
+          }
+        });
+      }
     }
 
     // React with 👍 on valid sentence message
@@ -209,7 +223,7 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
     }
 
     const rawWordStream = words.map(w => `[User ID: ${w.userId}, Name: ${w.username}] -> "${w.word}"`).join("\n");
-    const mvpReward = config?.storyMvpReward ?? 250;
+    const mvpReward = config?.storyMvpReward ?? 500;
 
     // AI Synthesis & Automatic MVP Selection with Master Storyteller & Smart Cocokologi
     const prompt = `Berikut adalah urutan kalimat mentah yang ditulis oleh member Discord secara estafet hari ini:
@@ -284,25 +298,38 @@ SYARAT FORMAT:
       }
     } catch (_) {}
 
-    // Award +250 RTK Points to MVP
+    // Award +500 RTK Points to MVP
     if (mvpUserId && mvpReward > 0) {
-      await prisma.triviaScore.upsert({
-        where: { guildId_userId: { guildId: guild.id, userId: mvpUserId } },
-        update: {
-          score: { increment: mvpReward },
-          dailyScore: { increment: mvpReward },
-          lastDailyDate: todayStr,
-          username: mvpUsername
-        },
-        create: {
-          guildId: guild.id,
-          userId: mvpUserId,
-          username: mvpUsername,
-          score: mvpReward,
-          dailyScore: mvpReward,
-          lastDailyDate: todayStr
-        }
+      const existingScore = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId: guild.id, userId: mvpUserId } }
       });
+      const currentPoints = existingScore?.score ?? 0;
+      const allowedPoints = await calculateAllowedEarnedPoints(guild.id, mvpUserId, currentPoints, mvpReward);
+
+      if (existingScore) {
+        await prisma.triviaScore.update({
+          where: { id: existingScore.id },
+          data: {
+            score: { increment: allowedPoints },
+            dailyScore: { increment: allowedPoints },
+            lastDailyDate: todayStr,
+            username: mvpUsername,
+            participatedStory: true,
+          }
+        });
+      } else {
+        await prisma.triviaScore.create({
+          data: {
+            guildId: guild.id,
+            userId: mvpUserId,
+            username: mvpUsername,
+            score: allowedPoints,
+            dailyScore: allowedPoints,
+            lastDailyDate: todayStr,
+            participatedStory: true,
+          }
+        });
+      }
     }
 
     // Save DailyStory record in DB

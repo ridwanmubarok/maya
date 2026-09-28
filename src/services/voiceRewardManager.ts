@@ -1,6 +1,7 @@
 import { Client, VoiceState } from "discord.js";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
+import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 
 interface VoiceJoinInfo {
   guildId: string;
@@ -103,7 +104,7 @@ async function processVoiceRewards() {
       }
 
       const intervalMin = config?.voiceRewardIntervalMin ?? 10;
-      const rewardAmount = config?.voiceRewardAmount ?? 5;
+      const rewardAmount = config?.voiceRewardAmount ?? 25;
       const intervalMs = intervalMin * 60 * 1000;
 
       const elapsedMs = now - info.joinedAt;
@@ -133,12 +134,16 @@ async function addVoiceRewardCash(guildId: string, userId: string, username: str
       where: { guildId_userId: { guildId, userId } }
     });
 
+    const currentScore = existing?.score ?? 0;
+    const allowed = await calculateAllowedEarnedPoints(guildId, userId, currentScore, points);
+
     if (existing) {
       await prisma.triviaScore.update({
         where: { id: existing.id },
         data: {
-          score: existing.score + points,
-          username
+          score: existing.score + allowed,
+          username,
+          participatedVoice: true,
         }
       });
     } else {
@@ -147,8 +152,9 @@ async function addVoiceRewardCash(guildId: string, userId: string, username: str
           guildId,
           userId,
           username,
-          score: points,
-          dailyScore: 0
+          score: allowed,
+          dailyScore: 0,
+          participatedVoice: true,
         }
       });
     }

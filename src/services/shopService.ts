@@ -1,6 +1,7 @@
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
 import { Client, EmbedBuilder } from "discord.js";
+import { canUserRedeemShop, recordShopRedemption } from "./monthlySeasonManager";
 
 export interface CreateShopItemInput {
   guildId: string;
@@ -88,6 +89,15 @@ export async function processShopPurchase(
     return { success: false, reason: "Produk tidak ditemukan atau sudah tidak aktif." };
   }
 
+  // Validasi Kuota Bulanan (Maks 3 orang), Cooldown, dan Syarat Keaktifan
+  const redeemCheck = await canUserRedeemShop(guildId, userId);
+  if (!redeemCheck.canRedeem) {
+    return {
+      success: false,
+      reason: redeemCheck.reason || "Kamu tidak dapat menukarkan hadiah bulan ini."
+    };
+  }
+
   // Cek saldo user
   const record = await prisma.triviaScore.findUnique({
     where: { guildId_userId: { guildId, userId } }
@@ -106,6 +116,9 @@ export async function processShopPurchase(
     where: { id: record!.id },
     data: { score: userBalance - item.priceRtk }
   });
+
+  // Catat partisipasi redeem musim ini
+  await recordShopRedemption(guildId, userId);
 
   // Buat order TRX
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");

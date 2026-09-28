@@ -9,6 +9,7 @@ import { startDashboard } from "./services/dashboard";
 import { initDailyPollScheduler } from "./services/dailyPollScheduler";
 import { initDailyStoryScheduler } from "./services/storyScheduler";
 import { initDailyPantunScheduler } from "./services/pantunScheduler";
+import { initMonthlyResetScheduler } from "./services/monthlyResetScheduler";
 import { logger } from "./utils/logger";
 
 // Load environment variables
@@ -120,6 +121,7 @@ const startBot = async () => {
     initDailyPollScheduler(client);
     initDailyStoryScheduler(client);
     initDailyPantunScheduler(client);
+    initMonthlyResetScheduler(client);
     startDashboard(client);
   } catch (error) {
     logger.error("Gagal melakukan bootstrap aplikasi:", error);

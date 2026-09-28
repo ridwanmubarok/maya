@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
+import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 
 interface PollTopicData {
   topic: string;
@@ -225,7 +226,7 @@ export async function startDailyPollForGuild(guild: any, configuredChannelId?: s
     }
 
     const config = await prisma.guildConfig.findUnique({ where: { guildId: guild.id } });
-    const rewardAmount = config?.dailyPollRewardAmount ?? 5;
+    const rewardAmount = config?.dailyPollRewardAmount ?? 50;
 
     // Generate AI Poll topic
     const topicData = await generateAIPollTopic();
@@ -306,7 +307,7 @@ export async function handlePollVoteInteraction(interaction: ButtonInteraction, 
 
     const existingVote = poll.votes.find(v => v.userId === userId);
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
-    const rewardAmount = config?.dailyPollRewardAmount ?? 5;
+    const rewardAmount = config?.dailyPollRewardAmount ?? 50;
 
     let isNewVoter = false;
 
@@ -336,20 +337,32 @@ export async function handlePollVoteInteraction(interaction: ButtonInteraction, 
         }
       });
 
-      // Award RTK Point
-      if (rewardAmount > 0) {
-        await prisma.triviaScore.upsert({
-          where: { guildId_userId: { guildId, userId } },
-          update: {
-            score: { increment: rewardAmount },
-            dailyScore: { increment: rewardAmount }
-          },
-          create: {
+      // Award RTK Point with monthly cap and activity tracking
+      const existingScore = await prisma.triviaScore.findUnique({
+        where: { guildId_userId: { guildId, userId } }
+      });
+      const currentPoints = existingScore?.score ?? 0;
+      const allowedPoints = await calculateAllowedEarnedPoints(guildId, userId, currentPoints, rewardAmount);
+
+      if (existingScore) {
+        await prisma.triviaScore.update({
+          where: { id: existingScore.id },
+          data: {
+            score: { increment: allowedPoints },
+            dailyScore: { increment: allowedPoints },
+            username,
+            participatedPoll: true,
+          }
+        });
+      } else {
+        await prisma.triviaScore.create({
+          data: {
             guildId,
             userId,
             username,
-            score: rewardAmount,
-            dailyScore: rewardAmount
+            score: allowedPoints,
+            dailyScore: allowedPoints,
+            participatedPoll: true,
           }
         });
       }
