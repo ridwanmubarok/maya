@@ -41,6 +41,7 @@ import {
   sendH3Notification,
   archiveAndResetSeason,
   pickMonthlyGoldenCandidates,
+  evaluateAndRotateGoldenCandidates,
 } from "./monthlySeasonManager";
 import { getXpRequiredForNextLevel } from "./levelingManager";
 
@@ -250,6 +251,44 @@ export function startDashboard(client: MayaClient) {
         goldenCandidateIds = JSON.parse(config?.goldenCandidateIds || "[]");
       } catch (_) {}
 
+      // Enrich golden candidates with live activity info (for admin dashboard inspection)
+      const goldenCandidateDetails = await Promise.all(
+        goldenCandidateIds.map(async (userId) => {
+          let username = `User (${userId})`;
+          let avatar = "https://cdn.discordapp.com/embed/avatars/0.png";
+          try {
+            const user = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
+            if (user) {
+              username = user.tag || user.username || username;
+              if (typeof user.displayAvatarURL === "function") {
+                avatar = user.displayAvatarURL({ size: 64 }) || avatar;
+              }
+            }
+          } catch (_) {}
+
+          const scoreRecord = await prisma.triviaScore.findUnique({
+            where: { guildId_userId: { guildId, userId } },
+          });
+
+          const score = scoreRecord?.score || 0;
+          const lastActiveAt = scoreRecord?.updatedAt || null;
+          const hoursInactive = lastActiveAt
+            ? Math.floor((Date.now() - new Date(lastActiveAt).getTime()) / (1000 * 60 * 60))
+            : null;
+          const isInactive = hoursInactive !== null ? hoursInactive >= 72 : true;
+
+          return {
+            userId,
+            username,
+            avatar,
+            score,
+            lastActiveAt,
+            hoursInactive,
+            isInactive,
+          };
+        })
+      );
+
       let currentMonthRedeemedUsers: string[] = [];
       try {
         currentMonthRedeemedUsers = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
@@ -271,6 +310,7 @@ export function startDashboard(client: MayaClient) {
             monthlyResetEnabled: config?.monthlyResetEnabled ?? true,
             monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 2,
             goldenCandidateIds,
+            goldenCandidateDetails,
             currentMonthRedeemedUsers,
             cooldownUserIds,
             lastMonthlyAnnouncementDate: config?.lastMonthlyAnnouncementDate,
@@ -287,12 +327,12 @@ export function startDashboard(client: MayaClient) {
     }
   });
 
-  // Manual Trigger Day 1 Announcement (Pengumuman 2 Golden Candidates)
+  // Manual Trigger Day 1 Announcement (Pengumuman Kickoff Season)
   app.post("/api/economy/:guildId/season/trigger-day1", authMiddleware, async (req: Request, res: Response) => {
     const { guildId } = req.params;
     try {
       await sendDay1Announcement(client, guildId);
-      res.json({ success: true, message: "Pengumuman Golden Candidates (Day 1) berhasil dikirim ke server & dicatat di #history!" });
+      res.json({ success: true, message: "Pengumuman Kickoff Season (Day 1) berhasil dikirim ke server & dicatat di #history!" });
     } catch (error: any) {
       logger.error(`Error triggering Day 1 announcement for guild ${guildId}:`, error);
       res.status(500).json({ error: error.message || "Gagal mengirim pengumuman Day 1." });
@@ -332,6 +372,32 @@ export function startDashboard(client: MayaClient) {
     } catch (error: any) {
       logger.error(`Error triggering notification for guild ${guildId}:`, error);
       res.status(500).json({ error: error.message || "Gagal mengirim notifikasi." });
+    }
+  });
+
+  // Silently Evaluate & Rotate Inactive Golden Candidates (Admin Manual Check)
+  app.post("/api/economy/:guildId/season/rotate-candidates", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const result = await evaluateAndRotateGoldenCandidates(client, guildId);
+      if (result.rotated) {
+        res.json({
+          success: true,
+          rotated: true,
+          candidates: result.currentCandidates,
+          message: `Evaluasi selesai: Terjadi rotasi hening! Kandidat aktif saat ini: ${result.currentCandidates.join(", ")}`,
+        });
+      } else {
+        res.json({
+          success: true,
+          rotated: false,
+          candidates: result.currentCandidates,
+          message: "Evaluasi selesai: Seluruh kandidat masih aktif (< 3 hari inaktif). Tidak ada pergantian slot.",
+        });
+      }
+    } catch (error: any) {
+      logger.error(`Error rotating golden candidates for guild ${guildId}:`, error);
+      res.status(500).json({ error: error.message || "Gagal mengevaluasi rotasi kandidat." });
     }
   });
 

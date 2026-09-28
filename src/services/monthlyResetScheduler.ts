@@ -9,6 +9,7 @@ import {
   sendDay5LastCallNotification,
   archiveAndResetSeason,
   pickMonthlyGoldenCandidates,
+  evaluateAndRotateGoldenCandidates,
 } from "./monthlySeasonManager";
 
 let monthlySchedulerInitialized = false;
@@ -53,15 +54,9 @@ async function checkMonthlySeasonTriggers(client: Client) {
         continue;
       }
 
-      let candidates: string[] = [];
-      try {
-        candidates = JSON.parse(config.goldenCandidateIds || "[]");
-      } catch (_) {}
-
-      // If we are within the redeem window (day 3-5) and candidates haven't been picked, pick now
-      if (dateInfo.isRedeemPeriod && candidates.length < 2) {
-        logger.info(`MonthlyResetScheduler: Mengevaluasi keaktifan member & memilih 2 Golden Candidates untuk guild ${guildId}...`);
-        candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
+      // Periodically evaluate and silently rotate inactive Golden Candidates (every 30 mins)
+      if (dateInfo.minute % 30 === 0) {
+        await evaluateAndRotateGoldenCandidates(client, guildId);
       }
 
       // 1. Tanggal 1 Alert (Evaluasi & Pengumuman Golden Candidates pada jam >= 10:00 WIB)
