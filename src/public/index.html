@@ -186,6 +186,9 @@
               <button onclick="switchTab('economy')" id="tab-btn-economy" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-coins w-4 text-center"></i> Dompet &amp; Voice Cash
               </button>
+              <button onclick="switchTab('leveling')" id="tab-btn-leveling" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-ranking-star w-4 text-center"></i> Leveling &amp; XP
+              </button>
               <button onclick="switchTab('shop')" id="tab-btn-shop" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-cart-shopping w-4 text-center"></i> Toko &amp; Penukaran
               </button>
@@ -1787,6 +1790,106 @@
 
           </div>
 
+          <!-- TAB content: LEVELING & XP (Self-contained) -->
+          <div id="tab-content-leveling" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Sistem Leveling &amp; XP Member</h3>
+                <p class="text-xs text-gray-400">Atur progres level keaktifan member, notifikasi kenaikan level, dan pantau leaderboard live</p>
+              </div>
+              <button onclick="loadLevelingData()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Refresh Data
+              </button>
+            </div>
+
+            <!-- LEVELING STAT CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="glass-panel p-5 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <i class="fa-solid fa-users"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-gray-400">Total Member Terdaftar Leveling</p>
+                    <h4 id="stat-leveling-members" class="text-xl font-bold font-mono text-white">0</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="glass-panel p-5 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <i class="fa-solid fa-crown"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-gray-400">Level Tertinggi Server</p>
+                    <h4 id="stat-leveling-highest" class="text-xl font-bold font-mono text-white">Lv. 0</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LEVELING CONFIGURATION PANEL -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/5 space-y-5">
+              <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                <div>
+                  <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-indigo-400"></i> Pengaturan Leveling &amp; Notifikasi Level-Up
+                  </h4>
+                  <p class="text-xs text-gray-400 mt-1">Aktifkan sistem XP dari pesan chat, voice channel, trivia tebak-tebakan, pantun, story chain, dan polling</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="leveling-enabled" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                  <label for="leveling-channel" class="text-xs font-semibold text-gray-400">Channel Notifikasi Naik Level</label>
+                  <select id="leveling-channel" class="w-full px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none bg-discord-dark">
+                    <option value="">-- Gunakan Channel Asal (Default) --</option>
+                  </select>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label for="leveling-message" class="text-xs font-semibold text-gray-400">Pesan Pengumuman Level-Up (Placeholder: {user}, {username}, {level})</label>
+                  <input type="text" id="leveling-message" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none" placeholder="🎉 Selamat {user}, kamu telah naik ke **Level {level}**!">
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button type="button" onclick="saveLevelingConfig()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+                  <i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan Leveling
+                </button>
+              </div>
+            </div>
+
+            <!-- LEADERBOARD TABLE -->
+            <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+              <div class="p-5 border-b border-white/5 flex justify-between items-center">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-trophy text-yellow-400"></i> Top Leaderboard Level &amp; XP Server
+                </h4>
+                <span class="text-xs text-gray-400">Permanen &bull; Tidak ter-reset bulanan</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-white/[0.02] border-b border-white/5 text-gray-400 uppercase font-mono tracking-wider">
+                    <tr>
+                      <th class="p-4 text-center w-16">Rank</th>
+                      <th class="p-4">Member</th>
+                      <th class="p-4">Level</th>
+                      <th class="p-4">Progress XP</th>
+                      <th class="p-4">Aktivitas</th>
+                    </tr>
+                  </thead>
+                  <tbody id="leveling-leaderboard-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- TAB content: SHOP (Self-contained) -->
           <div id="tab-content-shop" class="tab-pane hidden space-y-6">
             <div class="flex justify-between items-center">
@@ -2033,6 +2136,7 @@
   <script src="/js/components/pantun.js"></script>
   <script src="/js/components/analytics.js"></script>
   <script src="/js/components/economy.js"></script>
+  <script src="/js/components/leveling.js"></script>
   <script src="/js/components/shop.js"></script>
 
 </body>

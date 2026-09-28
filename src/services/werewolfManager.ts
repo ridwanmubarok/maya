@@ -13,6 +13,7 @@ import {
 import { voiceChatManager } from "./voiceChatManager";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
+import { addGameXp } from "./levelingManager";
 
 export type WerewolfRole = "werewolf" | "seer" | "doctor" | "villager" | "hunter";
 
@@ -681,6 +682,22 @@ DILARANG menggunakan markdown, tanda petik, atau kata ketawa.`;
       )
       .setFooter({ text: "Maya Werewolf Game Master • Terima kasih sudah bermain!" })
       .setTimestamp();
+
+    // Award Minigame Leveling XP (+75 XP) to all participants
+    try {
+      const anyPlayer = session.players.values().next().value;
+      const client = anyPlayer?.user?.client || null;
+      const channel = client ? (client.channels.cache.get(session.textChannelId) as any) : null;
+      for (const player of session.players.values()) {
+        addGameXp(
+          client,
+          session.guildId,
+          player.userId,
+          player.displayName || player.username,
+          channel
+        ).catch(() => {});
+      }
+    } catch (_) {}
 
     this.sessions.delete(session.guildId);
 

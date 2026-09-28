@@ -2,6 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, GuildMe
 import { Command } from "../../types";
 import { prisma } from "../../services/database";
 import { generateMemberCard, getMemberNumber } from "../../services/memberCardService";
+import { getUserRank } from "../../services/levelingManager";
 import { logger } from "../../utils/logger";
 
 const command: Command = {
@@ -66,6 +67,29 @@ const command: Command = {
       dailyScore = 0;
     }
 
+    // Fetch Level & XP Rank
+    let levelData = {
+      level: 0,
+      currentLevelXp: 0,
+      nextLevelXp: 100,
+      totalXp: 0,
+      progressPercent: 0,
+      rank: 1,
+    };
+    try {
+      const res = await getUserRank(guild.id, targetUser.id);
+      levelData = {
+        level: res.level,
+        currentLevelXp: res.currentLevelXp,
+        nextLevelXp: res.nextLevelXp,
+        totalXp: res.totalXp,
+        progressPercent: res.progressPercent,
+        rank: res.rank,
+      };
+    } catch (e) {
+      logger.error("Error fetching level rank in /profile:", e);
+    }
+
     // Hitung nomor urut member bergabung di server
     const memberNumber = member ? await getMemberNumber(guild, targetUser.id) : (guild.memberCount || 1);
 
@@ -111,9 +135,13 @@ const command: Command = {
         `> **Nama**: ${targetUser} (\`${targetUser.username}\`)\n` +
         `> **User ID**: \`${targetUser.id}\`\n` +
         `> **Status Moderasi**: \`${strikeStatus}\`\n\n` +
-        `### Ekonomi & Saldo RTK\n` +
+        `### Leveling & Aktivitas (Permanen)\n` +
+        `> **Level**: **Level ${levelData.level}** (Rank #${levelData.rank})\n` +
+        `> **XP Level**: **${levelData.currentLevelXp.toLocaleString('id-ID')} / ${levelData.nextLevelXp.toLocaleString('id-ID')} XP** (${levelData.progressPercent}%)\n` +
+        `> **Total XP**: **${levelData.totalXp.toLocaleString('id-ID')} XP**\n\n` +
+        `### Ekonomi & Saldo RTK (Musiman)\n` +
         `> **Total Saldo**: **${totalScore.toLocaleString('id-ID')} RTK**\n` +
-        `> **Peringkat Server**: **Rank #${rank}**\n` +
+        `> **Peringkat RTK**: **Rank #${rank}**\n` +
         `> **Perolehan Hari Ini**: **+${dailyScore.toLocaleString('id-ID')} RTK**\n\n` +
         `### Waktu & Keanggotaan\n` +
         `> **Nomor Member**: **#${memberNumber.toString().padStart(3, "0")}** (Member ke-${memberNumber.toLocaleString("id-ID")})\n` +

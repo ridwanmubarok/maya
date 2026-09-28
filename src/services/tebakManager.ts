@@ -17,6 +17,7 @@ import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
+import { addTriviaXp } from "./levelingManager";
 
 export interface TebakQuestion {
   id: string;
@@ -808,6 +809,7 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
             participatedTrivia: true,
           },
         });
+        addTriviaXp(null, guildId, userId, username, false).catch(() => {});
         return updated.score;
       } else {
         const created = await prisma.triviaScore.create({
@@ -820,6 +822,7 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
             participatedTrivia: true,
           },
         });
+        addTriviaXp(null, guildId, userId, username, false).catch(() => {});
         return created.score;
       }
     } catch (error) {
@@ -860,6 +863,7 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
             participatedTrivia: true,
           },
         });
+        addTriviaXp(null, guildId, userId, username, true).catch(() => {});
         return updated.dailyQuizScore;
       } else {
         const created = await prisma.triviaScore.create({
@@ -875,6 +879,7 @@ Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika aneh/tidak pas.`;
             participatedTrivia: true,
           },
         });
+        addTriviaXp(null, guildId, userId, username, true).catch(() => {});
         return created.dailyQuizScore;
       }
     } catch (error) {

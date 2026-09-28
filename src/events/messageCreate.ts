@@ -16,6 +16,7 @@ import { searchJobs, createJobEmbed } from "../services/jobScraper";
 import { searchOutfitTrends, createOutfitEmbed } from "../services/outfitService";
 import { fetchCurrencyRates, createCurrencyEmbed } from "../services/financialService";
 import { buildMemberCardPayload } from "../commands/utility/card";
+import { addChatXp } from "../services/levelingManager";
 
 // Helper deterministic query parsers (Bypasses AI reasoning for precision and speed ONLY on explicit search/catalog requests)
 function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
@@ -175,6 +176,17 @@ const event: BotEvent = {
 
       // Pass message to Pantun Manager if sent in pantun channel
       await handlePantunMessage(message);
+
+      // Award Leveling Chat XP (non-bot, min 3 chars, 60s cooldown)
+      if (message.content.trim().length >= 3 && !message.content.startsWith("/") && !message.content.startsWith("!")) {
+        addChatXp(
+          message.client,
+          guildId,
+          message.author.id,
+          message.author.displayName || message.author.username,
+          message.channel as TextChannel
+        ).catch(() => {});
+      }
 
       // Direct text command trigger: /card, !card, .card (@user, username, id, or reply)
       const trimmedContent = message.content.trim();

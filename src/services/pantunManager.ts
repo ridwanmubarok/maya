@@ -3,6 +3,7 @@ import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
+import { addPantunXp } from "./levelingManager";
 
 /**
  * Get current date string in WIB timezone (YYYY-MM-DD)
@@ -412,6 +413,16 @@ export async function handlePantunMessage(message: Message) {
       }
     }
 
+    // Award Leveling XP (+50 XP)
+    await addPantunXp(
+      message.client,
+      guildId,
+      message.author.id,
+      message.author.displayName || message.author.username,
+      false,
+      message.channel as TextChannel
+    ).catch(() => {});
+
     // React with appreciation emojis
     await message.react("👏").catch(() => {});
     await message.react("✨").catch(() => {});
@@ -581,6 +592,16 @@ Balas HANYA dalam format JSON persis tanpa markdown lain:
           }
         });
       }
+
+      // Award MVP Leveling XP (+250 XP)
+      await addPantunXp(
+        guild.client,
+        guild.id,
+        mvpData.mvpUserId,
+        mvpData.mvpUsername,
+        true,
+        targetChannel
+      ).catch(() => {});
     }
 
     // Full Complete Pantun Compilation

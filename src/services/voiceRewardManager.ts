@@ -2,6 +2,7 @@ import { Client, VoiceState } from "discord.js";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
+import { addVoiceXp } from "./levelingManager";
 
 interface VoiceJoinInfo {
   guildId: string;
@@ -12,6 +13,7 @@ interface VoiceJoinInfo {
 
 const voiceSessions = new Map<string, VoiceJoinInfo>(); // key: `${guildId}:${userId}`
 let voiceTickerInitialized = false;
+let discordClient: Client | null = null;
 
 /**
  * Tangani perubahan status Voice State (Join, Leave, Move)
@@ -56,6 +58,7 @@ export function handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceStat
 export function initVoiceRewardTicker(client: Client) {
   if (voiceTickerInitialized) return;
   voiceTickerInitialized = true;
+  discordClient = client;
 
   logger.info("VoiceRewardManager: Inisialisasi background ticker Voice Rewards (1 menit precision).");
 
@@ -97,6 +100,9 @@ async function processVoiceRewards() {
         const config = await prisma.guildConfig.findUnique({ where: { guildId: info.guildId } });
         guildConfigsMap.set(info.guildId, config);
       }
+
+      // Award Voice XP (20 XP per minute) to lifetime leveling system
+      addVoiceXp(discordClient, info.guildId, info.userId, info.username, 1).catch(() => {});
 
       const config = guildConfigsMap.get(info.guildId);
       if (config && config.voiceRewardEnabled === false) {

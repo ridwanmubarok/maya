@@ -4,6 +4,7 @@ import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 import { generateFreeImage } from "./imageGenService";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
+import { addStoryXp } from "./levelingManager";
 
 export interface StoryWordItem {
   id: number;
@@ -127,6 +128,16 @@ export async function handleStoryWordMessage(message: Message) {
         });
       }
     }
+
+    // Award Story Leveling XP (+40 XP)
+    await addStoryXp(
+      message.client,
+      guildId,
+      message.author.id,
+      message.author.displayName || message.author.username,
+      false,
+      message.channel as TextChannel
+    ).catch(() => {});
 
     // React with 👍 on valid sentence message
     await message.react("👍").catch(() => {});
@@ -330,6 +341,16 @@ SYARAT FORMAT:
           }
         });
       }
+
+      // Award Story MVP Leveling XP (+250 XP)
+      await addStoryXp(
+        guild.client,
+        guild.id,
+        mvpUserId,
+        mvpUsername || "Contributor",
+        true,
+        targetChannel
+      ).catch(() => {});
     }
 
     // Save DailyStory record in DB

@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, EmbedBuilder, Tex
 import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
+import { addMenfessXp } from "./levelingManager";
 
 export interface MenfessResult {
   success: boolean;
@@ -167,6 +168,11 @@ export async function submitMenfess(
         replyToCode: replyToCode || null
       }
     });
+
+    // Award Leveling XP (+30 XP)
+    const senderUser = await client.users.fetch(senderId).catch(() => null);
+    const senderUsername = senderUser?.displayName || senderUser?.username || "MenfessSender";
+    await addMenfessXp(client, guildId, senderId, senderUsername).catch(() => {});
 
     return {
       success: true,

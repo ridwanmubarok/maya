@@ -42,6 +42,7 @@ import {
   archiveAndResetSeason,
   pickMonthlyGoldenCandidates,
 } from "./monthlySeasonManager";
+import { getXpRequiredForNextLevel } from "./levelingManager";
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
@@ -435,6 +436,97 @@ export function startDashboard(client: MayaClient) {
     } catch (error: any) {
       logger.error(`Error adjusting economy balance for guild ${guildId}:`, error);
       res.status(500).json({ error: "Gagal menyesuaikan saldo RTK member." });
+    }
+  });
+
+  // --- LEVELING & XP MANAGEMENT ENDPOINTS ---
+
+  // Get Leveling Config & Leaderboard
+  app.get("/api/leveling/:guildId", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    try {
+      const config = await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          levelingEnabled: true,
+          levelUpChannelId: true,
+          levelUpMessage: true,
+        },
+      });
+
+      const [topUsers, totalMembers] = await Promise.all([
+        prisma.userLevel.findMany({
+          where: { guildId },
+          orderBy: [
+            { level: "desc" },
+            { xp: "desc" },
+          ],
+          take: 25,
+        }),
+        prisma.userLevel.count({ where: { guildId } }),
+      ]);
+
+      const formattedUsers = topUsers.map((u, i) => {
+        const needed = getXpRequiredForNextLevel(u.level);
+        const current = Math.min(u.xp, needed);
+        const percentage = Math.min(100, Math.round((current / needed) * 100));
+        return {
+          rank: i + 1,
+          userId: u.userId,
+          username: u.username,
+          level: u.level,
+          xp: u.xp,
+          neededXp: needed,
+          percentage,
+          messagesCount: u.messagesCount,
+          voiceSeconds: u.voiceSeconds,
+          triviaWins: u.triviaWins,
+          pantunCount: u.pantunCount,
+          storyCount: u.storyCount,
+          pollCount: u.pollCount,
+          updatedAt: u.updatedAt,
+        };
+      });
+
+      res.json({
+        success: true,
+        config: config || {
+          levelingEnabled: true,
+          levelUpChannelId: null,
+          levelUpMessage: "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!",
+        },
+        leaderboard: formattedUsers,
+        totalMembers,
+      });
+    } catch (error: any) {
+      logger.error(`Error fetching leveling data for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal memuat data leveling server." });
+    }
+  });
+
+  // Save Leveling Config
+  app.post("/api/leveling/:guildId/config", authMiddleware, async (req: Request, res: Response) => {
+    const { guildId } = req.params;
+    const { levelingEnabled, levelUpChannelId, levelUpMessage } = req.body;
+    try {
+      const updated = await prisma.guildConfig.upsert({
+        where: { guildId },
+        update: {
+          levelingEnabled: levelingEnabled !== undefined ? Boolean(levelingEnabled) : true,
+          levelUpChannelId: levelUpChannelId || null,
+          levelUpMessage: levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!",
+        },
+        create: {
+          guildId,
+          levelingEnabled: levelingEnabled !== undefined ? Boolean(levelingEnabled) : true,
+          levelUpChannelId: levelUpChannelId || null,
+          levelUpMessage: levelUpMessage || "🎉 Selamat {user}, kamu telah naik ke **Level {level}**!",
+        },
+      });
+      res.json({ success: true, config: updated });
+    } catch (error: any) {
+      logger.error(`Error saving leveling config for guild ${guildId}:`, error);
+      res.status(500).json({ error: "Gagal menyimpan konfigurasi leveling." });
     }
   });
 

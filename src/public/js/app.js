@@ -439,7 +439,7 @@ function switchTab(tabId) {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) {
-    if (tabId === 'join-requests' || tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'daily-story' || tabId === 'menfess' || tabId === 'pantun' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop') {
+    if (tabId === 'join-requests' || tabId === 'warnings' || tabId === 'rules' || tabId === 'roles' || tabId === 'announcements' || tabId === 'mabar' || tabId === 'reaction-roles' || tabId === 'general-announce' || tabId === 'daily-riddle' || tabId === 'daily-poll' || tabId === 'daily-story' || tabId === 'menfess' || tabId === 'pantun' || tabId === 'analytics' || tabId === 'economy' || tabId === 'shop' || tabId === 'leveling') {
       saveBar.classList.add('hidden');
     } else {
       saveBar.classList.remove('hidden');
@@ -491,5 +491,7 @@ function switchTab(tabId) {
     if (typeof loadEconomyBalances === 'function') loadEconomyBalances();
   } else if (tabId === 'shop') {
     if (typeof loadShopData === 'function') loadShopData();
+  } else if (tabId === 'leveling') {
+    if (typeof loadLevelingData === 'function') loadLevelingData();
   }
 }

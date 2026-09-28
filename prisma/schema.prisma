@@ -67,8 +67,33 @@ model GuildConfig {
   lastMonthlyRedeemOpenDate    String?
   lastMonthlyRedeemClosingDate String?
   lastMonthlyResetDate         String?
+  levelingEnabled              Boolean  @default(true)
+  levelUpChannelId             String?
+  levelUpMessage               String   @default("🎉 Selamat {user}, kamu telah naik ke **Level {level}**!")
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+}
+
+model UserLevel {
+  id              Int       @id @default(autoincrement())
+  guildId         String
+  userId          String
+  username        String
+  xp              Int       @default(0)
+  level           Int       @default(0)
+  messagesCount   Int       @default(0)
+  voiceSeconds    Int       @default(0)
+  triviaWins      Int       @default(0)
+  pantunCount     Int       @default(0)
+  storyCount      Int       @default(0)
+  pollCount       Int       @default(0)
+  lastMessageXpAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([guildId, userId])
+  @@index([guildId, xp(sort: Desc)])
+  @@index([guildId, level(sort: Desc)])
 }
 
 model DailyPantun {

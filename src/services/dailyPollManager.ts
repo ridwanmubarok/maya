@@ -3,6 +3,7 @@ import { prisma } from "./database";
 import { askNvidia } from "./aiClient";
 import { logger } from "../utils/logger";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
+import { addPollXp } from "./levelingManager";
 
 interface PollTopicData {
   topic: string;
@@ -367,6 +368,14 @@ export async function handlePollVoteInteraction(interaction: ButtonInteraction, 
         });
       }
     }
+
+    // Award Daily Poll Leveling XP (+50 XP)
+    await addPollXp(
+      interaction.client,
+      guildId,
+      userId,
+      username
+    ).catch(() => {});
 
     // Get updated votes
     const updatedVotes = await prisma.dailyPollVote.findMany({ where: { pollId } });
