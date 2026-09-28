@@ -100,7 +100,12 @@ export async function getGuildJoinRequests(
       };
     }
 
-    throw new Error(errorData?.message || error.message || "Gagal menghubungi API Discord.");
+    return {
+      total: 0,
+      requests: [],
+      hasFeature: false,
+      error: errorData?.message || error.message || "Gagal menghubungi API Discord.",
+    };
   }
 }
 
