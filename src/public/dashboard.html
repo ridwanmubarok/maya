@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maya Bot - Web Dashboard</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN for Server Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            discord: {
+              blurple: '#5865F2',
+              dark: '#313338',
+              darker: '#1e1f22',
+              embed: '#2b2d31',
+              text: '#dbdee1',
+              muted: '#949ba4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="font-sans antialiased">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3"></div>
+
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay" class="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-300">
+    <div class="glass-panel w-full max-w-md p-8 rounded-2xl shadow-2xl text-center fade-in">
+      <div class="w-16 h-16 bg-discord-blurple rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-discord-blurple/30">
+        <i class="fa-solid fa-robot text-3xl text-white"></i>
+      </div>
+      <h2 class="font-outfit text-3xl font-bold tracking-tight mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Maya Backoffice</h2>
+      <p class="text-gray-400 mb-6 text-sm">Masukkan passcode rahasia untuk mengakses konfigurasi bot</p>
+      
+      <form id="login-form" class="space-y-4">
+        <div>
+          <input 
+            type="password" 
+            id="passcode-input" 
+            placeholder="Passcode Dashboard" 
+            class="w-full px-4 py-3 rounded-xl glass-input text-white text-center tracking-wider outline-none focus:outline-none"
+            required
+          >
+        </div>
+        <button 
+          type="submit" 
+          class="w-full bg-discord-blurple hover:bg-discord-blurple/95 hover:shadow-lg hover:shadow-discord-blurple/25 transition-all text-white font-medium py-3 rounded-xl"
+        >
+          Masuk Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="app-container" class="min-h-screen flex flex-col">
+    
+    <!-- HEADER -->
+    <header class="glass-panel sticky top-0 z-30 px-6 py-4 flex items-center justify-between border-b border-white/5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-discord-blurple rounded-xl flex items-center justify-center shadow-lg shadow-discord-blurple/20">
+          <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-outfit text-xl font-bold tracking-wide">Maya Backoffice</h1>
+          <p class="text-[10px] text-discord-blurple font-semibold tracking-wider uppercase">Live Control & Dashboard</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <div id="bot-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Bot Online
+        </div>
+        
+        <a 
+          href="/" 
+          class="px-3.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all text-xs font-medium flex items-center gap-1.5"
+        >
+          <i class="fa-solid fa-fire text-orange-400"></i> The Checkpoint Landing
+        </a>
+
+        <button 
+          id="logout-btn" 
+          class="px-3.5 py-1.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/15 hover:text-white transition-all text-xs font-medium"
+        >
+          <i class="fa-solid fa-sign-out-alt mr-1"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- WRAPPER -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+      
+      <!-- SIDEBAR: GUILD SELECTOR -->
+      <aside class="w-full md:w-80 glass-panel md:border-r border-b md:border-b-0 border-white/5 p-4 flex flex-col gap-4 overflow-y-auto">
+        <div>
+          <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest px-2 mb-3">Daftar Server</h3>
+          <div id="guilds-list" class="flex flex-col gap-1.5">
+            <!-- Dynamic Guild Cards load here -->
+            <div class="text-center py-6 text-gray-500 text-sm">
+              <i class="fa-solid fa-spinner animate-spin text-lg mb-2 block"></i> Loading servers...
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CONTENT AREA -->
+      <main id="main-content" class="flex-1 flex overflow-hidden hidden">
+        
+        <!-- MIDDLE SIDEBAR: CONFIG TAB SELECTOR -->
+        <aside class="w-64 border-r border-white/5 bg-white/[0.01] p-4 flex flex-col gap-4 overflow-y-auto shrink-0">
+          <div>
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest px-2 mb-3">Menu Kontrol</h3>
+            <nav class="flex flex-col gap-1">
+              <button onclick="switchTab('welcome')" id="tab-btn-welcome" class="tab-btn active w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-hand-sparkles w-4 text-center"></i> Welcome Embed
+              </button>
+              <button onclick="switchTab('join-requests')" id="tab-btn-join-requests" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center justify-between text-gray-400 hover:text-white">
+                <span class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-user-check w-4 text-center text-discord-blurple"></i> Approval Member
+                </span>
+                <span id="pending-requests-count-badge" class="hidden px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold">0</span>
+              </button>
+              <button onclick="switchTab('automod')" id="tab-btn-automod" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-user-shield w-4 text-center"></i> Automod
+              </button>
+              <button onclick="switchTab('warnings')" id="tab-btn-warnings" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-triangle-exclamation w-4 text-center"></i> Strike Logs
+              </button>
+              <button onclick="switchTab('ai')" id="tab-btn-ai" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-brain w-4 text-center"></i> NVIDIA AI
+              </button>
+              <button onclick="switchTab('rules')" id="tab-btn-rules" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-scroll w-4 text-center"></i> Rules Creator
+              </button>
+              <button onclick="switchTab('announcements')" id="tab-btn-announcements" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-tv w-4 text-center"></i> Share Live / Game
+              </button>
+              <button onclick="switchTab('general-announce')" id="tab-btn-general-announce" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-bullhorn w-4 text-center"></i> Announce Creator
+              </button>
+              <button onclick="switchTab('mabar')" id="tab-btn-mabar" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-gamepad w-4 text-center"></i> Mabar Scheduler
+              </button>
+              <button onclick="switchTab('reaction-roles')" id="tab-btn-reaction-roles" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-shapes w-4 text-center"></i> Reaction Roles
+              </button>
+              <button onclick="switchTab('roles')" id="tab-btn-roles" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-tags w-4 text-center"></i> Roles Manager
+              </button>
+              <button onclick="switchTab('daily-riddle')" id="tab-btn-daily-riddle" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-puzzle-piece w-4 text-center"></i> Tebak-Tebakan Harian
+              </button>
+              <button onclick="switchTab('daily-poll')" id="tab-btn-daily-poll" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-square-poll-vertical w-4 text-center"></i> Maya Poll
+              </button>
+              <button onclick="switchTab('daily-story')" id="tab-btn-daily-story" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-book-open w-4 text-center"></i> Maya Story Chain
+              </button>
+              <button onclick="switchTab('menfess')" id="tab-btn-menfess" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-dove w-4 text-center"></i> AI Menfess
+              </button>
+              <button onclick="switchTab('pantun')" id="tab-btn-pantun" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-masks-theater w-4 text-center"></i> Lanjutkan Pantun
+              </button>
+              <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-chart-pie w-4 text-center"></i> Server Analytics
+              </button>
+              <button onclick="switchTab('economy')" id="tab-btn-economy" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-coins w-4 text-center"></i> Dompet &amp; Voice Cash
+              </button>
+              <button onclick="switchTab('leveling')" id="tab-btn-leveling" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-ranking-star w-4 text-center"></i> Leveling &amp; XP
+              </button>
+              <button onclick="switchTab('shop')" id="tab-btn-shop" class="tab-btn w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-transparent hover:bg-white/5 text-left transition-all flex items-center gap-2.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-cart-shopping w-4 text-center"></i> Toko &amp; Penukaran
+              </button>
+            </nav>
+          </div>
+        </aside>
+
+        <!-- MAIN PANEL WORKSPACE -->
+        <div class="flex-1 p-6 lg:p-8 overflow-y-auto">
+          <div class="max-w-5xl mx-auto flex flex-col gap-6 fade-in">
+            
+            <!-- SERVER BANNER HEADER -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-4">
+              <div>
+                <h2 id="current-guild-name" class="font-outfit text-3xl font-bold tracking-tight text-white">Nama Server</h2>
+                <p class="text-gray-400 text-sm mt-1">Kelola sapaan, moderasi automod, log warning, dan lainnya</p>
+              </div>
+            </div>
+
+          <!-- GLOBAL FORM FOR SAVING CONFIGS (Covers Welcome, Automod, and AI Personality) -->
+          <form id="config-form" class="space-y-6">
+            
+            <!-- TAB content: WELCOME -->
+            <div id="tab-content-welcome" class="tab-pane flex flex-col lg:flex-row gap-8">
+              <!-- WELCOME SETTINGS -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="welcome-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Sapaan (Welcome Channel)</label>
+                  <select id="welcome-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="welcome-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Sapaan</label>
+                  <input type="text" id="welcome-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="👋 Selamat Datang!">
+                </div>
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                    <label for="welcome-message" class="text-xs font-semibold text-gray-400 tracking-wider">Pesan Sambutan</label>
+                    <span class="text-[9px] text-gray-500 font-mono">Format: {username}, {guildName}, {memberCount}</span>
+                  </div>
+                  <textarea id="welcome-message" rows="5" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Tulis sambutan Anda di sini..."></textarea>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="welcome-image" class="text-xs font-semibold text-gray-400 tracking-wider">URL Banner Gambar (Embed Banner)</label>
+                  <input type="url" id="welcome-image" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+                  <div>
+                    <h4 class="text-sm font-semibold text-white">Tampilkan Avatar User</h4>
+                    <p class="text-xs text-gray-400">Tampilkan foto profil (thumbnail) member yang bergabung di sudut kanan</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="welcome-thumbnail" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- DISCORD PREVIEW (RIGHT SIDE) -->
+              <div class="w-full lg:w-96 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Discord Preview</h3>
+                <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                  <div class="flex gap-3">
+                    <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                      <i class="fa-solid fa-robot text-lg text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1.5">
+                        <span class="font-semibold text-white">Maya Bot</span>
+                        <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                        <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                      </div>
+                      <p class="mb-2 text-discord-text text-xs">Halo <span class="bg-discord-blurple/20 text-[#5865F2] hover:underline cursor-pointer font-medium px-1 rounded">@RidwanMubarok</span>, selamat datang!</p>
+                      
+                      <!-- EMBED MOCK -->
+                      <div class="bg-discord-embed max-w-[450px] border-l-4 border-emerald-500 rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                        <div class="flex gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h4 id="preview-title" class="font-semibold text-white text-sm mb-2">👋 Selamat Datang!</h4>
+                            <p id="preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed"></p>
+                          </div>
+                          <div id="preview-thumbnail-container" class="w-14 h-14 shrink-0">
+                            <img id="preview-thumbnail" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" class="w-full h-full rounded-full object-cover">
+                          </div>
+                        </div>
+                        <div id="preview-image-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                          <img id="preview-image" src="" alt="Banner" class="w-full h-full object-cover">
+                        </div>
+                        <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                          <span>Maya Bot</span>
+                          <span>•</span>
+                          <span>Hari ini pukul 10:00</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB content: AUTOMOD -->
+            <div id="tab-content-automod" class="tab-pane hidden space-y-5 max-w-2xl">
+              <div class="flex flex-col gap-2">
+                <label for="automod-words" class="text-xs font-semibold text-gray-400 tracking-wider">Daftar Kata Kasar (Banned Words)</label>
+                <textarea id="automod-words" rows="3" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="anjing, babi, bangsat..."></textarea>
+                <p class="text-[10px] text-gray-500">Pisahkan setiap kata dengan tanda koma (,). Pesan yang berisi kata ini akan otomatis dihapus.</p>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="automod-log-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Log Moderasi (Staff Log Channel)</label>
+                <select id="automod-log-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                <p class="text-[10px] text-gray-500">Channel tempat bot akan mengirim laporan log moderasi otomatis (mute/timeout) dan manual (kick, ban, warn).</p>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label for="automod-max-strikes" class="text-xs font-semibold text-gray-400 tracking-wider">Batas Maksimal Strike</label>
+                  <input type="number" id="automod-max-strikes" min="1" max="10" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="3">
+                  <p class="text-[10px] text-gray-500">Batas pelanggaran kata kasar sebelum user di-mute otomatis.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="automod-mute-duration" class="text-xs font-semibold text-gray-400 tracking-wider">Durasi Mute/Timeout (Menit)</label>
+                  <input type="number" id="automod-mute-duration" min="1" max="1440" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="10">
+                  <p class="text-[10px] text-gray-500">Lama waktu timeout bagi pengguna setelah melebihi batas strike.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB content: AI PERSONALITY & MEMORY -->
+            <div id="tab-content-ai" class="tab-pane hidden space-y-6">
+              <!-- AI Model Input -->
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4 max-w-2xl">
+                <div>
+                  <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i> Model AI Maya (Google Gemini)
+                  </h4>
+                  <p class="text-xs text-gray-400 mt-0.5">Tentukan model Google Gemini yang digunakan Maya untuk merespons obrolan di server ini.</p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                  <!-- Quick Select Dropdown -->
+                  <div class="flex flex-col gap-1.5">
+                    <label for="ai-model-select" class="text-xs font-semibold text-gray-300">Pilih Model (Free Tier):</label>
+                    <select id="ai-model-select" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm bg-slate-900/80 cursor-pointer">
+                      <option value="gemini-3.6-flash">Gemini 3.6 Flash (Rekomendasi Utama • Aktif & Cepat)</option>
+                      <option value="gemini-3.5-flash">Gemini 3.5 Flash (Cepat & Stabil)</option>
+                      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Paling Ringan & Hemat)</option>
+                      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Ringan & Cepat)</option>
+                      <option value="gemini-flash-lite-latest">Gemini Flash-Lite Latest (Build Terbaru)</option>
+                      <option value="custom">⚙️ Model Kustom / Manual ID...</option>
+                    </select>
+                  </div>
+
+                  <!-- Actual Model ID Input -->
+                  <div class="flex flex-col gap-1.5">
+                    <label for="ai-model" class="text-xs font-semibold text-gray-400 tracking-wider">Model ID Aktif</label>
+                    <input type="text" id="ai-model" list="ai-model-suggestions" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm font-mono" placeholder="gemini-3.6-flash">
+                    <datalist id="ai-model-suggestions">
+                      <option value="gemini-3.6-flash">Gemini 3.6 Flash - Rekomendasi Utama (Aktif & Free)</option>
+                      <option value="gemini-3.5-flash">Gemini 3.5 Flash - Cepat & Stabil</option>
+                      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite - Super Ringan</option>
+                      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite - Ringan</option>
+                      <option value="gemini-flash-lite-latest">Gemini Flash-Lite Latest</option>
+                    </datalist>
+                    <p class="text-[10px] text-gray-500">Anda dapat memilih dari dropdown di atas atau mengetik ID model Google Gemini secara manual.</p>
+                  </div>
+
+                  <div class="mt-1 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2.5">
+                    <i class="fa-solid fa-circle-info mt-0.5 shrink-0 text-indigo-400"></i>
+                    <div class="leading-relaxed">
+                      <strong>Multi-Level Fallback Otomatis:</strong> Maya dilengkapi sistem fallback cerdas. Jika model pilihan sedang sibuk atau mengalami antrean di server Google, Maya secara otomatis beralih ke model cadangan agar percakapan tetap berjalan mulus.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2 max-w-2xl">
+                <label for="ai-personality" class="text-xs font-semibold text-gray-400 tracking-wider">Kepribadian Khusus AI (System Prompt)</label>
+                <textarea id="ai-personality" rows="4" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Contoh: Bicara santai menggunakan bahasa gaul Jakarta, atau gunakan nada ramah dan ceria..."></textarea>
+                <p class="text-[10px] text-gray-500">Maya sudah dibekali kepribadian pintar, santai, dan bersahabat secara bawaan. Anda dapat menambahkan instruksi atau aturan khusus tambahan untuk server ini di sini.</p>
+              </div>
+
+              <!-- Quick Save AI Settings Button -->
+              <div class="max-w-2xl flex justify-end">
+                <button type="button" id="save-ai-btn" onclick="saveAiSettings()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all flex items-center gap-2">
+                  <i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan AI
+                </button>
+              </div>
+
+              <!-- AI Conversation Memory Section -->
+              <div class="pt-6 border-t border-white/5 space-y-4">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                      <i class="fa-solid fa-comments text-discord-blurple"></i> Memori Percakapan Maya (Live Chat Logs)
+                    </h4>
+                    <p class="text-xs text-gray-400 mt-0.5">Semua pesan percakapan tersimpan otomatis agar Maya selalu mengingat konteks obrolan</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button type="button" onclick="loadAiHistory()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all text-gray-300">
+                      <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+                    </button>
+                    <button type="button" onclick="clearAiMemory()" class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-all">
+                      <i class="fa-solid fa-trash mr-1"></i> Reset Memori AI
+                    </button>
+                  </div>
+                </div>
+
+                <div id="ai-history-list" class="glass-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-3 max-h-96 overflow-y-auto">
+                  <div class="text-center py-6 text-gray-500 text-xs italic">Memuat riwayat percakapan...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SAVE BAR: Visible for Welcome, Automod, and AI tabs -->
+            <div id="save-bar" class="pt-4 border-t border-white/5 flex justify-end">
+              <button 
+                type="submit" 
+                id="save-btn" 
+                class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-discord-blurple to-indigo-600 hover:brightness-110 shadow-lg shadow-discord-blurple/20 hover:shadow-discord-blurple/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+              >
+                <i class="fa-solid fa-save"></i> Simpan Konfigurasi
+              </button>
+            </div>
+            
+          </form>
+
+          <!-- TAB content: RULES CREATOR (Self-contained) -->
+          <div id="tab-content-rules" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Rules & Guides Creator</h3>
+                <p class="text-xs text-gray-400">Buat dan kirim pesan embed info, rules, atau panduan secara kustom ke server Discord</p>
+              </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Inputs Panel (Left) -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="rules-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="rules-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  <p class="text-[10px] text-gray-500">Pilih channel tempat rules/embed akan diposting.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="rules-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Card (Title)</label>
+                  <input type="text" id="rules-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="📜 ATURAN & PANDUAN SERVER">
+                </div>
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                    <label for="rules-description" class="text-xs font-semibold text-gray-400 tracking-wider">Konten / Isi Rules</label>
+                    <span class="text-[9px] text-gray-500 font-mono">Mendukung Markdown Discord</span>
+                  </div>
+                  <textarea id="rules-description" rows="8" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="1. Hormati sesama member...\n2. Dilarang spam..."></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="rules-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Embed (Hex)</label>
+                    <div class="flex gap-2">
+                      <input type="color" id="rules-color-picker" class="w-12 h-11 rounded-xl bg-transparent border border-white/10 cursor-pointer" value="#5865F2">
+                      <input type="text" id="rules-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#5865F2" placeholder="#5865F2">
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="rules-thumbnail" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Thumbnail (Kanan Atas)</label>
+                    <input type="url" id="rules-thumbnail" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/logo.png">
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="rules-banner" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Banner (Bagian Bawah)</label>
+                  <input type="url" id="rules-banner" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/banner.jpg">
+                </div>
+                
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="sendRulesEmbed()"
+                    id="send-rules-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-paper-plane"></i> Kirim ke Discord
+                  </button>
+                </div>
+              </div>
+
+              <!-- Preview Panel (Right) -->
+              <div class="w-full lg:w-96 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Rules Preview</h3>
+                <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                  <div class="flex gap-3">
+                    <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                      <i class="fa-solid fa-robot text-lg text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1.5">
+                        <span class="font-semibold text-white">Maya Bot</span>
+                        <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                        <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                      </div>
+                      
+                      <!-- EMBED MOCK -->
+                      <div id="rules-preview-card" class="bg-discord-embed max-w-[450px] border-l-4 border-discord-blurple rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                        <div class="flex gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h4 id="rules-preview-title" class="font-bold text-white text-sm mb-2">📜 ATURAN SERVER</h4>
+                            <p id="rules-preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed">Tulis aturan di panel kiri...</p>
+                          </div>
+                          <div id="rules-preview-thumb-container" class="w-14 h-14 shrink-0 hidden">
+                            <img id="rules-preview-thumb" src="" alt="Thumbnail" class="w-full h-full rounded object-cover">
+                          </div>
+                        </div>
+                        <div id="rules-preview-banner-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                          <img id="rules-preview-banner" src="" alt="Banner" class="w-full h-full object-cover">
+                        </div>
+                        <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                          <span>Maya Bot</span>
+                          <span>•</span>
+                          <span>Hari ini pukul 10:00</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: ANNOUNCEMENTS & STREAMING (Self-contained) -->
+          <div id="tab-content-announcements" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Share Live & Game Announcements</h3>
+                <p class="text-xs text-gray-400">Bagikan info mabar game atau live streaming dengan tombol link interaktif ke Discord</p>
+              </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Inputs Panel (Left) -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="announce-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="announce-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  <p class="text-[10px] text-gray-500">Pilih channel pengumuman di Discord.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="announce-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Pengumuman (Title)</label>
+                  <input type="text" id="announce-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="🔴 LIVE STREAMING SEKARANG!">
+                </div>
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                    <label for="announce-description" class="text-xs font-semibold text-gray-400 tracking-wider">Pesan Pengumuman</label>
+                    <span class="text-[9px] text-gray-500 font-mono">Mendukung Markdown Discord</span>
+                  </div>
+                  <textarea id="announce-description" rows="5" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Halo guys! Saya sedang streaming game favorit kita di Twitch. Klik tombol di bawah untuk join!"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-btn-label" class="text-xs font-semibold text-gray-400 tracking-wider">Label Tombol Link</label>
+                    <input type="text" id="announce-btn-label" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="📺 Tonton Live Stream">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-btn-url" class="text-xs font-semibold text-gray-400 tracking-wider">URL Tombol Link (Tautan Game/Stream)</label>
+                    <input type="url" id="announce-btn-url" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://twitch.tv/username">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Embed (Hex)</label>
+                    <div class="flex gap-2">
+                      <input type="color" id="announce-color-picker" class="w-12 h-11 rounded-xl bg-transparent border border-white/10 cursor-pointer" value="#F04747">
+                      <input type="text" id="announce-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#F04747" placeholder="#F04747">
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="announce-thumbnail" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Thumbnail (Kanan Atas)</label>
+                    <input type="url" id="announce-thumbnail" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/stream-logo.png">
+                  </div>
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                  <label for="announce-banner" class="text-xs font-semibold text-gray-400 tracking-wider">URL Gambar Banner (Bagian Bawah)</label>
+                  <input type="url" id="announce-banner" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://example.com/banner.jpg">
+                </div>
+                
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="sendAnnouncement()"
+                    id="send-announce-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 hover:brightness-110 shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-bullhorn"></i> Kirim Pengumuman
+                  </button>
+                </div>
+              </div>
+
+              <!-- Preview Panel (Right) -->
+              <div class="w-full lg:w-96 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Announcement Preview</h3>
+                <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                  <div class="flex gap-3">
+                    <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                      <i class="fa-solid fa-robot text-lg text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1.5">
+                        <span class="font-semibold text-white">Maya Bot</span>
+                        <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                        <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                      </div>
+                      
+                      <!-- EMBED MOCK -->
+                      <div id="announce-preview-card" class="bg-discord-embed max-w-[450px] border-l-4 border-[#F04747] rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                        <div class="flex gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h4 id="announce-preview-title" class="font-bold text-white text-sm mb-2">🔴 LIVE STREAMING SEKARANG!</h4>
+                            <p id="announce-preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed">Tulis pesan pengumuman di panel kiri...</p>
+                          </div>
+                          <div id="announce-preview-thumb-container" class="w-14 h-14 shrink-0 hidden">
+                            <img id="announce-preview-thumb" src="" alt="Thumbnail" class="w-full h-full rounded object-cover">
+                          </div>
+                        </div>
+                        <div id="announce-preview-banner-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                          <img id="announce-preview-banner" src="" alt="Banner" class="w-full h-full object-cover">
+                        </div>
+                        <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                          <span>Maya Bot</span>
+                          <span>•</span>
+                          <span>Hari ini pukul 10:00</span>
+                        </div>
+                      </div>
+                      
+                      <!-- MOCK BUTTON LINK -->
+                      <div id="announce-preview-btn-container" class="mt-2 hidden">
+                        <span id="announce-preview-btn" class="inline-block px-4 py-1.5 bg-[#4f545c] hover:brightness-110 cursor-pointer text-white font-medium text-[11px] rounded transition-all">📺 Tonton Live Stream</span>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: ANNOUNCEMENT CREATOR (Self-contained) -->
+          <div id="tab-content-general-announce" class="tab-pane hidden flex flex-col lg:flex-row gap-8">
+            <!-- Settings Form (Left) -->
+            <div class="flex-1 space-y-6">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Announcement Creator</h3>
+                <p class="text-xs text-gray-400">Buat dan kirim pengumuman server resmi lengkap dengan formatting embed dan pings</p>
+              </div>
+
+              <div class="space-y-4">
+                <div class="flex flex-col gap-2">
+                  <label for="general-announce-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="general-announce-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Pengumuman</label>
+                    <input type="text" id="general-announce-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: 📢 PENGUMUMAN PENTING">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-mention" class="text-xs font-semibold text-gray-400 tracking-wider">Opsi Ping / Mention</label>
+                    <select id="general-announce-mention" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm">
+                      <option value="none">Tidak Ada (Tanpa Ping)</option>
+                      <option value="everyone">@everyone (Pings All)</option>
+                      <option value="here">@here (Pings Online)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                  <label for="general-announce-description" class="text-xs font-semibold text-gray-400 tracking-wider">Isi Pengumuman (Markdown didukung)</label>
+                  <textarea id="general-announce-description" rows="5" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Masukkan detail pengumuman di sini. Gunakan **tebal** untuk menebalkan teks."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Sisi Embed</label>
+                    <div class="flex gap-2">
+                      <input type="text" id="general-announce-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#E67E22">
+                      <input type="color" id="general-announce-color-picker" oninput="document.getElementById('general-announce-color').value = this.value; updateGeneralAnnouncePreview();" class="w-12 h-11 rounded-xl bg-transparent border-0 cursor-pointer overflow-hidden" value="#E67E22">
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-thumbnail" class="text-xs font-semibold text-gray-400 tracking-wider">Thumbnail URL (Kecil)</label>
+                    <input type="text" id="general-announce-thumbnail" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://...">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-banner" class="text-xs font-semibold text-gray-400 tracking-wider">Banner URL (Besar)</label>
+                    <input type="text" id="general-announce-banner" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://...">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-btn-label" class="text-xs font-semibold text-gray-400 tracking-wider">Label Tombol Tautan (Opsional)</label>
+                    <input type="text" id="general-announce-btn-label" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Baca Selengkapnya">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="general-announce-btn-url" class="text-xs font-semibold text-gray-400 tracking-wider">URL Tombol Tautan (Opsional)</label>
+                    <input type="text" id="general-announce-btn-url" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="https://...">
+                  </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="sendGeneralAnnouncement()"
+                    id="send-general-announce-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:brightness-110 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-bullhorn"></i> Kirim Pengumuman
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview Panel (Right) -->
+            <div class="w-full lg:w-96 flex flex-col gap-4">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Announcement Preview</h3>
+              <div class="bg-discord-dark p-4 rounded-xl shadow-lg border border-white/5 text-discord-text text-sm">
+                <div class="flex gap-3">
+                  <div class="w-10 h-10 bg-discord-blurple rounded-full flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-robot text-lg text-white"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                      <span class="font-semibold text-white">Maya Bot</span>
+                      <span class="bg-discord-blurple text-white text-[9px] font-bold px-1 rounded uppercase tracking-wider scale-90">BOT</span>
+                      <span class="text-discord-muted text-xs">Hari ini pukul 10:00</span>
+                    </div>
+
+                    <!-- MOCK PING MENTION TEXT -->
+                    <div id="general-announce-preview-ping" class="text-discord-link text-xs font-medium mb-1.5 hidden">@everyone</div>
+                    
+                    <!-- EMBED MOCK -->
+                    <div id="general-announce-preview-card" class="bg-discord-embed max-w-[450px] border-l-4 border-[#E67E22] rounded-r flex flex-col p-4 shadow relative overflow-hidden">
+                      <div class="flex gap-4">
+                        <div class="flex-1 min-w-0">
+                          <h4 id="general-announce-preview-title" class="font-bold text-white text-sm mb-2">📢 PENGUMUMAN PENTING</h4>
+                          <p id="general-announce-preview-description" class="text-discord-text text-[11px] whitespace-pre-line leading-relaxed">Tulis isi pengumuman di panel kiri...</p>
+                        </div>
+                        <div id="general-announce-preview-thumb-container" class="w-14 h-14 shrink-0 hidden">
+                          <img id="general-announce-preview-thumb" src="" alt="Thumbnail" class="w-full h-full rounded object-cover">
+                        </div>
+                      </div>
+                      <div id="general-announce-preview-banner-container" class="mt-3 rounded overflow-hidden max-h-40 border border-white/5 hidden">
+                        <img id="general-announce-preview-banner" src="" alt="Banner" class="w-full h-full object-cover">
+                      </div>
+                      <div class="mt-3 flex items-center gap-1 text-[9px] text-discord-muted">
+                        <span>Maya Bot</span>
+                        <span>•</span>
+                        <span>Hari ini pukul 10:00</span>
+                      </div>
+                    </div>
+                    
+                    <!-- MOCK BUTTON LINK -->
+                    <div id="general-announce-preview-btn-container" class="mt-2 hidden">
+                      <span id="general-announce-preview-btn" class="inline-block px-4 py-1.5 bg-[#4f545c] hover:brightness-110 cursor-pointer text-white font-medium text-[11px] rounded transition-all">Baca Selengkapnya</span>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: MABAR SCHEDULER (Self-contained) -->
+          <div id="tab-content-mabar" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Mabar Game Scheduler</h3>
+                <p class="text-xs text-gray-400">Jadwalkan sesi mabar dengan tombol RSVP (Join/Leave) interaktif di Discord</p>
+              </div>
+              <button onclick="loadMabar()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Jadwal
+              </button>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Create Schedule Form (Left) -->
+              <div class="flex-1 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                  <select id="mabar-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  <p class="text-[10px] text-gray-500">Pilih channel Discord untuk memposting undangan mabar.</p>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-game" class="text-xs font-semibold text-gray-400 tracking-wider">Nama Game</label>
+                  <input type="text" id="mabar-game" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Mobile Legends, Valorant, GTA V">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="mabar-time" class="text-xs font-semibold text-gray-400 tracking-wider">Waktu Pelaksanaan (Text)</label>
+                    <input type="text" id="mabar-time" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Malam Ini jam 20.00 WIB">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="mabar-slots" class="text-xs font-semibold text-gray-400 tracking-wider">Maksimal Pemain (Slots, opsional)</label>
+                    <input type="number" id="mabar-slots" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: 5, 10 (Kosongkan jika tak terbatas)">
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-description" class="text-xs font-semibold text-gray-400 tracking-wider">Deskripsi / Catatan Sesi</label>
+                  <textarea id="mabar-description" rows="3" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm" placeholder="Contoh: Mabar push rank sampai Mythic, butuh Role Roamer & Goldlaner!"></textarea>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="mabar-url" class="text-xs font-semibold text-gray-400 tracking-wider">Link Game (Opsional)</label>
+                  <input type="url" id="mabar-url" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: https://www.roblox.com/games/123...">
+                  <p class="text-[10px] text-gray-500">Link Roblox, Steam, Room link, atau Voice link agar member bisa langsung klik "Main Sekarang".</p>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="createMabar()"
+                    id="create-mabar-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 hover:brightness-110 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-calendar-plus"></i> Jadwalkan Mabar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Scheduled List Panel (Right) -->
+              <div class="w-full lg:w-[480px] space-y-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Jadwal Mabar Aktif</h3>
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                          <th class="p-3">Game</th>
+                          <th class="p-3">Waktu</th>
+                          <th class="p-3">Pemain</th>
+                          <th class="p-3 text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody id="mabar-table-body">
+                        <!-- Mabar schedules load dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: REACTION ROLES (Self-contained) -->
+          <div id="tab-content-reaction-roles" class="tab-pane hidden flex flex-col lg:flex-row gap-8">
+            <!-- Builder Panel (Left) -->
+            <div class="flex-1 space-y-6">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Reaction Roles Panel Builder</h3>
+                <p class="text-xs text-gray-400">Buat pesan bertombol interaktif agar member bisa memilih dan mengambil role sendiri</p>
+              </div>
+
+              <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="rr-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Channel Target</label>
+                    <select id="rr-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none appearance-none cursor-pointer text-sm"></select>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="rr-title" class="text-xs font-semibold text-gray-400 tracking-wider">Judul Panel</label>
+                    <input type="text" id="rr-title" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="🎭 Pilih Role Server Anda">
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                  <label for="rr-description" class="text-xs font-semibold text-gray-400 tracking-wider">Deskripsi Pesan</label>
+                  <textarea id="rr-description" rows="3" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none resize-y text-sm">Klik tombol di bawah ini untuk mengambil atau melepas role secara otomatis!</textarea>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                  <label for="rr-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Sisi Embed</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="rr-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#5865F2">
+                    <input type="color" id="rr-color-picker" oninput="document.getElementById('rr-color').value = this.value" class="w-12 h-11 rounded-xl bg-transparent border-0 cursor-pointer overflow-hidden" value="#5865F2">
+                  </div>
+                </div>
+
+                <!-- Role Buttons Configuration List -->
+                <div class="space-y-3 pt-2">
+                  <div class="flex justify-between items-center">
+                    <label class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Daftar Tombol Role</label>
+                    <button type="button" onclick="addRrOptionRow()" class="px-3 py-1.5 rounded-lg bg-discord-blurple/10 border border-discord-blurple/20 text-xs font-semibold text-discord-blurple hover:bg-discord-blurple/20 transition-all flex items-center gap-1">
+                      <i class="fa-solid fa-plus"></i> Tambah Tombol Role
+                    </button>
+                  </div>
+
+                  <div id="rr-options-container" class="space-y-3">
+                    <!-- Dynamic option rows added here -->
+                  </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                  <button 
+                    onclick="createReactionRoleMenu()"
+                    id="create-rr-btn" 
+                    class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-discord-blurple to-indigo-600 hover:brightness-110 shadow-lg shadow-discord-blurple/20 hover:shadow-discord-blurple/30 transition-all text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <i class="fa-solid fa-paper-plane"></i> Kirim Panel Role ke Discord
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel List (Right) -->
+            <div class="w-full lg:w-96 space-y-4">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Panel Reaction Role Aktif</h3>
+              <div id="rr-menus-list" class="glass-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-3 max-h-[550px] overflow-y-auto">
+                <div class="text-center py-6 text-gray-500 text-xs italic">Memuat panel...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: WARNINGS LOG (Self-contained) -->
+          <div id="tab-content-warnings" class="tab-pane hidden space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Log Pelanggaran Strike</h3>
+                <p class="text-xs text-gray-400">Daftar pengguna yang terkena strike oleh moderasi manual, command `/warn`, atau Automod</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="toggleAddStrikeForm()" class="px-3 py-1.5 rounded-lg bg-discord-blurple/20 border border-discord-blurple/30 text-xs font-semibold text-discord-blurple hover:bg-discord-blurple/30 transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-plus"></i> Tambah Strike Manual
+                </button>
+                <button onclick="resetAllWarnings()" class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-white transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-triangle-exclamation"></i> Reset Semua Strike
+                </button>
+                <button onclick="loadWarnings()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-rotate-right"></i> Refresh Log
+                </button>
+              </div>
+            </div>
+
+            <!-- Manual Strike Form (Hidden by default) -->
+            <div id="manual-strike-form" class="hidden glass-panel p-5 rounded-2xl border border-white/5 space-y-4 fade-in">
+              <h4 class="text-xs font-semibold text-white uppercase tracking-wider">Beri Strike ke User</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label for="manual-strike-userid" class="text-xs font-semibold text-gray-400 tracking-wider">Discord User ID</label>
+                  <input type="text" id="manual-strike-userid" class="w-full px-4 py-2.5 rounded-xl glass-input text-white outline-none text-xs" placeholder="Contoh: 123456789012345678">
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label for="manual-strike-reason" class="text-xs font-semibold text-gray-400 tracking-wider">Alasan Pelanggaran</label>
+                  <input type="text" id="manual-strike-reason" class="w-full px-4 py-2.5 rounded-xl glass-input text-white outline-none text-xs" placeholder="Contoh: Spam link terlarang / Toxic di voice chat">
+                </div>
+              </div>
+              <div class="flex justify-end gap-2">
+                <button type="button" onclick="toggleAddStrikeForm()" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all">Batal</button>
+                <button type="button" onclick="submitManualStrike()" id="submit-strike-btn" class="px-5 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-300 hover:bg-red-500/30 transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-gavel"></i> Simpan Strike
+                </button>
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                      <th class="p-4">User</th>
+                      <th class="p-4">Alasan Pelanggaran</th>
+                      <th class="p-4">Moderator</th>
+                      <th class="p-4">Tanggal Kejadian</th>
+                      <th class="p-4 text-center">Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="warnings-table-body">
+                    <!-- Warnings logs load dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- TAB content: ROLES MANAGER (Self-contained) -->
+          <div id="tab-content-roles" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Manage Server Roles</h3>
+                <p class="text-xs text-gray-400">Buat, lihat, dan hapus role server langsung dari dashboard</p>
+              </div>
+              <button onclick="loadRoles()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Roles
+              </button>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Roles List (Left) -->
+              <div class="flex-1 space-y-4">
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                          <th class="p-4">Nama Role</th>
+                          <th class="p-4">Warna</th>
+                          <th class="p-4">Jumlah Anggota</th>
+                          <th class="p-4">Tipe</th>
+                          <th class="p-4 text-center">Tindakan</th>
+                        </tr>
+                      </thead>
+                      <tbody id="roles-table-body">
+                        <!-- Roles load dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Create Role Panel (Right) -->
+              <div class="w-full lg:w-96 space-y-4">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Buat Role Baru</h3>
+                <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                  <div class="flex flex-col gap-2">
+                    <label for="new-role-name" class="text-xs font-semibold text-gray-400 tracking-wider">Nama Role</label>
+                    <input type="text" id="new-role-name" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" placeholder="Contoh: Member Baru">
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="new-role-color" class="text-xs font-semibold text-gray-400 tracking-wider">Warna Role</label>
+                    <div class="flex gap-2">
+                      <input type="color" id="new-role-color-picker" class="w-12 h-11 rounded-xl bg-transparent border border-white/10 cursor-pointer" value="#99AAB5">
+                      <input type="text" id="new-role-color" class="flex-1 px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="#99AAB5" placeholder="#99AAB5">
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/2">
+                    <div>
+                      <h4 class="text-xs font-semibold text-white">Tampilkan Terpisah</h4>
+                      <p class="text-[10px] text-gray-400">Tampilkan role terpisah dari online member lainnya (hoist)</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="new-role-hoist" class="sr-only peer">
+                      <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+                    </label>
+                  </div>
+                  <button 
+                    onclick="createRole()"
+                    id="create-role-btn" 
+                    class="w-full py-3 bg-discord-blurple hover:brightness-110 shadow-lg shadow-discord-blurple/20 transition-all text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2"
+                  >
+                    <i class="fa-solid fa-plus"></i> Buat Role
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB content: DAILY RIDDLE (Self-contained) -->
+          <div id="tab-content-daily-riddle" class="tab-pane hidden space-y-6 max-w-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Tebak-Tebakan Harian</h3>
+                <p class="text-xs text-gray-400">Konfigurasi broadcast soal & leaderboard harian secara otomatis ke channel Discord</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Tebak-Tebakan Harian</h4>
+                <p class="text-xs text-gray-400">Secara otomatis memposting soal tebak-tebakan harian (NVIDIA AI) &amp; broadcast @everyone</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="daily-riddle-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="daily-riddle-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Broadcast</label>
+              <select id="daily-riddle-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: Channel Utama / System)</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="daily-riddle-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Broadcast Soal</label>
+                <select id="daily-riddle-post-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                </select>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="daily-leaderboard-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Broadcast Leaderboard</label>
+                <select id="daily-leaderboard-post-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                </select>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="daily-riddle-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Hadiah RTK (Benar Tepat)</label>
+                <input type="number" id="daily-riddle-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="10" min="1" max="1000">
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="daily-riddle-close-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Hadiah RTK (Mendekati)</label>
+                <input type="number" id="daily-riddle-close-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="5" min="1" max="1000">
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button onclick="saveDailyRiddleConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Tebak-Tebakan Harian
+              </button>
+              <button onclick="testDailyRiddleBroadcast()" class="px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i> Tes Broadcast Sekarang
+              </button>
+            </div>
+
+            <!-- LIVE BACKOFFICE MONITORING PANEL -->
+            <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-outfit text-base font-bold text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Backoffice: Status Soal Berlangsung & Jawaban Member
+                  </h4>
+                  <p class="text-xs text-gray-400">Pantau soal tebak-tebakan harian yang sedang aktif dan riwayat jawaban member secara real-time</p>
+                </div>
+                <button onclick="loadActiveRiddleLive()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-gray-300 hover:bg-white/10 transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+              </div>
+
+              <!-- Card Soal Berlangsung -->
+              <div id="live-riddle-card" class="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2">
+                <div class="text-xs text-gray-400 italic">Memuat status tebakan aktif...</div>
+              </div>
+
+              <!-- Tabel Live History Jawaban Member -->
+              <div class="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                <div class="px-4 py-3 border-b border-white/10 font-semibold text-xs text-gray-300 flex justify-between items-center">
+                  <span>Daftar Jawaban Member</span>
+                  <span id="live-riddle-count" class="text-[10px] bg-discord-blurple/20 text-discord-blurple px-2 py-0.5 rounded-full font-mono">0 Jawaban</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs">
+                    <thead class="bg-white/5 text-gray-400 text-[11px] uppercase tracking-wider">
+                      <tr>
+                        <th class="px-4 py-2.5">Member</th>
+                        <th class="px-4 py-2.5">Jawaban Diinput</th>
+                        <th class="px-4 py-2.5">Evaluasi AI</th>
+                        <th class="px-4 py-2.5">Kesempatan</th>
+                        <th class="px-4 py-2.5">Waktu</th>
+                      </tr>
+                    </thead>
+                    <tbody id="live-riddle-tbody" class="divide-y divide-white/5 text-gray-300">
+                      <tr>
+                        <td colspan="5" class="px-4 py-6 text-center text-gray-500 italic">Belum ada jawaban member pada sesi ini.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: MAYA POLL (Self-contained) -->
+          <div id="tab-content-daily-poll" class="tab-pane hidden space-y-6 max-w-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Maya Poll Harian</h3>
+                <p class="text-xs text-gray-400">Konfigurasi polling lucu harian otomatis dari Gemini AI beserta reward RTK Point untuk member</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Maya Poll Harian</h4>
+                <p class="text-xs text-gray-400">Secara otomatis membuat &amp; memposting polling konyol harian setiap jam 10:00 WIB</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="daily-poll-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="daily-poll-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Poll</label>
+              <select id="daily-poll-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: Channel Utama / #general)</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="daily-poll-post-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Posting Polling (WIB)</label>
+                <select id="daily-poll-post-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                </select>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="daily-poll-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Reward RTK Point (Per Member Vote)</label>
+                <input type="number" id="daily-poll-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="5" min="0" max="1000">
+                <p class="text-[10px] text-gray-500">Nominal poin RTK yang didapatkan member saat memberikan suara pada polling</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button onclick="saveDailyPollConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Maya Poll
+              </button>
+              <button id="btn-test-daily-poll" onclick="testDailyPollBroadcast()" class="px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i> Tes Broadcast Maya Poll
+              </button>
+            </div>
+
+            <!-- LIVE BACKOFFICE MONITORING PANEL FOR DAILY POLLS -->
+            <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Maya Poll Active</h4>
+                  <p class="text-xs text-gray-400">Pantau secara langsung topik polling terbaru &amp; daftar member yang telah melakukan vote</p>
+                </div>
+                <span id="live-poll-count" class="text-xs font-mono bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 px-2.5 py-1 rounded-full font-bold">
+                  0 Member Vote
+                </span>
+              </div>
+
+              <!-- Top Active Poll Summary Card -->
+              <div id="live-poll-card" class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <div class="text-xs text-gray-400 italic text-center py-2">Memuat status polling harian...</div>
+              </div>
+
+              <!-- Live Member Voting Table -->
+              <div class="glass-panel rounded-2xl overflow-hidden border border-white/5 space-y-2">
+                <div class="p-4 bg-white/2 border-b border-white/5 flex justify-between items-center">
+                  <h5 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-users text-discord-blurple"></i> Daftar Member Yang Polling (Live Votes Log)
+                  </h5>
+                  <button onclick="loadActivePollLive()" class="text-[10px] text-gray-400 hover:text-white transition-all underline">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh Log
+                  </button>
+                </div>
+                <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="border-b border-white/5 bg-white/5 text-gray-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <th class="px-4 py-2.5">#</th>
+                        <th class="px-4 py-2.5">Member (Username / ID)</th>
+                        <th class="px-4 py-2.5">Pilihan Vote</th>
+                        <th class="px-4 py-2.5">Waktu Vote</th>
+                      </tr>
+                    </thead>
+                    <tbody id="live-poll-tbody" class="divide-y divide-white/5 text-gray-300">
+                      <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada vote dari member.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: MAYA STORY CHAIN (Self-contained) -->
+          <div id="tab-content-daily-story" class="tab-pane hidden space-y-6 max-w-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Maya Story Chain</h3>
+                <p class="text-xs text-gray-400">Konfigurasi kolaborasi menyambung cerita 1 kalimat harian, reward RTK, dan pemantauan rantai kalimat live</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Maya Story Chain</h4>
+                <p class="text-xs text-gray-400">Mengaktifkan sesi kolaborasi cerita 1 kalimat harian &amp; rendering dongeng komedi AI otomatis</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="story-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="story-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Story Chain</label>
+              <select id="story-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: #cerita-bersambung / Channel Utama)</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="story-start-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Buka Sesi &amp; Reminder (WIB)</label>
+                <select id="story-start-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                </select>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="story-publish-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Tutup &amp; Render Dongeng (WIB)</label>
+                <select id="story-publish-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="story-word-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Reward RTK (Per Kalimat Valid)</label>
+                <input type="number" id="story-word-reward" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="10" min="0" max="1000">
+                <p class="text-[10px] text-gray-500">Poin RTK langsung yang didapatkan member saat menyumbangkan 1 kalimat valid</p>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="story-mvp-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Bonus MVP RTK (Pilihan Maya)</label>
+                <input type="number" id="story-mvp-reward" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10" value="250" min="0" max="5000">
+                <p class="text-[10px] text-gray-500">Bonus poin RTK untuk member MVP kontributor terbaik pilihan Maya</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button onclick="saveDailyStoryConfig()" class="flex-1 bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Story Chain
+              </button>
+              <button id="btn-start-story" onclick="startStorySessionBroadcast()" class="px-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-bullhorn"></i> Kirim Pengingat Buka Sesi
+              </button>
+              <button id="btn-publish-story" onclick="publishStoryNowBroadcast()" class="px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Publikasikan Cerita Sekarang
+              </button>
+            </div>
+
+            <!-- Info: Render Otomatis oleh Maya -->
+            <div class="flex items-start gap-3 p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+              <div class="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-indigo-300">Render Dongeng &amp; Pilih MVP — Otomatis oleh Maya</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">Maya akan secara otomatis merangkai seluruh kalimat cerita, membuat gambar ilustrasi digital art, dan memilih MVP kontributor terbaik pada jam tutup sesi yang dikonfigurasi (default: 20:00 WIB). Tidak ada intervensi manual yang diperlukan.</div>
+              </div>
+            </div>
+
+            <!-- LIVE BACKOFFICE MONITORING PANEL FOR DAILY STORY -->
+            <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-outfit text-lg font-bold text-white">Live Dashboard Monitoring • Maya Story Chain</h4>
+                  <p class="text-xs text-gray-400">Pantau alur rantai kalimat real-time &amp; sisa kesempatan (2/2) member yang berpartisipasi</p>
+                </div>
+                <span id="live-story-count" class="text-xs font-mono bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 px-2.5 py-1 rounded-full font-bold">
+                  0 Member (0 Kalimat)
+                </span>
+              </div>
+
+              <!-- Live Story Word Chain Visualizer Card -->
+              <div id="live-story-chain-card" class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <div class="text-xs text-gray-400 italic text-center py-2">Memuat rantai kalimat cerita hari ini...</div>
+              </div>
+
+              <!-- Showcase Dongeng Terakhir -->
+              <div id="latest-story-showcase"></div>
+
+              <!-- Live Member Contributors Table -->
+              <div class="glass-panel rounded-2xl overflow-hidden border border-white/5 space-y-2">
+                <div class="p-4 bg-white/2 border-b border-white/5 flex justify-between items-center">
+                  <h5 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-users text-discord-blurple"></i> Daftar Member Kontributor (Sisa Kesempatan 2/2 Kalimat)
+                  </h5>
+                  <button onclick="loadActiveStoryLive()" class="text-[10px] text-gray-400 hover:text-white transition-all underline">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh Log
+                  </button>
+                </div>
+                <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="border-b border-white/5 bg-white/5 text-gray-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <th class="px-4 py-2.5">#</th>
+                        <th class="px-4 py-2.5">Member (Username / ID)</th>
+                        <th class="px-4 py-2.5">Kesempatan (Maks 2 Kata)</th>
+                        <th class="px-4 py-2.5">Waktu Terakhir</th>
+                      </tr>
+                    </thead>
+                    <tbody id="live-story-tbody" class="divide-y divide-white/5 text-gray-300">
+                      <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-gray-500 italic">Belum ada kata dari member.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: MENFESS (Self-contained) -->
+          <div id="tab-content-menfess" class="tab-pane hidden space-y-6 max-w-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">AI Menfess &amp; Confession</h3>
+                <p class="text-xs text-gray-400">Konfigurasi channel target dan moderasi otomatis NVIDIA AI untuk pesan anonim</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Fitur Menfess Anonim</h4>
+                <p class="text-xs text-gray-400">Izinkan member mengirim curhatan &amp; salam anonim lewat command /menfess</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="menfess-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="menfess-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Menfess</label>
+              <select id="menfess-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: Channel Utama / System)</option>
+              </select>
+            </div>
+
+            <button onclick="saveMenfessConfig()" class="w-full bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+              <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan AI Menfess
+            </button>
+          </div>
+
+          <!-- TAB content: MAYA LANJUTKAN PANTUN (Self-contained) -->
+          <div id="tab-content-pantun" class="tab-pane hidden space-y-6 max-w-3xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Maya Lanjutkan Pantun</h3>
+                <p class="text-xs text-gray-400">Fitur interaktif berbalas pantun harian: Maya membuat 2 baris sampiran, member melanjutkan isi dengan rima yang pas (Buka 09:00 - Tutup 23:00 WIB)</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/2">
+              <div>
+                <h4 class="text-sm font-semibold text-white">Aktifkan Fitur Lanjutkan Pantun</h4>
+                <p class="text-xs text-gray-400">Izinkan member berpartisipasi menyusun bait pantun setiap hari (1 kesempatan per member)</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="pantun-enabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label for="pantun-channel" class="text-xs font-semibold text-gray-400 tracking-wider">Target Channel Pantun</label>
+              <select id="pantun-channel" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <option value="">Pilih Channel (Default: Channel Utama / Trivia / System)</option>
+              </select>
+            </div>
+
+            <!-- GRID JAM & REWARD -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="pantun-start-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Buka Sesi (WIB)</label>
+                <select id="pantun-start-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                  <!-- Populated dynamically via JS -->
+                </select>
+                <span class="text-[10px] text-gray-500">Default: 09:00 WIB (Maya membuka sesi &amp; bait pembuka)</span>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="pantun-close-hour" class="text-xs font-semibold text-gray-400 tracking-wider">Jam Tutup &amp; Review (WIB)</label>
+                <select id="pantun-close-hour" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                  <!-- Populated dynamically via JS -->
+                </select>
+                <span class="text-[10px] text-gray-500">Default: 23:00 WIB / 11 Malam (Maya memilih MVP Pantun)</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label for="pantun-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Reward Partisipasi (RTK Points)</label>
+                <input type="number" id="pantun-reward-amount" min="1" max="100" value="15" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <span class="text-[10px] text-gray-500">Diberikan instan ke setiap member saat pantun dikirim</span>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="pantun-mvp-reward" class="text-xs font-semibold text-gray-400 tracking-wider">Bonus MVP Pantun (RTK Points)</label>
+                <input type="number" id="pantun-mvp-reward" min="10" max="1000" value="150" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm border border-white/10 bg-discord-dark">
+                <span class="text-[10px] text-gray-500">Bonus untuk 1 member dengan pantun paling kreatif &amp; berima</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button onclick="savePantunConfig()" class="flex-1 bg-amber-500 hover:bg-amber-500/90 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Pantun
+              </button>
+              <button id="btn-trigger-start-pantun" onclick="triggerStartPantun()" class="px-4 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-1.5 border border-white/10">
+                <i class="fa-solid fa-play mr-1.5"></i> Buka Sesi Sekarang
+              </button>
+              <button id="btn-trigger-close-pantun" onclick="triggerClosePantun()" class="px-4 bg-emerald-600/80 hover:bg-emerald-600 text-white font-semibold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                <i class="fa-solid fa-crown mr-1.5"></i> Tutup &amp; Nilai MVP
+              </button>
+            </div>
+
+            <!-- LIVE SHOWCASE CARD -->
+            <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-outfit text-lg font-bold text-white">Sesi Pantun Hari Ini &amp; Feed Kiriman Member</h4>
+                  <p class="text-xs text-gray-400">Pantau bait pembuka Maya dan kiriman pantun lanjutan member server</p>
+                </div>
+                <span id="pantun-submission-count" class="text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full font-bold">
+                  0 Pantun
+                </span>
+              </div>
+
+              <div id="pantun-today-showcase">
+                <div class="py-6 text-center text-gray-500 text-xs italic">Memuat sesi pantun...</div>
+              </div>
+
+              <div class="space-y-2 mt-4">
+                <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Feed Kiriman Lanjutan Member:</h5>
+                <div id="pantun-submissions-feed" class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  <div class="py-6 text-center text-gray-500 text-xs italic">Memuat kiriman pantun...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: ANALYTICS (Self-contained) -->
+          <div id="tab-content-analytics" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Server Analytics &amp; Insights</h3>
+                <p class="text-xs text-gray-400">Pantau pertumbuhan member, jam paling ramai, dan tren penggunaan fitur bot</p>
+              </div>
+              <button onclick="loadAnalytics()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh Data
+              </button>
+            </div>
+
+            <!-- SUMMARY STAT CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Member Baru (7d)</span>
+                  <i class="fa-solid fa-user-plus text-discord-blurple"></i>
+                </div>
+                <div id="stat-joins-7d" class="text-2xl font-bold text-white font-outfit">0</div>
+                <p class="text-[10px] text-gray-400">Pertumbuhan 7 hari terakhir</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Total Commands (7d)</span>
+                  <i class="fa-solid fa-terminal text-emerald-400"></i>
+                </div>
+                <div id="stat-commands-7d" class="text-2xl font-bold text-white font-outfit">0</div>
+                <p class="text-[10px] text-gray-400">Slash command dijalankan</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Jam Terramai</span>
+                  <i class="fa-solid fa-clock text-amber-400"></i>
+                </div>
+                <div id="stat-peak-hour" class="text-lg font-bold text-white font-outfit truncate">20:00 WIB</div>
+                <p class="text-[10px] text-gray-400">Puncak aktivitas server</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Total Menfess</span>
+                  <i class="fa-solid fa-heart text-pink-400"></i>
+                </div>
+                <div id="stat-menfess-total" class="text-2xl font-bold text-white font-outfit">0</div>
+                <p class="text-[10px] text-gray-400">Pesan anonim terkirim</p>
+              </div>
+            </div>
+
+            <!-- CHARTS GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Member Growth Chart -->
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-chart-line text-discord-blurple"></i> Pertumbuhan Member Baru (7 Hari)
+                </h4>
+                <div class="h-64 relative">
+                  <canvas id="chart-member-growth"></canvas>
+                </div>
+              </div>
+
+              <!-- Top Commands Chart -->
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-fire text-pink-500"></i> Command Paling Sering Dipakai
+                </h4>
+                <div class="h-64 relative">
+                  <canvas id="chart-top-commands"></canvas>
+                </div>
+              </div>
+
+              <!-- Hourly Activity Chart -->
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-business-time text-emerald-400"></i> Distribusi Jam Paling Ramai (24 Jam WIB)
+                </h4>
+                <div class="h-64 relative">
+                  <canvas id="chart-hourly-activity"></canvas>
+                </div>
+              </div>
+
+              <!-- Feature Breakdown Chart -->
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-chart-pie text-amber-400"></i> Breakdown Aktivitas Fitur
+                </h4>
+                <div class="h-64 relative">
+                  <canvas id="chart-feature-breakdown"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB content: ECONOMY (Self-contained) -->
+          <div id="tab-content-economy" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Dompet Rogatekno Koin (RTK) &amp; Voice Rewards</h3>
+                <p class="text-xs text-gray-400">Atur perolehan koin otomatis saat member nongkrong di Voice Channel &amp; pantau dompet member</p>
+              </div>
+              <button onclick="loadEconomyBalances()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Refresh Saldo
+              </button>
+            </div>
+
+            <!-- ECONOMY SUMMARY STAT CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Total RTK Beredar</span>
+                  <i class="fa-solid fa-coins text-amber-400"></i>
+                </div>
+                <div id="stat-total-circulating" class="text-2xl font-bold text-white font-outfit">0 RTK</div>
+                <p class="text-[10px] text-gray-400">Total koin aktif season ini</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Total Pemilik Dompet</span>
+                  <i class="fa-solid fa-wallet text-discord-blurple"></i>
+                </div>
+                <div id="stat-total-wallets" class="text-2xl font-bold text-white font-outfit">0</div>
+                <p class="text-[10px] text-gray-400">Member yang memiliki saldo</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Sisa Waktu Season</span>
+                  <i class="fa-solid fa-hourglass-half text-rose-400"></i>
+                </div>
+                <div id="stat-season-days" class="text-2xl font-bold text-white font-outfit">- Hari</div>
+                <p id="stat-season-reset-date" class="text-[10px] text-gray-400">Reset tgl 5 pukul 23:59 WIB</p>
+              </div>
+
+              <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  <span>Kuota Redeem Toko</span>
+                  <i class="fa-solid fa-ticket text-emerald-400"></i>
+                </div>
+                <div id="stat-season-quota" class="text-2xl font-bold text-white font-outfit">0/2</div>
+                <p class="text-[10px] text-gray-400">Maks 2 pemenang per bulan (Tgl 3-5)</p>
+              </div>
+            </div>
+
+            <!-- SEASON ENGINE & CANDIDATES PANEL -->
+            <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+              <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div class="flex items-center gap-2.5 text-amber-400">
+                  <i class="fa-solid fa-crown text-base"></i>
+                  <div>
+                    <h4 class="text-sm font-bold text-white">Season Bulanan &amp; 2 Golden Candidates (Plafon 50.000 RTK)</h4>
+                    <p class="text-[11px] text-gray-400">Dua member teraktif diumumkan tgl 1, redeem dibuka tgl 3–5, dan reset saldo tgl 5 malam. (Owner/@amubhya dikecualikan)</p>
+                  </div>
+                </div>
+                <div class="flex items-center flex-wrap gap-2">
+                  <button onclick="triggerDay1Announcement()" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Pengumuman Golden Candidates (Tgl 1)">
+                    <i class="fa-solid fa-bullhorn"></i> Notif Tgl 1
+                  </button>
+                  <button onclick="triggerDay3RedeemOpen()" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Notifikasi Buka Redeem (Tgl 3)">
+                    <i class="fa-solid fa-door-open"></i> Buka Tgl 3
+                  </button>
+                  <button onclick="triggerDay5Closing()" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Peringatan Hari Terakhir (Tgl 5)">
+                    <i class="fa-solid fa-clock"></i> Notif Tgl 5
+                  </button>
+                  <button onclick="evaluateSilentRotation()" class="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Evaluasi & Rotasi Hening jika Kandidat Inaktif ≥ 3 Hari">
+                    <i class="fa-solid fa-arrows-spin"></i> Cek Rotasi
+                  </button>
+                  <button onclick="rerollCandidates()" class="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Acak Ulang 2 Kandidat">
+                    <i class="fa-solid fa-dice"></i> Acak Ulang
+                  </button>
+                  <button onclick="confirmResetSeason()" class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset Saldo
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="season-candidates-container">
+                <!-- Golden candidates list loaded dynamically -->
+                <div class="p-3 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-500">Memuat kandidat...</div>
+              </div>
+            </div>
+
+            <!-- SETTINGS & TOP BALANCES GRID -->
+            <div class="flex flex-col lg:flex-row gap-8">
+              <!-- Left Column: Voice Settings & Point Adjustment Form -->
+              <div class="w-full lg:w-96 space-y-6">
+                <!-- Point Adjustment Form -->
+                <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                  <div class="flex items-center gap-2.5 text-amber-400">
+                    <i class="fa-solid fa-gift text-sm"></i>
+                    <h4 class="text-xs font-bold uppercase tracking-widest text-white">Beri / Sesuaikan Saldo Member</h4>
+                  </div>
+                  <p class="text-[11px] text-gray-400">Tambah, kurangi, atau atur jumlah Rogatekno Koin (RTK) untuk member tertentu.</p>
+
+                  <div class="space-y-3">
+                    <div class="flex flex-col gap-1.5">
+                      <label for="adjust-user-id" class="text-xs font-semibold text-gray-400">Discord User ID</label>
+                      <input type="text" id="adjust-user-id" placeholder="Contoh: 123456789012345678" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-white outline-none text-xs font-mono">
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                      <label for="adjust-username" class="text-xs font-semibold text-gray-400">Nama Member (Opsional)</label>
+                      <input type="text" id="adjust-username" placeholder="Nama display member..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-white outline-none text-xs">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="flex flex-col gap-1.5">
+                        <label for="adjust-action" class="text-xs font-semibold text-gray-400">Aksi</label>
+                        <select id="adjust-action" class="w-full px-3 py-2.5 rounded-xl glass-input text-white outline-none text-xs bg-[#1e2029]">
+                          <option value="add">➕ Tambah (+)</option>
+                          <option value="subtract">➖ Kurangi (-)</option>
+                          <option value="set">🟰 Set Tetap (=)</option>
+                        </select>
+                      </div>
+
+                      <div class="flex flex-col gap-1.5">
+                        <label for="adjust-amount" class="text-xs font-semibold text-gray-400">Jumlah RTK</label>
+                        <input type="number" id="adjust-amount" value="50" min="1" max="1000000" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-white outline-none text-xs font-bold text-amber-400 font-mono">
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                      <label for="adjust-reason" class="text-xs font-semibold text-gray-400">Alasan / Catatan (Opsional)</label>
+                      <input type="text" id="adjust-reason" placeholder="Hadiah event, kompensasi, dll..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-white outline-none text-xs">
+                    </div>
+
+                    <button onclick="submitPointAdjustment()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                      <i class="fa-solid fa-paper-plane"></i> Terapkan Perubahan Saldo
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Voice Reward Settings -->
+                <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                  <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Pengaturan Voice Rewards</h4>
+                  <div class="flex items-center justify-between p-3.5 rounded-xl border border-white/5 bg-white/2">
+                    <div>
+                      <h4 class="text-xs font-semibold text-white">Aktifkan Voice RTK Rewards</h4>
+                      <p class="text-[10px] text-gray-400">Dapatkan koin otomatis saat aktif di Voice Channel</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="voice-reward-enabled" class="sr-only peer" checked>
+                      <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blurple"></div>
+                    </label>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <label for="voice-reward-interval" class="text-xs font-semibold text-gray-400 tracking-wider">Interval Waktu Nongkrong (Menit)</label>
+                    <input type="number" id="voice-reward-interval" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="10" min="1" max="120">
+                    <span class="text-[10px] text-gray-500">Member harus berada di Voice Channel selama X menit untuk mengklaim koin.</span>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <label for="voice-reward-amount" class="text-xs font-semibold text-gray-400 tracking-wider">Jumlah RTK Per Interval</label>
+                    <input type="number" id="voice-reward-amount" class="w-full px-4 py-3 rounded-xl glass-input text-white outline-none text-sm" value="5" min="1" max="1000">
+                    <span class="text-[10px] text-gray-500">Jumlah koin yang diberikan setiap kali interval waktu tercapai.</span>
+                  </div>
+
+                  <button onclick="saveEconomyConfig()" class="w-full bg-discord-blurple hover:bg-discord-blurple/95 text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-discord-blurple/20">
+                    <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Pengaturan Voice Cash
+                  </button>
+                </div>
+              </div>
+
+              <!-- Top Balances Table (Right) -->
+              <div class="flex-1 space-y-4">
+                <div class="flex justify-between items-center">
+                  <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Daftar Dompet Member Server</h4>
+                  <span class="text-[11px] text-gray-500">Klik tombol aksi untuk edit / transfer saldo cepat</span>
+                </div>
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                          <th class="p-4">Rank</th>
+                          <th class="p-4">Nama Member</th>
+                          <th class="p-4">Total Saldo</th>
+                          <th class="p-4">Saldo Harian</th>
+                          <th class="p-4 text-center">Aksi Cepat</th>
+                        </tr>
+                      </thead>
+                      <tbody id="economy-balances-table-body">
+                        <!-- Loaded dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB content: LEVELING & XP (Self-contained) -->
+          <div id="tab-content-leveling" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Sistem Leveling &amp; XP Member</h3>
+                <p class="text-xs text-gray-400">Atur progres level keaktifan member, notifikasi kenaikan level, dan pantau leaderboard live</p>
+              </div>
+              <button onclick="loadLevelingData()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Refresh Data
+              </button>
+            </div>
+
+            <!-- LEVELING STAT CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="glass-panel p-5 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <i class="fa-solid fa-users"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-gray-400">Total Member Terdaftar Leveling</p>
+                    <h4 id="stat-leveling-members" class="text-xl font-bold font-mono text-white">0</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="glass-panel p-5 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <i class="fa-solid fa-crown"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-gray-400">Level Tertinggi Server</p>
+                    <h4 id="stat-leveling-highest" class="text-xl font-bold font-mono text-white">Lv. 0</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LEVELING CONFIGURATION PANEL -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/5 space-y-5">
+              <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                <div>
+                  <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-ranking-star text-indigo-400"></i> Sistem Leveling &amp; Akumulasi XP
+                  </h4>
+                  <p class="text-xs text-gray-400 mt-1">Aktifkan sistem XP dari pesan chat, voice channel, trivia tebak-tebakan, pantun, story chain, dan polling</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="leveling-enabled" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              <!-- ANTI-SPAM NOTICE -->
+              <div class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200 flex items-start gap-3">
+                <i class="fa-solid fa-bell-slash text-base text-indigo-400 mt-0.5"></i>
+                <div class="space-y-1">
+                  <p class="font-semibold text-white">Mode Hening &amp; Bebas Spam Aktif</p>
+                  <p class="text-gray-300 leading-relaxed">
+                    Pengumuman otomatis naik level ke channel obrolan maupun riwayat notifikasi dinonaktifkan agar obrolan server tetap bersih. Seluruh perolehan XP dan level tetap tercatat secara otomatis di sistem database. Member dapat mengecek status peringkat mereka kapan saja menggunakan slash command <code class="px-1.5 py-0.5 rounded bg-black/40 text-indigo-300 font-mono">/leaderboard</code> atau kartu grafis <code class="px-1.5 py-0.5 rounded bg-black/40 text-indigo-300 font-mono">/rank</code>.
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button type="button" onclick="saveLevelingConfig()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+                  <i class="fa-solid fa-floppy-disk"></i> Simpan Status Leveling
+                </button>
+              </div>
+            </div>
+
+            <!-- LEADERBOARD TABLE -->
+            <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+              <div class="p-5 border-b border-white/5 flex justify-between items-center">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-trophy text-yellow-400"></i> Top Leaderboard Level &amp; XP Server
+                </h4>
+                <span class="text-xs text-gray-400">Permanen &bull; Tidak ter-reset bulanan</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-white/[0.02] border-b border-white/5 text-gray-400 uppercase font-mono tracking-wider">
+                    <tr>
+                      <th class="p-4 text-center w-16">Rank</th>
+                      <th class="p-4">Member</th>
+                      <th class="p-4">Level</th>
+                      <th class="p-4">Progress XP</th>
+                      <th class="p-4">Aktivitas</th>
+                    </tr>
+                  </thead>
+                  <tbody id="leveling-leaderboard-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: SHOP (Self-contained) -->
+          <div id="tab-content-shop" class="tab-pane hidden space-y-6">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-outfit text-xl font-bold text-white">Manajemen Toko Server &amp; Penukaran RTK</h3>
+                <p class="text-xs text-gray-400">Kelola katalog produk bergambar dinamis &amp; setujui/refund pesanan member</p>
+              </div>
+              <button onclick="loadShopData()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Refresh Toko
+              </button>
+            </div>
+
+            <!-- ADD PRODUCT FORM & ACTIVE PRODUCTS CATALOG GRID -->
+            <div class="space-y-6">
+              <!-- Add / Edit Product Form -->
+              <div id="shop-product-form" class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                <div class="flex justify-between items-center">
+                  <h4 id="shop-form-header" class="text-sm font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-discord-blurple"></i> Tambah Produk Baru Ke Katalog
+                  </h4>
+                  <button id="shop-cancel-edit-btn" onclick="cancelEditProduct()" class="hidden text-xs text-gray-400 hover:text-white px-3 py-1 rounded-lg bg-white/5 border border-white/10 transition-all">
+                    <i class="fa-solid fa-xmark mr-1"></i> Batal Edit
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="new-shop-title" class="text-xs font-semibold text-gray-400">Nama Produk / Item</label>
+                    <input type="text" id="new-shop-title" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none" placeholder="Contoh: 86 Diamonds Mobile Legends">
+                  </div>
+                  <div class="flex flex-col gap-1.5">
+                    <label for="new-shop-price" class="text-xs font-semibold text-gray-400">Harga (Rogatekno Koin RTK)</label>
+                    <input type="number" id="new-shop-price" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none" placeholder="Contoh: 200" min="1">
+                  </div>
+                  <div class="flex flex-col gap-1.5">
+                    <label for="new-shop-category" class="text-xs font-semibold text-gray-400">Kategori Item</label>
+                    <select id="new-shop-category" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none bg-discord-dark">
+                      <option value="GAME">🎮 Top-Up Game (MLBB, FF, VP, dll)</option>
+                      <option value="ROLE">👑 Role Server / VIP</option>
+                      <option value="VOUCHER">🍔 Voucher GoFood / E-Wallet</option>
+                      <option value="OTHER">🎁 Lainnya</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="new-shop-image" class="text-xs font-semibold text-gray-400">URL Gambar Banner (Unsplash / Direct Image URL)</label>
+                    <input type="url" id="new-shop-image" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none" placeholder="https://images.unsplash.com/photo-...">
+                  </div>
+                  <div class="flex flex-col gap-1.5">
+                    <label for="new-shop-desc" class="text-xs font-semibold text-gray-400">Deskripsi Produk</label>
+                    <input type="text" id="new-shop-desc" class="px-4 py-2.5 rounded-xl glass-input text-white text-xs outline-none" placeholder="Contoh: Masukkan ID Game & Zone ID saat checkout">
+                  </div>
+                </div>
+
+                <button id="shop-submit-btn" onclick="addShopProduct()" class="w-full md:w-auto px-6 py-2.5 bg-discord-blurple hover:brightness-110 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-cart-plus"></i> Tambah Ke Katalog Toko
+                </button>
+              </div>
+
+              <!-- Active Products Grid -->
+              <div class="space-y-3">
+                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Katalog Produk Aktif di Server</h4>
+                <div id="shop-products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <!-- Dynamic product cards -->
+                </div>
+              </div>
+
+              <!-- Orders Queue Table -->
+              <div class="space-y-3 pt-4 border-t border-white/5">
+                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Antrean Pesanan &amp; Penukaran Hadiah Member</h4>
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 bg-white/2 text-gray-400 font-semibold uppercase tracking-wider">
+                          <th class="p-4">Kode TRX</th>
+                          <th class="p-4">Member</th>
+                          <th class="p-4">Item &amp; Harga</th>
+                          <th class="p-4">ID Target / Input</th>
+                          <th class="p-4">Status</th>
+                          <th class="p-4">Aksi / Catatan</th>
+                        </tr>
+                      </thead>
+                      <tbody id="shop-orders-table-body">
+                        <!-- Dynamic orders -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB content: JOIN REQUESTS & APPROVALS -->
+            <div id="tab-content-join-requests" class="tab-pane hidden space-y-6">
+              
+              <!-- HEADER & CONTROLS -->
+              <div class="glass-panel p-6 rounded-2xl border border-white/5 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div class="space-y-1">
+                    <h3 class="font-outfit text-xl font-bold text-white flex items-center gap-2">
+                      <i class="fa-solid fa-user-check text-discord-blurple"></i> Approval Member Baru
+                    </h3>
+                    <p class="text-xs text-gray-400">
+                      Kelola permohonan calon anggota sebelum masuk ke server (Apply to Join &amp; Pending Screening)
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button 
+                      type="button"
+                      onclick="loadJoinRequestsData()" 
+                      class="px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold border border-white/10 transition-all flex items-center gap-1.5"
+                    >
+                      <i class="fa-solid fa-rotate-right"></i> Refresh
+                    </button>
+                  </div>
+                </div>
+
+                <!-- FILTER BUTTONS -->
+                <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
+                  <button 
+                    type="button"
+                    onclick="setJoinRequestsFilter('SUBMITTED')" 
+                    id="filter-btn-jr-SUBMITTED" 
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-discord-blurple text-white shadow-lg shadow-discord-blurple/20 transition-all flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-inbox text-xs"></i> Menunggu (Pending)
+                  </button>
+                  <button 
+                    type="button"
+                    onclick="setJoinRequestsFilter('APPROVED')" 
+                    id="filter-btn-jr-APPROVED" 
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5 transition-all flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-check text-xs"></i> Disetujui (Approved)
+                  </button>
+                  <button 
+                    type="button"
+                    onclick="setJoinRequestsFilter('REJECTED')" 
+                    id="filter-btn-jr-REJECTED" 
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5 transition-all flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-xmark text-xs"></i> Ditolak (Rejected)
+                  </button>
+                  <button 
+                    type="button"
+                    onclick="setJoinRequestsFilter('PENDING_MEMBERS')" 
+                    id="filter-btn-jr-PENDING_MEMBERS" 
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5 transition-all flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-hourglass-half text-xs"></i> Member Pending di Server
+                  </button>
+                </div>
+              </div>
+
+              <!-- APPLICANTS LIST CONTAINER -->
+              <div id="join-requests-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Dynamic Request Cards load here -->
+              </div>
+
+              <!-- REJECT MODAL -->
+              <div id="join-request-reject-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+                <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-white/10 shadow-2xl space-y-4 fade-in">
+                  <div class="flex items-center justify-between pb-3 border-b border-white/5">
+                    <h4 class="font-outfit text-base font-bold text-white flex items-center gap-2">
+                      <i class="fa-solid fa-user-xmark text-rose-400"></i> Tolak Permohonan
+                    </h4>
+                    <button type="button" onclick="closeRejectModal()" class="text-gray-400 hover:text-white text-sm">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  <div class="space-y-2">
+                    <p class="text-xs text-gray-300">
+                      Anda akan menolak permohonan masuk dari <span id="reject-applicant-name" class="font-bold text-white"></span>.
+                    </p>
+                    <div class="flex flex-col gap-1.5">
+                      <label class="text-[11px] font-semibold text-gray-400">Alasan Penolakan (Opsional, maks 160 karakter):</label>
+                      <textarea 
+                        id="reject-reason-input" 
+                        maxlength="160" 
+                        rows="3" 
+                        placeholder="Contoh: Belum memenuhi kriteria server / Akun terlalu baru" 
+                        class="w-full px-3 py-2.5 rounded-xl glass-input text-white text-xs outline-none resize-none border border-white/10 focus:border-rose-400"
+                      ></textarea>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                    <button 
+                      type="button" 
+                      onclick="closeRejectModal()" 
+                      class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold transition-all"
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      type="button" 
+                      onclick="confirmRejectRequest()" 
+                      class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-lg shadow-rose-500/25 transition-all flex items-center gap-1.5"
+                    >
+                      <i class="fa-solid fa-user-xmark"></i> Tolak Permohonan
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+      <!-- EMPTY STATE -->
+      <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-center p-8 fade-in">
+        <div class="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10 mb-6">
+          <i class="fa-solid fa-server text-4xl text-gray-500"></i>
+        </div>
+        <h2 class="font-outfit text-2xl font-bold tracking-tight text-white mb-2">Pilih Server</h2>
+        <p class="text-gray-400 max-w-sm text-sm">Pilih salah satu server di panel kiri untuk mulai memodifikasi konfigurasi welcome bot.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODULAR FRONTEND SCRIPTS -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/components/welcome.js"></script>
+  <script src="/js/components/join-requests.js"></script>
+  <script src="/js/components/automod.js"></script>
+  <script src="/js/components/warnings.js"></script>
+  <script src="/js/components/ai.js"></script>
+  <script src="/js/components/rules.js"></script>
+  <script src="/js/components/announcements.js"></script>
+  <script src="/js/components/general-announce.js"></script>
+  <script src="/js/components/mabar.js"></script>
+  <script src="/js/components/reaction-roles.js"></script>
+  <script src="/js/components/roles.js"></script>
+  <script src="/js/components/daily-riddle.js"></script>
+  <script src="/js/components/daily-poll.js"></script>
+  <script src="/js/components/story.js"></script>
+  <script src="/js/components/menfess.js"></script>
+  <script src="/js/components/pantun.js"></script>
+  <script src="/js/components/analytics.js"></script>
+  <script src="/js/components/economy.js"></script>
+  <script src="/js/components/leveling.js"></script>
+  <script src="/js/components/shop.js"></script>
+
+</body>
+</html>

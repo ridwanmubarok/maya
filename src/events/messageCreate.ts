@@ -17,6 +17,8 @@ import { searchOutfitTrends, createOutfitEmbed } from "../services/outfitService
 import { fetchCurrencyRates, createCurrencyEmbed } from "../services/financialService";
 import { buildMemberCardPayload } from "../commands/utility/card";
 import { addChatXp } from "../services/levelingManager";
+import { broadcastLandingActivity } from "../services/dashboard";
+import { bonfireManager } from "../services/bonfireManager";
 
 // Helper deterministic query parsers (Bypasses AI reasoning for precision and speed ONLY on explicit search/catalog requests)
 function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
@@ -170,6 +172,18 @@ const event: BotEvent = {
       const guildId = message.guild.id;
       // Track analytics event for message sent
       trackAnalyticsEvent(guildId, "MESSAGE_SENT").catch(() => {});
+
+      // Broadcast to landing page bonfire
+      try {
+        bonfireManager.addActivitySpark(2);
+        const channelName = (message.channel as TextChannel).name || "chat";
+        broadcastLandingActivity({
+          username: message.member?.displayName || message.author.displayName || message.author.username,
+          avatar: message.author.displayAvatarURL({ extension: "png", size: 64 }),
+          action: `berbincang di #${channelName} 💬`,
+          type: "message"
+        });
+      } catch (_) {}
 
       // Pass message to Story Manager if sent in story channel
       await handleStoryWordMessage(message);

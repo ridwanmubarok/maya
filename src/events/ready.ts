@@ -4,7 +4,6 @@ import { logger } from "../utils/logger";
 import { initDailyRiddleScheduler } from "../services/dailyRiddleScheduler";
 import { initVoiceRewardTicker } from "../services/voiceRewardManager";
 import { initMonthlyResetScheduler } from "../services/monthlyResetScheduler";
-import { broadcastMayaAdjustmentHistory } from "../utils/historyLogger";
 
 const event: BotEvent = {
   name: Events.ClientReady,
@@ -16,9 +15,6 @@ const event: BotEvent = {
     initDailyRiddleScheduler(client);
     initVoiceRewardTicker(client);
     initMonthlyResetScheduler(client);
-
-    // Kirim silent history announcement tentang penyesuaian terbaru
-    broadcastMayaAdjustmentHistory(client);
 
     const commandData = client.commands.map(cmd => cmd.data.toJSON());
     const token = process.env.DISCORD_TOKEN;

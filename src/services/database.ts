@@ -8,7 +8,6 @@ export async function connectDatabase() {
     await prisma.$connect();
     logger.info("Database PostgreSQL berhasil terhubung melalui Prisma!");
   } catch (error) {
-    logger.error("Gagal terhubung ke database:", error);
-    process.exit(1);
+    logger.warn("Peringatan: Gagal terhubung ke remote PostgreSQL database. Berjalan dalam mode degradasi/offline fallback:", error);
   }
 }

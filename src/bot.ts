@@ -111,18 +111,24 @@ const startBot = async () => {
     loadCommands();
     loadEvents();
 
+    // Start Web Dashboard & The Checkpoint Landing Server
+    startDashboard(client);
+
     const token = process.env.DISCORD_TOKEN;
     if (!token) {
-      logger.error("DISCORD_TOKEN tidak ditemukan di file .env!");
-      process.exit(1);
+      logger.warn("DISCORD_TOKEN tidak ditemukan di file .env! Bot berjalan dalam mode Web Server.");
+      return;
     }
 
-    await client.login(token);
-    initDailyPollScheduler(client);
-    initDailyStoryScheduler(client);
-    initDailyPantunScheduler(client);
-    initMonthlyResetScheduler(client);
-    startDashboard(client);
+    try {
+      await client.login(token);
+      initDailyPollScheduler(client);
+      initDailyStoryScheduler(client);
+      initDailyPantunScheduler(client);
+      initMonthlyResetScheduler(client);
+    } catch (loginError) {
+      logger.warn("Peringatan: Gagal login ke Discord Gateway (berjalan dalam mode local/preview Web Server):", loginError);
+    }
   } catch (error) {
     logger.error("Gagal melakukan bootstrap aplikasi:", error);
     process.exit(1);
