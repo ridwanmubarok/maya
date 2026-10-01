@@ -173,18 +173,30 @@
       <!-- TOP HEADER -->
       <header class="flex items-center justify-between w-full max-w-6xl mx-auto pointer-events-auto">
         
-        <!-- Left side: Live Server Stats -->
-        <div class="flex items-center space-x-2.5 text-xs text-zinc-300 font-mono tracking-wide">
+        <!-- Left side: Live Server Stats & Fire Streak -->
+        <div class="flex items-center space-x-2 text-xs text-zinc-300 font-mono tracking-wide">
           <span class="font-medium"><span id="live-count">1,429</span> members</span>
           <span class="text-zinc-600">•</span>
           <span class="font-medium"><span id="voice-count">0</span> in voice</span>
+          <span class="text-zinc-600 hidden sm:inline">•</span>
+          <!-- STREAK COUNTER BADGE -->
+          <div id="streak-badge-container" class="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium text-[11px] shadow-sm">
+            <span>🔥</span>
+            <span><span id="streak-count">1</span> Hari Streak</span>
+          </div>
         </div>
 
         <!-- Controls & Actions Right -->
-        <div class="flex items-center space-x-2.5 sm:space-x-3">
+        <div class="flex items-center space-x-2 sm:space-x-2.5">
           <!-- Audio Ambience Toggle -->
           <button id="btn-audio" title="Audio Api Unggun" class="glass-btn w-9 h-9 rounded-full flex items-center justify-center text-zinc-300 hover:text-white transition">
             <i data-lucide="volume-x" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Share Story Button (Aesthetic 9:16 TikTok/IG) -->
+          <button id="btn-open-share" title="Bagikan Cerita ke Sosmed (TikTok / Instagram)" class="glass-btn px-3 h-9 rounded-full flex items-center space-x-1.5 text-amber-200 hover:text-white border border-amber-500/20 hover:border-amber-400/50 transition shadow-sm">
+            <i data-lucide="share-2" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span class="text-xs font-cinzel tracking-wider hidden sm:inline">Share</span>
           </button>
 
           <!-- Discord Invite Button -->
@@ -289,6 +301,146 @@
           <i data-lucide="flame" class="w-4 h-4"></i>
           <span>Bergabung ke Server</span>
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: SOCIAL MEDIA STORY SHARE (Aesthetic 9:16)                  -->
+  <!-- ================================================================= -->
+  <div id="share-modal" class="fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="glass-nav w-full max-w-3xl rounded-3xl p-4 sm:p-6 border border-white/10 shadow-2xl flex flex-col md:flex-row gap-5 max-h-[92vh] overflow-y-auto no-scrollbar">
+      
+      <!-- LEFT: 9:16 PREVIEW CARD (Aesthetic TikTok/IG Story Preview) -->
+      <div class="w-full md:w-[270px] flex-shrink-0 flex flex-col items-center">
+        <div class="text-[11px] font-mono text-zinc-400 mb-2 flex items-center space-x-1">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Pratinjau Story (9:16)</span>
+        </div>
+
+        <!-- 9:16 Container Mockup -->
+        <div id="story-preview-container" class="relative w-[230px] sm:w-[250px] aspect-[9/16] rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_0_35px_rgba(251,146,60,0.25)] flex flex-col justify-between p-4 sm:p-5 text-center select-none" style="background: radial-gradient(circle at 50% 65%, #3a1605 0%, #150803 50%, #070709 95%);">
+          <!-- Subtle Glow Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none"></div>
+          <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(#fbbf24 1px, transparent 1px); background-size: 16px 16px;"></div>
+
+          <!-- Story Header -->
+          <div class="relative z-10 space-y-1">
+            <div class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/25 text-[8px] text-amber-300 font-mono tracking-widest uppercase">
+              <span>THE CHECKPOINT</span>
+            </div>
+            <h4 class="font-cinzel text-base font-bold text-amber-50 tracking-wider drop-shadow-md">Sanctuary of Wanderers</h4>
+            <p class="text-[9px] text-amber-200/80 font-serif italic max-w-[190px] mx-auto leading-tight">
+              "Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."
+            </p>
+          </div>
+
+          <!-- Story Member Spotlight Center -->
+          <div class="relative z-10 flex flex-col items-center my-auto py-1">
+            <!-- Avatar with Golden Glow Ring -->
+            <div class="relative">
+              <div class="absolute -inset-1 rounded-full bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-300 blur-sm opacity-75"></div>
+              <img id="story-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'><rect width='100' height='100' rx='50' fill='%231a0c06'/><circle cx='50' cy='50' r='46' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4 3' opacity='0.6'/><path d='M50 22C42 35 33 46 33 60C33 71 40 78 50 78C60 78 67 71 67 60C67 46 58 35 50 22Z' fill='url(%23flameGrad)' opacity='0.95'/><path d='M50 42C46 50 41 55 41 62C41 68 45 72 50 72C55 72 59 68 59 62C59 55 54 50 50 42Z' fill='%23fffbeb'/><defs><linearGradient id='flameGrad' x1='50' y1='22' x2='50' y2='78' gradientUnits='userSpaceOnUse'><stop stop-color='%23fde047'/><stop offset='0.5' stop-color='%23ea580c'/><stop offset='1' stop-color='%23991b1b'/></linearGradient></defs></svg>" alt="Watermark Profile" class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-amber-300 shadow-xl" />
+              <div id="story-voice-badge" class="hidden absolute -bottom-1 -right-1 px-1.5 py-0.2 bg-emerald-500 rounded-full border border-black text-[9px] text-white flex items-center justify-center">
+                <span>🎙️</span>
+              </div>
+            </div>
+
+            <!-- Name & Handle -->
+            <h3 id="story-display-name" class="mt-2 text-sm sm:text-base font-bold text-white tracking-wide drop-shadow truncate max-w-[200px]">
+              Pengelana Checkpoint
+            </h3>
+            <span id="story-username" class="text-[10px] text-zinc-400 font-mono">
+              @thecheckpoint
+            </span>
+
+            <!-- Status / Role Badge -->
+            <div class="mt-1.5 inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/15 text-[9px] text-amber-200 font-mono">
+              <span id="story-role-text">🔥 Pengelana Sanctuary</span>
+            </div>
+          </div>
+
+          <!-- Story Bonfire Live Status & Footer -->
+          <div class="relative z-10 space-y-1.5">
+            <div class="p-2 rounded-xl bg-black/50 border border-white/10 backdrop-blur-sm text-left text-[9px] font-mono text-zinc-300 space-y-1">
+              <div class="flex justify-between items-center text-amber-300 font-semibold text-[8px]">
+                <span id="story-streak-badge">🔥 <span id="story-streak-val">1</span> Hari Streak</span>
+                <span id="story-sparks-val">450 / 1.000</span>
+              </div>
+              <div class="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                <div id="story-sparks-bar" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full" style="width: 45%;"></div>
+              </div>
+              <div id="story-voice-summary" class="text-zinc-400 text-[8px] truncate">
+                👥 Aktif di Voice Lounge
+              </div>
+            </div>
+
+            <div class="pt-1 flex items-center justify-between text-[8px] font-mono text-zinc-400 border-t border-white/10">
+              <span>discord.gg/TVKcyQqB3</span>
+              <span class="text-amber-400 font-bold">MAYA • THE CHECKPOINT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: CONTROLS & USER PICKER -->
+      <div class="flex-1 flex flex-col justify-between space-y-4">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+          <div>
+            <h3 class="text-sm sm:text-base font-bold tracking-wider text-amber-100 uppercase font-cinzel">Bagikan Cerita ke Sosmed</h3>
+            <p class="text-xs text-zinc-400">Pilih akun Discord kamu untuk dijadikan kartu aesthetic di TikTok / IG Story</p>
+          </div>
+          <button id="btn-close-share" class="w-8 h-8 rounded-full glass-btn flex items-center justify-center text-zinc-400 hover:text-white transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- SEARCH INPUT -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-amber-200/90 font-mono">Cari Member Server Discord:</label>
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+            <input id="share-user-search" type="text" placeholder="Ketik nama atau @username Discord kamu..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/90 border border-white/15 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-zinc-500 transition font-sans" />
+            <div id="search-spinner" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+
+          <!-- Dropdown Search Results -->
+          <div id="share-search-results" class="hidden max-h-44 overflow-y-auto no-scrollbar rounded-xl bg-zinc-950/95 border border-white/15 divide-y divide-white/5 shadow-2xl">
+            <!-- Populated via search -->
+          </div>
+        </div>
+
+        <!-- QUICK PICK SECTION -->
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-mono text-zinc-400">Pilih Cepat Member Aktif:</span>
+          <div id="share-quick-picks" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
+            <!-- Chips of active / voice members -->
+          </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="pt-3 border-t border-white/10 space-y-2.5">
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <!-- Download PNG Button -->
+            <button id="btn-download-story" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white font-medium text-xs font-mono uppercase tracking-wider flex items-center justify-center space-x-2 transition shadow-lg shadow-orange-950/40">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span id="download-btn-text">Unduh Story (.PNG 1080x1920)</span>
+            </button>
+
+            <!-- Copy Link Button -->
+            <button id="btn-copy-share-link" class="py-3 px-4 rounded-xl glass-btn text-zinc-200 hover:text-white font-mono text-xs flex items-center justify-center space-x-2 transition">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+              <span id="copy-btn-text">Salin Tautan</span>
+            </button>
+          </div>
+          
+          <p class="text-[10px] text-zinc-500 font-mono text-center">
+            Format 9:16 tajam resolusi tinggi (1080 × 1920px), siap di-upload ke TikTok Stories, Instagram Stories, atau status WA.
+          </p>
+        </div>
+
       </div>
     </div>
   </div>
@@ -710,6 +862,37 @@
     const sparkParticles = new THREE.Points(sparkGeo, sparkMat);
     fireWorld.add(sparkParticles);
 
+    // --- 3B. Cosmic Spiral Embers (Tier 3: 7+ Hari Streak Milestone) ---
+    const spiralCount = 120;
+    const spiralGeo = new THREE.BufferGeometry();
+    const spiralPos = new Float32Array(spiralCount * 3);
+    const spiralOffsets = new Float32Array(spiralCount);
+
+    for (let i = 0; i < spiralCount; i++) {
+      spiralOffsets[i] = (i / spiralCount) * Math.PI * 4;
+      const angle = spiralOffsets[i];
+      const radius = 0.35 + (i / spiralCount) * 0.45;
+      const y = -0.2 + (i / spiralCount) * 1.8;
+      spiralPos[i * 3] = Math.cos(angle) * radius;
+      spiralPos[i * 3 + 1] = y;
+      spiralPos[i * 3 + 2] = Math.sin(angle) * radius;
+    }
+
+    spiralGeo.setAttribute('position', new THREE.BufferAttribute(spiralPos, 3));
+    const spiralMat = new THREE.PointsMaterial({
+      color: 0xffe066,
+      size: 0.045,
+      transparent: true,
+      opacity: 0.0, // Muncul saat Streak Tier 3 (7+ Hari)
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const spiralParticles = new THREE.Points(spiralGeo, spiralMat);
+    fireWorld.add(spiralParticles);
+
+    let currentStreakDays = 1;
+    let currentStreakTier = 1;
+
     // --- 4. Campfire Point Lights ---
     const fireLight = new THREE.PointLight(activeTheme.lightColor, 2.8, 6.5, 2.0);
     fireLight.position.set(0, 0.45, 0.2);
@@ -768,16 +951,48 @@
 
     const totalSparksText = document.getElementById('total-sparks-count');
     const flameQuote = document.getElementById('flame-quote');
+    const streakCount = document.getElementById('streak-count');
+    const streakBadgeContainer = document.getElementById('streak-badge-container');
 
     function applyBonfireState(state) {
       if (!state) return;
+      latestBonfireState = state;
       targetEnergy = state.energy;
       totalSparks = state.sparks;
       if (totalSparksText) totalSparksText.textContent = totalSparks.toLocaleString('id-ID');
       if (voiceCount && state.voiceCount !== undefined) voiceCount.textContent = state.voiceCount;
 
+      if (state.streakDays !== undefined) {
+        currentStreakDays = state.streakDays;
+        currentStreakTier = state.streakTier ?? (currentStreakDays >= 7 ? 3 : (currentStreakDays >= 3 ? 2 : 1));
+        if (streakCount) streakCount.textContent = currentStreakDays;
+        if (streakBadgeContainer) {
+          if (currentStreakDays > 0) {
+            streakBadgeContainer.classList.remove('opacity-40');
+          } else {
+            streakBadgeContainer.classList.add('opacity-40');
+          }
+        }
+        applyStreakVisualTier(currentStreakTier);
+      }
+
       if (state.voiceMembers !== undefined) {
         renderFloatingVoiceMembers(state.voiceMembers);
+      }
+      if (typeof updateStoryPreview === 'function' && selectedStoryMember) {
+        updateStoryPreview(selectedStoryMember);
+      }
+    }
+
+    function applyStreakVisualTier(tier) {
+      if (tier >= 2) {
+        // Tier 2 (3-6 Hari): Partikel bintang berkilau keemasan lebih besar & terang
+        sparkMat.size = 0.040;
+        sparkMat.color.setHex(0xffea60);
+      } else {
+        // Tier 1 (1-2 Hari): Bara keemasan standar
+        sparkMat.size = 0.028;
+        sparkMat.color.setHex(activeTheme.sparkColor);
       }
     }
 
@@ -846,7 +1061,496 @@
     btnExplore?.addEventListener('click', openExplore);
     btnCloseExplore?.addEventListener('click', closeExplore);
 
-    [themeModal, exploreModal].filter(Boolean).forEach(m => {
+    // ==========================================
+    // SOCIAL MEDIA STORY SHARE CONTROLLER (9:16)
+    // ==========================================
+    const shareModal = document.getElementById('share-modal');
+    const btnOpenShare = document.getElementById('btn-open-share');
+    const btnCloseShare = document.getElementById('btn-close-share');
+    const shareSearchInput = document.getElementById('share-user-search');
+    const shareSearchResults = document.getElementById('share-search-results');
+    const shareQuickPicks = document.getElementById('share-quick-picks');
+    const searchSpinner = document.getElementById('search-spinner');
+    const btnDownloadStory = document.getElementById('btn-download-story');
+    const downloadBtnText = document.getElementById('download-btn-text');
+    const btnCopyShareLink = document.getElementById('btn-copy-share-link');
+    const copyBtnText = document.getElementById('copy-btn-text');
+
+    const storyAvatar = document.getElementById('story-avatar');
+    const storyDisplayName = document.getElementById('story-display-name');
+    const storyUsername = document.getElementById('story-username');
+    const storyRoleText = document.getElementById('story-role-text');
+    const storyVoiceBadge = document.getElementById('story-voice-badge');
+    const storySparksVal = document.getElementById('story-sparks-val');
+    const storySparksBar = document.getElementById('story-sparks-bar');
+    const storyVoiceSummary = document.getElementById('story-voice-summary');
+
+    const DEFAULT_WATERMARK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'><rect width='100' height='100' rx='50' fill='%231a0c06'/><circle cx='50' cy='50' r='46' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4 3' opacity='0.6'/><path d='M50 22C42 35 33 46 33 60C33 71 40 78 50 78C60 78 67 71 67 60C67 46 58 35 50 22Z' fill='url(%23flameGrad)' opacity='0.95'/><path d='M50 42C46 50 41 55 41 62C41 68 45 72 50 72C55 72 59 68 59 62C59 55 54 50 50 42Z' fill='%23fffbeb'/><defs><linearGradient id='flameGrad' x1='50' y1='22' x2='50' y2='78' gradientUnits='userSpaceOnUse'><stop stop-color='%23fde047'/><stop offset='0.5' stop-color='%23ea580c'/><stop offset='1' stop-color='%23991b1b'/></linearGradient></defs></svg>";
+
+    const DEFAULT_STORY_MEMBER = {
+      id: "placeholder",
+      isDefaultPlaceholder: true,
+      username: "thecheckpoint",
+      displayName: "Pengelana Checkpoint",
+      avatar: DEFAULT_WATERMARK_AVATAR,
+      inVoice: false,
+      role: "🔥 Pengelana Sanctuary"
+    };
+
+    let selectedStoryMember = { ...DEFAULT_STORY_MEMBER };
+
+    let latestBonfireState = null;
+    let latestActiveMembers = REAL_MEMBERS;
+
+    function openShareModal() {
+      if (!shareModal) return;
+      shareModal.classList.remove('opacity-0', 'pointer-events-none');
+      updateStoryPreview(selectedStoryMember);
+      renderShareQuickPicks(latestActiveMembers);
+    }
+
+    function closeShareModal() {
+      if (!shareModal) return;
+      shareModal.classList.add('opacity-0', 'pointer-events-none');
+      if (shareSearchResults) shareSearchResults.classList.add('hidden');
+    }
+
+    btnOpenShare?.addEventListener('click', openShareModal);
+    btnCloseShare?.addEventListener('click', closeShareModal);
+
+    function updateStoryPreview(member) {
+      if (!member) return;
+      selectedStoryMember = member;
+
+      if (storyAvatar) storyAvatar.src = member.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
+      if (storyDisplayName) storyDisplayName.textContent = member.displayName || member.username;
+      if (storyUsername) storyUsername.textContent = `@${member.username}`;
+      
+      const roleStr = member.inVoice 
+        ? `🎙️ ${member.channelName ? `Aktif di ${member.channelName}` : 'Di Voice Lounge'}`
+        : (member.role || 'Penjaga Lentera Checkpoint');
+      if (storyRoleText) storyRoleText.textContent = roleStr;
+
+      if (storyVoiceBadge) {
+        if (member.inVoice) {
+          storyVoiceBadge.classList.remove('hidden');
+        } else {
+          storyVoiceBadge.classList.add('hidden');
+        }
+      }
+
+      // Update bonfire snapshot
+      const sparks = latestBonfireState?.sparks ?? totalSparks;
+      const vCount = latestBonfireState?.voiceCount ?? 0;
+      const sDays = latestBonfireState?.streakDays ?? currentStreakDays;
+      const storyStreakVal = document.getElementById('story-streak-val');
+      if (storyStreakVal) storyStreakVal.textContent = sDays;
+
+      if (storySparksVal) storySparksVal.textContent = `${sparks.toLocaleString('id-ID')} / 1.000`;
+      if (storySparksBar) storySparksBar.style.width = `${Math.min(100, Math.max(5, (sparks / 1000) * 100))}%`;
+      if (storyVoiceSummary) {
+        storyVoiceSummary.textContent = vCount > 0 
+          ? `👥 ${vCount} pengelana di Voice • ${latestBonfireState?.stageText || 'Aktif'}`
+          : `💨 Menunggu pengelana di Voice Lounge`;
+      }
+    }
+
+    function renderShareQuickPicks(members) {
+      if (!shareQuickPicks) return;
+      shareQuickPicks.innerHTML = '';
+      const list = members && members.length > 0 ? members.slice(0, 12) : REAL_MEMBERS;
+      list.forEach(m => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-xl glass-btn border border-white/10 hover:border-amber-400 text-left transition';
+        chip.innerHTML = `
+          <img src="${m.avatar}" class="w-4 h-4 rounded-full object-cover" />
+          <span class="text-[10px] text-zinc-300 font-sans max-w-[85px] truncate">${m.displayName || m.username}</span>
+          ${m.inVoice ? '<span class="text-[8px]">🎙️</span>' : ''}
+        `;
+        chip.addEventListener('click', () => {
+          updateStoryPreview(m);
+        });
+        shareQuickPicks.appendChild(chip);
+      });
+    }
+
+    // Debounced Search Input
+    let searchDebounce = null;
+    shareSearchInput?.addEventListener('input', (e) => {
+      const q = e.target.value.trim();
+      clearTimeout(searchDebounce);
+      if (!q) {
+        if (shareSearchResults) shareSearchResults.classList.add('hidden');
+        return;
+      }
+
+      searchSpinner?.classList.remove('hidden');
+      searchDebounce = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/landing/search-members?q=${encodeURIComponent(q)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          renderSearchResults(data.members || []);
+        } catch (_) {
+        } finally {
+          searchSpinner?.classList.add('hidden');
+        }
+      }, 300);
+    });
+
+    function renderSearchResults(results) {
+      if (!shareSearchResults) return;
+      if (results.length === 0) {
+        shareSearchResults.innerHTML = `
+          <div class="p-3 text-[11px] text-zinc-500 font-mono text-center">
+            Member tidak ditemukan. Coba ketik username persis akunmu.
+          </div>
+        `;
+        shareSearchResults.classList.remove('hidden');
+        return;
+      }
+
+      shareSearchResults.innerHTML = '';
+      results.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'p-2.5 flex items-center justify-between hover:bg-white/10 cursor-pointer transition';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2.5">
+            <img src="${m.avatar}" class="w-7 h-7 rounded-full object-cover border border-amber-400/40" />
+            <div>
+              <div class="text-xs font-medium text-white">${m.displayName || m.username}</div>
+              <div class="text-[10px] text-zinc-400 font-mono">@${m.username}</div>
+            </div>
+          </div>
+          <div class="text-[10px] text-amber-300 font-mono">
+            ${m.inVoice ? '🎙️ In Voice' : 'Pilih'}
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          updateStoryPreview(m);
+          shareSearchResults.classList.add('hidden');
+          if (shareSearchInput) shareSearchInput.value = '';
+        });
+        shareSearchResults.appendChild(item);
+      });
+      shareSearchResults.classList.remove('hidden');
+    }
+
+    // Helper: Round Rectangle for Canvas
+    function drawCanvasRoundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    // Canvas 1080x1920 Story Generator & Downloader
+    async function generateAndDownloadStory() {
+      if (!btnDownloadStory) return;
+      downloadBtnText.textContent = "Memproses Story...";
+      btnDownloadStory.disabled = true;
+
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1920;
+        const ctx = canvas.getContext('2d');
+
+        // 1. Background Gradient (Dark Obsidian Campfire)
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
+        bgGrad.addColorStop(0, '#0a080d');
+        bgGrad.addColorStop(0.35, '#1a0a04');
+        bgGrad.addColorStop(0.65, '#2e1205');
+        bgGrad.addColorStop(1, '#070609');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1080, 1920);
+
+        // 2. Central Campfire Warm Glow (Radial)
+        const glowGrad = ctx.createRadialGradient(540, 1150, 40, 540, 1150, 700);
+        glowGrad.addColorStop(0, 'rgba(251, 146, 60, 0.42)');
+        glowGrad.addColorStop(0.4, 'rgba(234, 88, 12, 0.22)');
+        glowGrad.addColorStop(0.75, 'rgba(180, 83, 9, 0.08)');
+        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(0, 0, 1080, 1920);
+
+        // 3. Floating Ember Sparks (Procedural)
+        for (let i = 0; i < 45; i++) {
+          const sx = 120 + Math.random() * 840;
+          const sy = 200 + Math.random() * 1500;
+          const sr = 2 + Math.random() * 5.5;
+          const sa = 0.25 + Math.random() * 0.7;
+          ctx.beginPath();
+          ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(251, 191, 36, ${sa})`;
+          ctx.shadowColor = '#f97316';
+          ctx.shadowBlur = 14;
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+
+        // 4. Header: THE CHECKPOINT
+        ctx.textAlign = 'center';
+        
+        // Tag Pill
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+        drawCanvasRoundRect(ctx, 360, 180, 360, 50, 25);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = 'bold 20px "Courier New", monospace';
+        ctx.fillStyle = '#fde68a';
+        ctx.fillText('DISCORD COMMUNITY', 540, 212);
+
+        // Main Title
+        ctx.font = 'bold 64px "Cinzel", "Times New Roman", serif';
+        ctx.fillStyle = '#fffbeb';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 24;
+        ctx.fillText('THE CHECKPOINT', 540, 310);
+        ctx.shadowBlur = 0;
+
+        // Subtitle Quote
+        ctx.font = 'italic 32px Georgia, serif';
+        ctx.fillStyle = '#fde047';
+        ctx.fillText('"Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."', 540, 375);
+
+        // 5. Member Centerpiece (Avatar Socket)
+        const avY = 760;
+        const avR = 170;
+
+        // Golden Outer Ring Glow
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(540, avY, avR + 10, 0, Math.PI * 2);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 6;
+        ctx.shadowColor = '#f97316';
+        ctx.shadowBlur = 35;
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw Avatar or Watermark Crest
+        if (selectedStoryMember.isDefaultPlaceholder || selectedStoryMember.avatar.startsWith('data:')) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(540, avY, avR, 0, Math.PI * 2);
+          ctx.clip();
+          
+          ctx.fillStyle = '#180c07';
+          ctx.fillRect(540 - avR, avY - avR, avR * 2, avR * 2);
+
+          // Golden decorative dashed orbit
+          ctx.beginPath();
+          ctx.arc(540, avY, avR - 16, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+          ctx.lineWidth = 4;
+          ctx.setLineDash([12, 8]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Flame Silhouette
+          const fg = ctx.createLinearGradient(540, avY - 95, 540, avY + 95);
+          fg.addColorStop(0, '#fef08a');
+          fg.addColorStop(0.4, '#f97316');
+          fg.addColorStop(1, '#991b1b');
+          ctx.fillStyle = fg;
+          
+          ctx.beginPath();
+          ctx.moveTo(540, avY - 100);
+          ctx.bezierCurveTo(460, avY - 15, 440, avY + 45, 470, avY + 90);
+          ctx.bezierCurveTo(500, avY + 115, 580, avY + 115, 610, avY + 90);
+          ctx.bezierCurveTo(640, avY + 45, 620, avY - 15, 540, avY - 100);
+          ctx.fill();
+
+          // Hot Inner Core
+          ctx.fillStyle = '#fffbeb';
+          ctx.beginPath();
+          ctx.moveTo(540, avY - 5);
+          ctx.bezierCurveTo(510, avY + 30, 510, avY + 68, 540, avY + 86);
+          ctx.bezierCurveTo(570, avY + 68, 570, avY + 30, 540, avY - 5);
+          ctx.fill();
+
+          ctx.restore();
+        } else {
+          // Load Avatar via proxy
+          const avatarProxyUrl = `/api/landing/proxy-avatar?url=${encodeURIComponent(selectedStoryMember.avatar)}`;
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          
+          await new Promise((resolve) => {
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
+            img.src = avatarProxyUrl;
+            setTimeout(() => resolve(false), 3000);
+          });
+
+          // Draw Avatar
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(540, avY, avR, 0, Math.PI * 2);
+          ctx.clip();
+          if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, 540 - avR, avY - avR, avR * 2, avR * 2);
+          } else {
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(540 - avR, avY - avR, avR * 2, avR * 2);
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 90px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText((selectedStoryMember.displayName || 'C')[0].toUpperCase(), 540, avY + 30);
+          }
+          ctx.restore();
+        }
+
+        // 6. Member Details
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 54px sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowBlur = 18;
+        ctx.fillText(selectedStoryMember.displayName || selectedStoryMember.username, 540, 1020);
+        ctx.shadowBlur = 0;
+
+        ctx.font = '28px "Courier New", monospace';
+        ctx.fillStyle = '#a1a1aa';
+        ctx.fillText(`@${selectedStoryMember.username}`, 540, 1070);
+
+        // Role Badge Pill
+        const roleLabel = selectedStoryMember.inVoice
+          ? `🎙️ ${selectedStoryMember.channelName ? `Aktif di ${selectedStoryMember.channelName}` : 'Sedang di Voice Lounge'}`
+          : (selectedStoryMember.role || '🔥 Penjaga Lentera Checkpoint');
+
+        ctx.font = 'bold 26px "Courier New", monospace';
+        const roleWidth = ctx.measureText(roleLabel).width + 60;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        drawCanvasRoundRect(ctx, 540 - roleWidth / 2, 1115, roleWidth, 54, 27);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText(roleLabel, 540, 1150);
+
+        // 7. Bonfire Live Status Box
+        const sparks = latestBonfireState?.sparks ?? totalSparks;
+        const vCount = latestBonfireState?.voiceCount ?? 0;
+        const boxX = 140;
+        const boxY = 1270;
+        const boxW = 800;
+        const boxH = 290;
+
+        ctx.fillStyle = 'rgba(15, 12, 18, 0.82)';
+        drawCanvasRoundRect(ctx, boxX, boxY, boxW, boxH, 28);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner stats
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 26px "Courier New", monospace';
+        ctx.fillStyle = '#f59e0b';
+        const sDays = latestBonfireState?.streakDays ?? currentStreakDays;
+        ctx.fillText(`🔥 ${sDays} HARI STREAK NYALA`, boxX + 45, boxY + 65);
+
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 30px "Courier New", monospace';
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText(`${sparks.toLocaleString('id-ID')} / 1.000 BARA`, boxX + boxW - 45, boxY + 65);
+
+        // Progress Bar
+        const barX = boxX + 45;
+        const barY = boxY + 95;
+        const barW = boxW - 90;
+        const barH = 22;
+
+        ctx.fillStyle = '#27272a';
+        drawCanvasRoundRect(ctx, barX, barY, barW, barH, 11);
+        ctx.fill();
+
+        const fillW = Math.max(20, (Math.min(1000, sparks) / 1000) * barW);
+        const barGrad = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
+        barGrad.addColorStop(0, '#ea580c');
+        barGrad.addColorStop(1, '#fbbf24');
+        ctx.fillStyle = barGrad;
+        drawCanvasRoundRect(ctx, barX, barY, fillW, barH, 11);
+        ctx.fill();
+
+        // Stage & Voice status text
+        ctx.textAlign = 'left';
+        ctx.font = 'italic 26px Georgia, serif';
+        ctx.fillStyle = '#d4d4d8';
+        const vText = vCount > 0
+          ? `🔥 ${vCount} Pengelana sedang menghidupkan kehangatan di Voice Channel`
+          : `💨 Menjaga bara tetap hidup di sanctuary The Checkpoint`;
+        ctx.fillText(vText, boxX + 45, boxY + 165);
+
+        ctx.font = '22px "Courier New", monospace';
+        ctx.fillStyle = '#a1a1aa';
+        ctx.fillText(`Maya Bonfire Engine • Realtime Sanctuary Sync`, boxX + 45, boxY + 225);
+
+        // 8. Footer Watermark
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 30px "Courier New", monospace';
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText('discord.gg/TVKcyQqB3', 540, 1690);
+
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillStyle = '#71717a';
+        ctx.fillText('THE CHECKPOINT • ALL NIGHT REFUGE', 540, 1735);
+
+        // 9. Export to PNG
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `checkpoint-story-${selectedStoryMember.username}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        downloadBtnText.textContent = "✅ Berhasil Diunduh!";
+        setTimeout(() => {
+          downloadBtnText.textContent = "Unduh Story (.PNG 1080x1920)";
+          btnDownloadStory.disabled = false;
+        }, 2500);
+
+      } catch (err) {
+        console.error("Gagal export story canvas:", err);
+        downloadBtnText.textContent = "Gagal (Coba Lagi)";
+        btnDownloadStory.disabled = false;
+      }
+    }
+
+    btnDownloadStory?.addEventListener('click', generateAndDownloadStory);
+
+    // Copy Share Link
+    btnCopyShareLink?.addEventListener('click', () => {
+      const shareUrl = "https://discord.gg/TVKcyQqB3";
+      const isPlaceholder = selectedStoryMember.isDefaultPlaceholder;
+      const shareText = isPlaceholder
+        ? `Singgah sebentar. Hangatkan suasana di api unggun The Checkpoint: ${shareUrl}`
+        : `Halo! Aku lagi nongkrong di api unggun The Checkpoint bersama @${selectedStoryMember.username}. Yuk singgah dan hangatkan suasana: ${shareUrl}`;
+      navigator.clipboard.writeText(shareText).then(() => {
+        copyBtnText.textContent = "✅ Tersalin!";
+        setTimeout(() => { copyBtnText.textContent = "Salin Tautan"; }, 2000);
+      }).catch(() => {
+        prompt("Salin teks berikut:", shareText);
+      });
+    });
+
+    [themeModal, exploreModal, shareModal].filter(Boolean).forEach(m => {
       m?.addEventListener('click', (e) => {
         if (e.target === m) m.classList.add('opacity-0', 'pointer-events-none');
       });
@@ -960,7 +1664,11 @@
         }
 
         if (data.activeMembers && data.activeMembers.length > 0) {
+          latestActiveMembers = data.activeMembers;
           renderGuardiansDock(data.activeMembers);
+          if (typeof renderShareQuickPicks === 'function') {
+            renderShareQuickPicks(data.activeMembers);
+          }
         }
 
         if (data.recentActivity && data.recentActivity.length > 0) {
@@ -1056,6 +1764,22 @@
         positions[i * 3 + 1] = y;
       }
       sparkGeo.attributes.position.needsUpdate = true;
+
+      // Cosmic Spiral Embers (Tier 3: 7+ Hari Streak Milestone)
+      if (currentStreakTier >= 3 && !isExtinguished) {
+        spiralMat.opacity = Math.min(0.95, 0.45 + Math.sin(time * 3.0) * 0.25);
+        const sPositions = spiralGeo.attributes.position.array;
+        for (let i = 0; i < spiralCount; i++) {
+          const progress = (i / spiralCount);
+          const angle = spiralOffsets[i] + time * 1.6;
+          const radius = 0.32 + progress * 0.42 + Math.sin(time * 2.0 + i) * 0.03;
+          sPositions[i * 3] = Math.cos(angle) * radius;
+          sPositions[i * 3 + 2] = Math.sin(angle) * radius;
+        }
+        spiralGeo.attributes.position.needsUpdate = true;
+      } else {
+        spiralMat.opacity = 0.0;
+      }
 
       // World subtle rotation
       fireWorld.rotation.y = time * 0.035;

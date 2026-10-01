@@ -2080,6 +2080,9 @@ export function startDashboard(client: MayaClient) {
         energy: Math.round(bonfire.energy * 100),
         energyDecimal: bonfire.energy,
         totalSparks: bonfire.sparks,
+        streakDays: bonfire.streakDays,
+        streakTier: bonfire.streakTier,
+        streakMultiplier: bonfire.streakMultiplier,
         bonfireState: bonfire,
         inviteUrl,
         activeMembers,
@@ -2114,6 +2117,134 @@ export function startDashboard(client: MayaClient) {
       success: true,
       bonfireState: newState
     });
+  });
+
+  // Public Endpoint to search or list Checkpoint members for Social Share Story
+  app.get("/api/landing/search-members", async (req: Request, res: Response) => {
+    try {
+      const q = ((req.query.q as string) || "").trim().toLowerCase();
+      let checkpointGuild = client.guilds.cache.find(g => 
+        g.name.toLowerCase().includes("checkpoint") || g.id === "1527510081284079728"
+      ) || client.guilds.cache.first();
+
+      if (!checkpointGuild) {
+        return res.json({ members: [] });
+      }
+
+      const results: any[] = [];
+      const seen = new Set<string>();
+
+      // 1. Prioritize Voice channel members
+      checkpointGuild.channels.cache.forEach(ch => {
+        if (ch.isVoiceBased()) {
+          ch.members.forEach(m => {
+            if (!m.user.bot && !seen.has(m.id)) {
+              const nameMatches = !q || m.user.username.toLowerCase().includes(q) || (m.displayName && m.displayName.toLowerCase().includes(q));
+              if (nameMatches) {
+                seen.add(m.id);
+                results.push({
+                  id: m.id,
+                  username: m.user.username,
+                  displayName: m.displayName || m.user.username,
+                  avatar: m.user.displayAvatarURL({ extension: "png", size: 128 }),
+                  inVoice: true,
+                  channelName: ch.name,
+                  role: "Voice Traveler"
+                });
+              }
+            }
+          });
+        }
+      });
+
+      // 2. Check Database user levels (XP leaders)
+      try {
+        const dbUsers = await prisma.userLevel.findMany({
+          where: {
+            guildId: checkpointGuild.id,
+            ...(q ? {
+              OR: [
+                { username: { contains: q, mode: "insensitive" } },
+                { userId: { contains: q } }
+              ]
+            } : {})
+          },
+          orderBy: { xp: "desc" },
+          take: 20
+        });
+
+        for (const u of dbUsers) {
+          if (!seen.has(u.userId)) {
+            seen.add(u.userId);
+            const m = checkpointGuild.members.cache.get(u.userId);
+            results.push({
+              id: u.userId,
+              username: u.username,
+              displayName: m?.displayName || u.username,
+              avatar: m ? m.user.displayAvatarURL({ extension: "png", size: 128 }) : `https://cdn.discordapp.com/embed/avatars/${parseInt(u.userId.slice(-2)) % 5}.png`,
+              inVoice: !!m?.voice?.channelId,
+              channelName: m?.voice?.channel?.name || null,
+              role: u.level > 10 ? "Elder Guardian" : "Hearth Keeper",
+              level: u.level
+            });
+          }
+        }
+      } catch (_) {}
+
+      // 3. Fallback to cached guild members if query provided and results < 15
+      if (q && results.length < 15) {
+        for (const m of checkpointGuild.members.cache.values()) {
+          if (m.user.bot || seen.has(m.id)) continue;
+          if (m.user.username.toLowerCase().includes(q) || (m.displayName && m.displayName.toLowerCase().includes(q))) {
+            seen.add(m.id);
+            results.push({
+              id: m.id,
+              username: m.user.username,
+              displayName: m.displayName || m.user.username,
+              avatar: m.user.displayAvatarURL({ extension: "png", size: 128 }),
+              inVoice: !!m.voice?.channelId,
+              channelName: m.voice?.channel?.name || null,
+              role: "Checkpoint Traveler"
+            });
+            if (results.length >= 25) break;
+          }
+        }
+      }
+
+      res.json({ members: results.slice(0, 25) });
+    } catch (err: any) {
+      logger.error("Error searching landing members:", err);
+      res.status(500).json({ error: "Gagal mencari member." });
+    }
+  });
+
+  // Public Endpoint to proxy Discord avatar for CORS-free Canvas Story export
+  app.get("/api/landing/proxy-avatar", async (req: Request, res: Response) => {
+    try {
+      const targetUrl = req.query.url as string;
+      if (!targetUrl || (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://"))) {
+        return res.status(400).send("Invalid avatar URL");
+      }
+
+      const allowedHosts = ["cdn.discordapp.com", "media.discordapp.net", "images.unsplash.com"];
+      const parsed = new URL(targetUrl);
+      if (!allowedHosts.some(h => parsed.hostname.endsWith(h))) {
+        return res.status(403).send("Host not allowed");
+      }
+
+      const response = await fetch(targetUrl);
+      if (!response.ok) {
+        return res.status(response.status).send("Failed to fetch image");
+      }
+
+      const buffer = await response.arrayBuffer();
+      res.setHeader("Content-Type", response.headers.get("content-type") || "image/png");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(Buffer.from(buffer));
+    } catch (err: any) {
+      res.status(500).send("Proxy error: " + err.message);
+    }
   });
 
   // ==========================================

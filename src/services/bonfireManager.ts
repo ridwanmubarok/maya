@@ -19,6 +19,10 @@ export interface BonfireState {
   isExtinguished: boolean;
   stageText: string;
   statusQuote: string;
+  streakDays: number;
+  streakTier: number; // 0: Padam, 1: 1-2 hari (Bara Emas), 2: 3-6 hari (Stardust Sparkle), 3: 7+ hari (Cosmic Vortex)
+  streakMultiplier: number; // 1.0 - 1.30
+  litSince: number;
   lastUpdated: number;
 }
 
@@ -27,6 +31,8 @@ const STATE_FILE_PATH = path.join(process.cwd(), "data", "bonfire-state.json");
 
 class BonfireManager {
   private sparks: number = 450;
+  private streakDays: number = 1;
+  private litSince: number = Date.now();
   private lastTick: number = Date.now();
   private tickerInterval: NodeJS.Timeout | null = null;
   private saveDebounceTimeout: NodeJS.Timeout | null = null;
@@ -74,15 +80,33 @@ class BonfireManager {
     if (isExtinguished) {
       stageText = "API TELAH PADAM";
       statusQuote = "Api unggun telah padam dalam keheningan... Masuklah ke Voice Channel untuk menyalakan kembali kehangatan sanctuary.";
+    } else if (voiceCount === 1) {
+      stageText = "MENJAGA LENTERA";
+      statusQuote = "1 pengelana sedang menjaga kehangatan lentera. Masuk ke Voice Channel untuk mulai mengobarkan api.";
     } else if (energy < 0.2) {
       stageText = "BARA MEREDUP";
       statusQuote = "Bara api meredup dingin. Kehangatan suara di Voice Channel dibutuhkan agar api tidak padam.";
     } else if (energy > 0.8) {
       stageText = "BERKOBAR MAKSIMAL";
       statusQuote = "Api berkobar cerah dan hangat, dipelihara oleh tawa dan obrolan para pengelana The Checkpoint.";
-    } else if (voiceCount > 0) {
+    } else if (voiceCount > 1) {
       stageText = "KEHANGATAN TUMBUH";
       statusQuote = `${voiceCount} pengelana sedang berkumpul di Voice Channel, menghidupkan nyala api unggun.`;
+    }
+
+    let streakTier = 0;
+    let streakMultiplier = 1.0;
+    if (!isExtinguished) {
+      if (this.streakDays >= 7) {
+        streakTier = 3;
+        streakMultiplier = 1.30;
+      } else if (this.streakDays >= 3) {
+        streakTier = 2;
+        streakMultiplier = 1.20;
+      } else {
+        streakTier = 1;
+        streakMultiplier = 1.10;
+      }
     }
 
     return {
@@ -93,6 +117,10 @@ class BonfireManager {
       isExtinguished,
       stageText,
       statusQuote,
+      streakDays: isExtinguished ? 0 : this.streakDays,
+      streakTier,
+      streakMultiplier,
+      litSince: this.litSince,
       lastUpdated: Date.now()
     };
   }
@@ -159,19 +187,39 @@ class BonfireManager {
       // Decay rate: ~0.833 sparks per detik
       const decayRate = 0.833;
       this.sparks = Math.max(0, this.sparks - (decayRate * deltaSec));
+    } else if (voiceCount === 1) {
+      // 1 orang sendirian di voice:
+      // Soft Threshold: menahan bara agar tidak padam (stagnan di level saat ini, tidak bertambah sampai penuh).
+      // Jika api sebelumnya padam total (0), nyalakan bara lentera awal (35 bara) lalu tahan stabil di situ.
+      if (this.sparks < 35) {
+        this.sparks = Math.min(35, this.sparks + (2.0 * deltaSec));
+      }
+      // Tingkat bara bertahan stabil (tidak berkurang dan tidak bertambah)
     } else {
-      // Ada orang di voice:
-      // 1 orang: ~3.33 sparks/s (pulih dalam ~5 menit)
-      // 2 orang: ~5.0 sparks/s
-      // 3+ orang: bertambah lumayan cepat (~6.5 - 8.0 sparks/s, tidak over)
-      let rate = 3.33;
-      if (voiceCount === 2) {
-        rate = 5.0;
-      } else if (voiceCount >= 3) {
-        rate = Math.min(8.0, 5.0 + (voiceCount - 2) * 1.0);
+      // 2+ orang di voice: baru mulai bertambah
+      // 2 orang: ~3.5 sparks/s (pulih bertahap)
+      // 3+ orang: bertambah lumayan cepat (~5.0 - 7.5 sparks/s, tidak over)
+      let rate = 3.5;
+      if (voiceCount >= 3) {
+        rate = Math.min(7.5, 4.0 + (voiceCount - 2) * 1.0);
       }
 
       this.sparks = Math.min(MAX_SPARKS, this.sparks + (rate * deltaSec));
+    }
+
+    // Kalkulasi Fire Streak (Akumulasi 24 Jam berturut-turut tanpa padam)
+    if (this.sparks <= 0) {
+      this.streakDays = 0;
+      this.litSince = 0;
+    } else {
+      if (!this.litSince || this.litSince <= 0) {
+        this.litSince = now;
+        this.streakDays = 1;
+      } else {
+        const litDurationMs = now - this.litSince;
+        // Setiap 24 jam terus menyala tanpa padam = +1 hari streak
+        this.streakDays = Math.max(1, Math.floor(litDurationMs / (24 * 3600 * 1000)) + 1);
+      }
     }
 
     const currentState = this.getState();
@@ -207,9 +255,14 @@ class BonfireManager {
     // Jika member join dan api sebelumnya padam, beri dorongan awal
     if (!oldState.channelId && newState.channelId) {
       if (this.sparks <= 0) {
-        this.sparks = 15; // Nyalakan bara awal
+        this.sparks = 35; // Nyalakan bara lentera awal
+        this.litSince = Date.now();
+        this.streakDays = 1;
       } else {
-        this.addActivitySpark(8);
+        const count = this.getActiveVoiceMembersCount();
+        if (count > 1) {
+          this.addActivitySpark(8);
+        }
       }
     }
 
@@ -217,6 +270,16 @@ class BonfireManager {
     if (this.onStateChangeCallback) {
       this.onStateChangeCallback(this.getState());
     }
+  }
+
+  /**
+   * Multiplier XP Pasif bagi Komunitas berdasarkan Streak Api Unggun
+   */
+  public getXpMultiplier(): number {
+    if (this.sparks <= 0) return 1.0;
+    if (this.streakDays >= 7) return 1.30; // +30% XP
+    if (this.streakDays >= 3) return 1.20; // +20% XP
+    return 1.10; // +10% XP
   }
 
   private scheduleSave() {
@@ -237,6 +300,8 @@ class BonfireManager {
         STATE_FILE_PATH,
         JSON.stringify({
           sparks: this.sparks,
+          streakDays: this.streakDays,
+          litSince: this.litSince,
           lastSaved: Date.now()
         }, null, 2),
         "utf8"
@@ -253,6 +318,14 @@ class BonfireManager {
         if (typeof data.sparks === "number" && !isNaN(data.sparks)) {
           this.sparks = Math.max(0, Math.min(MAX_SPARKS, data.sparks));
           logger.info(`BonfireManager: Restored persisted bonfire state with ${Math.round(this.sparks)} sparks`);
+        }
+        if (typeof data.streakDays === "number" && !isNaN(data.streakDays)) {
+          this.streakDays = Math.max(0, data.streakDays);
+        }
+        if (typeof data.litSince === "number" && !isNaN(data.litSince)) {
+          this.litSince = data.litSince;
+        } else if (this.sparks > 0) {
+          this.litSince = Date.now();
         }
       }
     } catch (err) {

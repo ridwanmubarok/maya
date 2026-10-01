@@ -3,6 +3,7 @@ import sharp from "sharp";
 import axios from "axios";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
+import { bonfireManager } from "./bonfireManager";
 
 export interface LevelProgress {
   level: number;
@@ -96,9 +97,12 @@ export async function awardActivityXp(
       where: { guildId_userId: { guildId, userId } },
     });
 
+    const multiplier = bonfireManager.getXpMultiplier();
+    const finalAmount = Math.max(1, Math.round(amount * multiplier));
+
     const oldXp = existing?.xp ?? 0;
     const oldLevel = calculateLevelFromXp(oldXp).level;
-    const newXp = oldXp + amount;
+    const newXp = oldXp + finalAmount;
     const progress = calculateLevelFromXp(newXp);
     const newLevel = progress.level;
 
