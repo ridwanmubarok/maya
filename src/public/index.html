@@ -318,66 +318,77 @@
           <span>Pratinjau Story (9:16)</span>
         </div>
 
-        <!-- 9:16 Container Mockup -->
-        <div id="story-preview-container" class="relative w-[230px] sm:w-[250px] aspect-[9/16] rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_0_35px_rgba(251,146,60,0.25)] flex flex-col justify-between p-4 sm:p-5 text-center select-none" style="background: radial-gradient(circle at 50% 65%, #3a1605 0%, #150803 50%, #070709 95%);">
-          <!-- Subtle Glow Overlay -->
-          <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none"></div>
-          <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(#fbbf24 1px, transparent 1px); background-size: 16px 16px;"></div>
+        <!-- 9:16 Container Mockup with Aesthetic Anime Hillside Campfire Background -->
+        <div id="story-preview-container" class="relative w-[230px] sm:w-[250px] aspect-[9/16] rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_0_35px_rgba(251,146,60,0.25)] flex flex-col justify-between p-3.5 sm:p-4 text-center select-none bg-cover bg-center" style="background-image: linear-gradient(to bottom, rgba(5,5,10,0.65) 0%, rgba(15,8,4,0.15) 45%, rgba(5,4,8,0.85) 100%), url('/story-bg.jpg');">
+          <!-- Subtle Grain & Glow Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 pointer-events-none"></div>
 
-          <!-- Story Header -->
-          <div class="relative z-10 space-y-1">
-            <div class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/25 text-[8px] text-amber-300 font-mono tracking-widest uppercase">
-              <span>THE CHECKPOINT</span>
-            </div>
-            <h4 class="font-cinzel text-base font-bold text-amber-50 tracking-wider drop-shadow-md">Sanctuary of Wanderers</h4>
-            <p class="text-[9px] text-amber-200/80 font-serif italic max-w-[190px] mx-auto leading-tight">
+          <!-- Story Header (Clean Minimalist Cinematic) -->
+          <div class="relative z-10 space-y-1 pt-1">
+            <h4 class="font-cinzel text-base sm:text-lg font-bold text-amber-50 tracking-widest drop-shadow-lg">THE CHECKPOINT</h4>
+            <p class="text-[8px] sm:text-[8.5px] text-amber-200/90 font-serif italic max-w-[200px] mx-auto leading-tight drop-shadow">
               "Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."
             </p>
           </div>
 
-          <!-- Story Member Spotlight Center -->
-          <div class="relative z-10 flex flex-col items-center my-auto py-1">
-            <!-- Avatar with Golden Glow Ring -->
+          <!-- STORY CONTENT LAYERS -->
+          <!-- Mode 1 Layer: Voice Gathering (Default) -->
+          <div id="story-gathering-layer" class="relative z-10 flex flex-col items-center justify-center my-auto py-2 w-full">
+            <div id="story-voice-floating-cluster" class="flex flex-wrap items-center justify-center gap-2.5 max-w-[210px] mx-auto py-1">
+              <!-- Dynamic Voice Avatars populated via JS -->
+            </div>
+            <!-- Natural Celestial Text (Tanpa kotak card, tanpa emoji) -->
+            <div id="story-empty-voice-notice" class="hidden text-center max-w-[200px] mx-auto space-y-1 py-1">
+              <div class="text-[10px] font-cinzel text-amber-100 font-semibold tracking-wider drop-shadow-md">Malam Hening di Perapian Bukit</div>
+              <p class="text-[8px] text-zinc-300/90 font-serif italic leading-relaxed drop-shadow">
+                Suasana tenang di bawah taburan bintang. Masuk ke Voice untuk ikut menghangatkan malam.
+              </p>
+            </div>
+          </div>
+
+          <!-- Mode 2 Layer: Profil Pengelana -->
+          <div id="story-profile-layer" class="hidden relative z-10 flex flex-col items-center my-auto py-1">
+            <!-- Avatar with Soft Golden Glow Ring -->
             <div class="relative">
-              <div class="absolute -inset-1 rounded-full bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-300 blur-sm opacity-75"></div>
-              <img id="story-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'><rect width='100' height='100' rx='50' fill='%231a0c06'/><circle cx='50' cy='50' r='46' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4 3' opacity='0.6'/><path d='M50 22C42 35 33 46 33 60C33 71 40 78 50 78C60 78 67 71 67 60C67 46 58 35 50 22Z' fill='url(%23flameGrad)' opacity='0.95'/><path d='M50 42C46 50 41 55 41 62C41 68 45 72 50 72C55 72 59 68 59 62C59 55 54 50 50 42Z' fill='%23fffbeb'/><defs><linearGradient id='flameGrad' x1='50' y1='22' x2='50' y2='78' gradientUnits='userSpaceOnUse'><stop stop-color='%23fde047'/><stop offset='0.5' stop-color='%23ea580c'/><stop offset='1' stop-color='%23991b1b'/></linearGradient></defs></svg>" alt="Watermark Profile" class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-amber-300 shadow-xl" />
-              <div id="story-voice-badge" class="hidden absolute -bottom-1 -right-1 px-1.5 py-0.2 bg-emerald-500 rounded-full border border-black text-[9px] text-white flex items-center justify-center">
-                <span>🎙️</span>
-              </div>
+              <div class="absolute -inset-1 rounded-full bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-300 blur-sm opacity-60"></div>
+              <img id="story-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'><rect width='100' height='100' rx='50' fill='%231a0c06'/><circle cx='50' cy='50' r='46' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4 3' opacity='0.6'/><path d='M50 22C42 35 33 46 33 60C33 71 40 78 50 78C60 78 67 71 67 60C67 46 58 35 50 22Z' fill='url(%23flameGrad)' opacity='0.95'/><path d='M50 42C46 50 41 55 41 62C41 68 45 72 50 72C55 72 59 68 59 62C59 55 54 50 50 42Z' fill='%23fffbeb'/><defs><linearGradient id='flameGrad' x1='50' y1='22' x2='50' y2='78' gradientUnits='userSpaceOnUse'><stop stop-color='%23fde047'/><stop offset='0.5' stop-color='%23ea580c'/><stop offset='1' stop-color='%23991b1b'/></linearGradient></defs></svg>" alt="Watermark Profile" class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full object-cover border border-amber-300/80 shadow-xl" />
             </div>
 
             <!-- Name & Handle -->
             <h3 id="story-display-name" class="mt-2 text-sm sm:text-base font-bold text-white tracking-wide drop-shadow truncate max-w-[200px]">
               Pengelana Checkpoint
             </h3>
-            <span id="story-username" class="text-[10px] text-zinc-400 font-mono">
+            <span id="story-username" class="text-[10px] text-zinc-400 font-mono drop-shadow">
               @thecheckpoint
             </span>
 
-            <!-- Status / Role Badge -->
-            <div class="mt-1.5 inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/15 text-[9px] text-amber-200 font-mono">
-              <span id="story-role-text">🔥 Pengelana Sanctuary</span>
+            <!-- Status / Role -->
+            <div class="mt-1 text-[9px] text-amber-200/90 font-serif italic drop-shadow">
+              <span id="story-role-text">Pengelana Sanctuary</span>
             </div>
           </div>
 
-          <!-- Story Bonfire Live Status & Footer -->
-          <div class="relative z-10 space-y-1.5">
-            <div class="p-2 rounded-xl bg-black/50 border border-white/10 backdrop-blur-sm text-left text-[9px] font-mono text-zinc-300 space-y-1">
-              <div class="flex justify-between items-center text-amber-300 font-semibold text-[8px]">
-                <span id="story-streak-badge">🔥 <span id="story-streak-val">1</span> Hari Streak</span>
-                <span id="story-sparks-val">450 / 1.000</span>
-              </div>
-              <div class="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                <div id="story-sparks-bar" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full" style="width: 45%;"></div>
-              </div>
-              <div id="story-voice-summary" class="text-zinc-400 text-[8px] truncate">
-                👥 Aktif di Voice Lounge
-              </div>
+          <!-- Story Bonfire Live Status & Footer (No Card Box, Sleek Integrated HUD) -->
+          <div class="relative z-10 space-y-1.5 pt-1">
+            <!-- Row 1: Streak & Sparks -->
+            <div class="flex justify-between items-center text-[8.5px] font-mono tracking-wider text-amber-300 drop-shadow">
+              <span id="story-streak-badge">STREAK <span id="story-streak-val">1</span> HARI</span>
+              <span id="story-sparks-val" class="text-amber-200 font-mono">450 / 1.000 BARA</span>
+            </div>
+            
+            <!-- Row 2: Sleek Ultra-thin Glowing Progress Bar (3px) -->
+            <div class="w-full bg-white/15 h-[3px] rounded-full overflow-hidden backdrop-blur-sm">
+              <div id="story-sparks-bar" class="bg-gradient-to-r from-orange-500 to-amber-300 h-full rounded-full shadow-[0_0_8px_rgba(251,191,36,0.8)]" style="width: 45%;"></div>
             </div>
 
-            <div class="pt-1 flex items-center justify-between text-[8px] font-mono text-zinc-400 border-t border-white/10">
+            <!-- Row 3: Live Sub-text -->
+            <div id="story-voice-summary" class="text-zinc-300 text-[8px] font-serif italic truncate drop-shadow text-center">
+              Suasana hangat bersama para pengelana di Voice Lounge
+            </div>
+
+            <!-- Row 4: Compact Clean Watermark -->
+            <div class="pt-0.5 text-center text-[8.5px] font-mono text-zinc-400 drop-shadow">
               <span>discord.gg/TVKcyQqB3</span>
-              <span class="text-amber-400 font-bold">MAYA • THE CHECKPOINT</span>
             </div>
           </div>
         </div>
@@ -390,33 +401,70 @@
         <div class="flex items-center justify-between pb-3 border-b border-white/10">
           <div>
             <h3 class="text-sm sm:text-base font-bold tracking-wider text-amber-100 uppercase font-cinzel">Bagikan Cerita ke Sosmed</h3>
-            <p class="text-xs text-zinc-400">Pilih akun Discord kamu untuk dijadikan kartu aesthetic di TikTok / IG Story</p>
+            <p class="text-xs text-zinc-400">Pilih mode tampilan aesthetic untuk TikTok / Instagram Stories</p>
           </div>
           <button id="btn-close-share" class="w-8 h-8 rounded-full glass-btn flex items-center justify-center text-zinc-400 hover:text-white transition">
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
 
-        <!-- SEARCH INPUT -->
-        <div class="space-y-1.5">
-          <label class="block text-xs font-medium text-amber-200/90 font-mono">Cari Member Server Discord:</label>
-          <div class="relative">
-            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
-            <input id="share-user-search" type="text" placeholder="Ketik nama atau @username Discord kamu..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/90 border border-white/15 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-zinc-500 transition font-sans" />
-            <div id="search-spinner" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+        <!-- MODE SELECTOR TABS -->
+        <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-zinc-950/80 border border-white/10">
+          <button id="mode-tab-gathering" type="button" class="py-2 px-3 rounded-xl text-xs font-mono font-medium transition flex items-center justify-center space-x-1.5 bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-md">
+            <span>👥</span>
+            <span>Voice Gathering</span>
+          </button>
+          <button id="mode-tab-profile" type="button" class="py-2 px-3 rounded-xl text-xs font-mono font-medium transition flex items-center justify-center space-x-1.5 text-zinc-400 hover:text-white hover:bg-white/5">
+            <span>🪪</span>
+            <span>Profil Pengelana</span>
+          </button>
+        </div>
+
+        <!-- PANEL 1: VOICE GATHERING INFO & MEMBERS LIST -->
+        <div id="panel-mode-gathering" class="space-y-3">
+          <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 font-mono space-y-1">
+            <div class="font-bold flex items-center space-x-1 text-amber-300">
+              <span>✨ Mode Voice Gathering</span>
+            </div>
+            <p class="text-[11px] text-zinc-300 leading-relaxed font-sans">
+              Menangkap hangatnya kebersamaan para pengelana yang sedang aktif di Voice Lounge. Avatar akan mengambang di langit malam perapian tanpa avatar tunggal di tengah.
+            </p>
           </div>
 
-          <!-- Dropdown Search Results -->
-          <div id="share-search-results" class="hidden max-h-44 overflow-y-auto no-scrollbar rounded-xl bg-zinc-950/95 border border-white/15 divide-y divide-white/5 shadow-2xl">
-            <!-- Populated via search -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+              <span>Pengelana di Voice Saat Ini:</span>
+              <span id="voice-roster-count" class="text-amber-400 font-bold">0 Online</span>
+            </div>
+            <div id="voice-roster-list" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar p-2 rounded-xl bg-zinc-950/60 border border-white/10">
+              <!-- In-voice members chips or empty state -->
+            </div>
           </div>
         </div>
 
-        <!-- QUICK PICK SECTION -->
-        <div class="space-y-1.5">
-          <span class="text-[11px] font-mono text-zinc-400">Pilih Cepat Member Aktif:</span>
-          <div id="share-quick-picks" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
-            <!-- Chips of active / voice members -->
+        <!-- PANEL 2: PROFIL PENGELANA (SEARCH & QUICK PICKS) -->
+        <div id="panel-mode-profile" class="hidden space-y-3">
+          <!-- SEARCH INPUT -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-amber-200/90 font-mono">Cari Member Server Discord:</label>
+            <div class="relative">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+              <input id="share-user-search" type="text" placeholder="Ketik nama atau @username Discord kamu..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/90 border border-white/15 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-zinc-500 transition font-sans" />
+              <div id="search-spinner" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+
+            <!-- Dropdown Search Results -->
+            <div id="share-search-results" class="hidden max-h-44 overflow-y-auto no-scrollbar rounded-xl bg-zinc-950/95 border border-white/15 divide-y divide-white/5 shadow-2xl">
+              <!-- Populated via search -->
+            </div>
+          </div>
+
+          <!-- QUICK PICK SECTION -->
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-mono text-zinc-400">Pilih Cepat Member:</span>
+            <div id="share-quick-picks" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
+              <!-- Chips of active members -->
+            </div>
           </div>
         </div>
 
@@ -1076,6 +1124,19 @@
     const btnCopyShareLink = document.getElementById('btn-copy-share-link');
     const copyBtnText = document.getElementById('copy-btn-text');
 
+    // Mode tabs & panels
+    const modeTabGathering = document.getElementById('mode-tab-gathering');
+    const modeTabProfile = document.getElementById('mode-tab-profile');
+    const panelModeGathering = document.getElementById('panel-mode-gathering');
+    const panelModeProfile = document.getElementById('panel-mode-profile');
+    const storyGatheringLayer = document.getElementById('story-gathering-layer');
+    const storyProfileLayer = document.getElementById('story-profile-layer');
+    const storyVoiceFloatingCluster = document.getElementById('story-voice-floating-cluster');
+    const storyEmptyVoiceNotice = document.getElementById('story-empty-voice-notice');
+    const voiceRosterCount = document.getElementById('voice-roster-count');
+    const voiceRosterList = document.getElementById('voice-roster-list');
+
+    // Story Profile Elements
     const storyAvatar = document.getElementById('story-avatar');
     const storyDisplayName = document.getElementById('story-display-name');
     const storyUsername = document.getElementById('story-username');
@@ -1084,6 +1145,8 @@
     const storySparksVal = document.getElementById('story-sparks-val');
     const storySparksBar = document.getElementById('story-sparks-bar');
     const storyVoiceSummary = document.getElementById('story-voice-summary');
+
+    let currentShareMode = 'gathering'; // Default: 'gathering' (Voice Gathering), 'profile' (Profil Pengelana)
 
     const DEFAULT_WATERMARK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'><rect width='100' height='100' rx='50' fill='%231a0c06'/><circle cx='50' cy='50' r='46' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4 3' opacity='0.6'/><path d='M50 22C42 35 33 46 33 60C33 71 40 78 50 78C60 78 67 71 67 60C67 46 58 35 50 22Z' fill='url(%23flameGrad)' opacity='0.95'/><path d='M50 42C46 50 41 55 41 62C41 68 45 72 50 72C55 72 59 68 59 62C59 55 54 50 50 42Z' fill='%23fffbeb'/><defs><linearGradient id='flameGrad' x1='50' y1='22' x2='50' y2='78' gradientUnits='userSpaceOnUse'><stop stop-color='%23fde047'/><stop offset='0.5' stop-color='%23ea580c'/><stop offset='1' stop-color='%23991b1b'/></linearGradient></defs></svg>";
 
@@ -1098,14 +1161,55 @@
     };
 
     let selectedStoryMember = { ...DEFAULT_STORY_MEMBER };
-
     let latestBonfireState = null;
     let latestActiveMembers = REAL_MEMBERS;
+
+    function setShareMode(mode) {
+      currentShareMode = mode;
+      if (mode === 'gathering') {
+        modeTabGathering?.classList.add('bg-gradient-to-r', 'from-amber-600', 'to-orange-500', 'text-white', 'shadow-md');
+        modeTabGathering?.classList.remove('text-zinc-400', 'hover:bg-white/5');
+        modeTabProfile?.classList.remove('bg-gradient-to-r', 'from-amber-600', 'to-orange-500', 'text-white', 'shadow-md');
+        modeTabProfile?.classList.add('text-zinc-400', 'hover:bg-white/5');
+
+        panelModeGathering?.classList.remove('hidden');
+        panelModeProfile?.classList.add('hidden');
+
+        storyGatheringLayer?.classList.remove('hidden');
+        storyProfileLayer?.classList.add('hidden');
+      } else {
+        modeTabProfile?.classList.add('bg-gradient-to-r', 'from-amber-600', 'to-orange-500', 'text-white', 'shadow-md');
+        modeTabProfile?.classList.remove('text-zinc-400', 'hover:bg-white/5');
+        modeTabGathering?.classList.remove('bg-gradient-to-r', 'from-amber-600', 'to-orange-500', 'text-white', 'shadow-md');
+        modeTabGathering?.classList.add('text-zinc-400', 'hover:bg-white/5');
+
+        panelModeProfile?.classList.remove('hidden');
+        panelModeGathering?.classList.add('hidden');
+
+        storyProfileLayer?.classList.remove('hidden');
+        storyGatheringLayer?.classList.add('hidden');
+      }
+      updateStoryPreview(selectedStoryMember);
+    }
+
+    modeTabGathering?.addEventListener('click', () => setShareMode('gathering'));
+    modeTabProfile?.addEventListener('click', () => setShareMode('profile'));
+
+    function getActiveVoiceMembers() {
+      if (latestBonfireState && latestBonfireState.voiceMembers && latestBonfireState.voiceMembers.length > 0) {
+        return latestBonfireState.voiceMembers;
+      }
+      if (latestActiveMembers && latestActiveMembers.length > 0) {
+        const vList = latestActiveMembers.filter(m => m.inVoice || m.status === 'voice');
+        if (vList.length > 0) return vList;
+      }
+      return [];
+    }
 
     function openShareModal() {
       if (!shareModal) return;
       shareModal.classList.remove('opacity-0', 'pointer-events-none');
-      updateStoryPreview(selectedStoryMember);
+      setShareMode(currentShareMode);
       renderShareQuickPicks(latestActiveMembers);
     }
 
@@ -1119,39 +1223,90 @@
     btnCloseShare?.addEventListener('click', closeShareModal);
 
     function updateStoryPreview(member) {
-      if (!member) return;
-      selectedStoryMember = member;
+      if (member) selectedStoryMember = member;
 
-      if (storyAvatar) storyAvatar.src = member.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
-      if (storyDisplayName) storyDisplayName.textContent = member.displayName || member.username;
-      if (storyUsername) storyUsername.textContent = `@${member.username}`;
-      
-      const roleStr = member.inVoice 
-        ? `🎙️ ${member.channelName ? `Aktif di ${member.channelName}` : 'Di Voice Lounge'}`
-        : (member.role || 'Penjaga Lentera Checkpoint');
-      if (storyRoleText) storyRoleText.textContent = roleStr;
-
-      if (storyVoiceBadge) {
-        if (member.inVoice) {
-          storyVoiceBadge.classList.remove('hidden');
-        } else {
-          storyVoiceBadge.classList.add('hidden');
-        }
-      }
-
-      // Update bonfire snapshot
+      // Update bonfire snapshot stats
       const sparks = latestBonfireState?.sparks ?? totalSparks;
-      const vCount = latestBonfireState?.voiceCount ?? 0;
+      const vMembers = getActiveVoiceMembers();
+      const vCount = latestBonfireState?.voiceCount ?? vMembers.length;
       const sDays = latestBonfireState?.streakDays ?? currentStreakDays;
       const storyStreakVal = document.getElementById('story-streak-val');
       if (storyStreakVal) storyStreakVal.textContent = sDays;
 
       if (storySparksVal) storySparksVal.textContent = `${sparks.toLocaleString('id-ID')} / 1.000`;
       if (storySparksBar) storySparksBar.style.width = `${Math.min(100, Math.max(5, (sparks / 1000) * 100))}%`;
-      if (storyVoiceSummary) {
-        storyVoiceSummary.textContent = vCount > 0 
-          ? `👥 ${vCount} pengelana di Voice • ${latestBonfireState?.stageText || 'Aktif'}`
-          : `💨 Menunggu pengelana di Voice Lounge`;
+
+      if (currentShareMode === 'gathering') {
+        if (voiceRosterCount) voiceRosterCount.textContent = `${vMembers.length} Online`;
+        
+        // Populate Roster List on Right Panel
+        if (voiceRosterList) {
+          if (vMembers.length > 0) {
+            voiceRosterList.innerHTML = vMembers.map(m => `
+              <div class="flex items-center space-x-1.5 px-2 py-1 rounded-xl bg-white/5 border border-white/10 text-xs">
+                <img src="${m.avatar}" class="w-4 h-4 rounded-full object-cover border border-amber-400/50" />
+                <span class="text-zinc-200 text-[10px] truncate max-w-[85px]">${m.displayName || m.username}</span>
+                <span class="text-[8px] text-emerald-400 font-mono">aktif</span>
+              </div>
+            `).join('');
+          } else {
+            voiceRosterList.innerHTML = `
+              <div class="p-2 text-[10px] text-zinc-400 font-mono text-center w-full">
+                Lounge sedang hening. Suasana damai di bawah bintang.
+              </div>
+            `;
+          }
+        }
+
+        // Populate Floating Avatars in 9:16 Preview Card (No chips, no emojis)
+        if (vMembers.length > 0) {
+          storyVoiceFloatingCluster?.classList.remove('hidden');
+          storyEmptyVoiceNotice?.classList.add('hidden');
+          if (storyVoiceFloatingCluster) {
+            const displayMembers = vMembers.slice(0, 6);
+            storyVoiceFloatingCluster.innerHTML = displayMembers.map((m, idx) => `
+              <div class="flex flex-col items-center transition-transform hover:scale-105" style="animation: float${(idx % 3) + 1} 3.5s ease-in-out infinite alternate;">
+                <div class="relative">
+                  <div class="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 blur-[2px] opacity-75"></div>
+                  <img src="${m.avatar}" class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-amber-300 shadow-md" />
+                </div>
+                <span class="mt-1 text-[8px] font-sans text-amber-100 max-w-[62px] truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  ${m.displayName || m.username}
+                </span>
+              </div>
+            `).join('');
+          }
+          if (storyVoiceSummary) {
+            storyVoiceSummary.textContent = `${vMembers.length} pengelana sedang menghangatkan malam di Voice`;
+          }
+        } else {
+          storyVoiceFloatingCluster?.classList.add('hidden');
+          storyEmptyVoiceNotice?.classList.remove('hidden');
+          if (storyVoiceSummary) {
+            storyVoiceSummary.textContent = `Bara tetap hangat di perapian sanctuary`;
+          }
+        }
+      } else {
+        // Profil Pengelana Mode
+        const m = selectedStoryMember;
+        if (storyAvatar) storyAvatar.src = m.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
+        if (storyDisplayName) storyDisplayName.textContent = m.displayName || m.username;
+        if (storyUsername) storyUsername.textContent = `@${m.username}`;
+        
+        const roleStr = m.inVoice 
+          ? (m.channelName ? `Aktif di ${m.channelName}` : 'Sedang di Voice Lounge')
+          : (m.role || 'Pengelana Checkpoint');
+        if (storyRoleText) storyRoleText.textContent = roleStr;
+
+        if (storyVoiceBadge) {
+          storyVoiceBadge.classList.add('hidden');
+        }
+
+        if (storyVoiceSummary) {
+          storyVoiceSummary.textContent = vCount > 0 
+            ? `${vCount} pengelana sedang menghangatkan malam di Voice Lounge`
+            : `Bara tetap hangat di perapian sanctuary`;
+        }
       }
     }
 
@@ -1264,257 +1419,380 @@
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
 
-        // 1. Background Gradient (Dark Obsidian Campfire)
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
-        bgGrad.addColorStop(0, '#0a080d');
-        bgGrad.addColorStop(0.35, '#1a0a04');
-        bgGrad.addColorStop(0.65, '#2e1205');
-        bgGrad.addColorStop(1, '#070609');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, 1080, 1920);
+        // 1. Draw Aesthetic Background Image (/story-bg.jpg)
+        const bgImg = new Image();
+        bgImg.crossOrigin = "anonymous";
+        await new Promise((resolve) => {
+          bgImg.onload = () => resolve(true);
+          bgImg.onerror = () => resolve(false);
+          bgImg.src = "/story-bg.jpg";
+          setTimeout(() => resolve(false), 3500);
+        });
 
-        // 2. Central Campfire Warm Glow (Radial)
-        const glowGrad = ctx.createRadialGradient(540, 1150, 40, 540, 1150, 700);
-        glowGrad.addColorStop(0, 'rgba(251, 146, 60, 0.42)');
-        glowGrad.addColorStop(0.4, 'rgba(234, 88, 12, 0.22)');
-        glowGrad.addColorStop(0.75, 'rgba(180, 83, 9, 0.08)');
-        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = glowGrad;
-        ctx.fillRect(0, 0, 1080, 1920);
+        if (bgImg.complete && bgImg.naturalWidth > 0) {
+          ctx.drawImage(bgImg, 0, 0, 1080, 1920);
+        } else {
+          // Fallback dark obsidian gradient
+          const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
+          bgGrad.addColorStop(0, '#0a080d');
+          bgGrad.addColorStop(0.35, '#1a0a04');
+          bgGrad.addColorStop(0.65, '#2e1205');
+          bgGrad.addColorStop(1, '#070609');
+          ctx.fillStyle = bgGrad;
+          ctx.fillRect(0, 0, 1080, 1920);
+        }
+
+        // 2. Cinematic Gradient Vignettes for clear text legibility
+        const topGrad = ctx.createLinearGradient(0, 0, 0, 480);
+        topGrad.addColorStop(0, 'rgba(5, 5, 10, 0.78)');
+        topGrad.addColorStop(0.6, 'rgba(5, 5, 10, 0.45)');
+        topGrad.addColorStop(1, 'rgba(5, 5, 10, 0)');
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(0, 0, 1080, 480);
+
+        const botGrad = ctx.createLinearGradient(0, 1150, 0, 1920);
+        botGrad.addColorStop(0, 'rgba(5, 4, 8, 0)');
+        botGrad.addColorStop(0.3, 'rgba(5, 4, 8, 0.65)');
+        botGrad.addColorStop(1, 'rgba(4, 3, 6, 0.94)');
+        ctx.fillStyle = botGrad;
+        ctx.fillRect(0, 1150, 1080, 770);
 
         // 3. Floating Ember Sparks (Procedural)
-        for (let i = 0; i < 45; i++) {
-          const sx = 120 + Math.random() * 840;
-          const sy = 200 + Math.random() * 1500;
-          const sr = 2 + Math.random() * 5.5;
-          const sa = 0.25 + Math.random() * 0.7;
+        for (let i = 0; i < 35; i++) {
+          const sx = 80 + Math.random() * 920;
+          const sy = 160 + Math.random() * 1600;
+          const sr = 2 + Math.random() * 4.5;
+          const sa = 0.25 + Math.random() * 0.65;
           ctx.beginPath();
           ctx.arc(sx, sy, sr, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(251, 191, 36, ${sa})`;
           ctx.shadowColor = '#f97316';
-          ctx.shadowBlur = 14;
+          ctx.shadowBlur = 12;
           ctx.fill();
         }
         ctx.shadowBlur = 0;
 
-        // 4. Header: THE CHECKPOINT
+        // 4. Header: THE CHECKPOINT (Clean Cinematic, No Pills)
         ctx.textAlign = 'center';
-        
-        // Tag Pill
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
-        drawCanvasRoundRect(ctx, 360, 180, 360, 50, 25);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.font = 'bold 20px "Courier New", monospace';
-        ctx.fillStyle = '#fde68a';
-        ctx.fillText('DISCORD COMMUNITY', 540, 212);
 
         // Main Title
-        ctx.font = 'bold 64px "Cinzel", "Times New Roman", serif';
+        ctx.font = 'bold 74px "Cinzel", "Times New Roman", serif';
         ctx.fillStyle = '#fffbeb';
-        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
         ctx.shadowBlur = 24;
-        ctx.fillText('THE CHECKPOINT', 540, 310);
+        ctx.fillText('THE CHECKPOINT', 540, 240);
         ctx.shadowBlur = 0;
 
         // Subtitle Quote
-        ctx.font = 'italic 32px Georgia, serif';
-        ctx.fillStyle = '#fde047';
-        ctx.fillText('"Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."', 540, 375);
-
-        // 5. Member Centerpiece (Avatar Socket)
-        const avY = 760;
-        const avR = 170;
-
-        // Golden Outer Ring Glow
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(540, avY, avR + 10, 0, Math.PI * 2);
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 6;
-        ctx.shadowColor = '#f97316';
-        ctx.shadowBlur = 35;
-        ctx.stroke();
-        ctx.restore();
-
-        // Draw Avatar or Watermark Crest
-        if (selectedStoryMember.isDefaultPlaceholder || selectedStoryMember.avatar.startsWith('data:')) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(540, avY, avR, 0, Math.PI * 2);
-          ctx.clip();
-          
-          ctx.fillStyle = '#180c07';
-          ctx.fillRect(540 - avR, avY - avR, avR * 2, avR * 2);
-
-          // Golden decorative dashed orbit
-          ctx.beginPath();
-          ctx.arc(540, avY, avR - 16, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
-          ctx.lineWidth = 4;
-          ctx.setLineDash([12, 8]);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          // Flame Silhouette
-          const fg = ctx.createLinearGradient(540, avY - 95, 540, avY + 95);
-          fg.addColorStop(0, '#fef08a');
-          fg.addColorStop(0.4, '#f97316');
-          fg.addColorStop(1, '#991b1b');
-          ctx.fillStyle = fg;
-          
-          ctx.beginPath();
-          ctx.moveTo(540, avY - 100);
-          ctx.bezierCurveTo(460, avY - 15, 440, avY + 45, 470, avY + 90);
-          ctx.bezierCurveTo(500, avY + 115, 580, avY + 115, 610, avY + 90);
-          ctx.bezierCurveTo(640, avY + 45, 620, avY - 15, 540, avY - 100);
-          ctx.fill();
-
-          // Hot Inner Core
-          ctx.fillStyle = '#fffbeb';
-          ctx.beginPath();
-          ctx.moveTo(540, avY - 5);
-          ctx.bezierCurveTo(510, avY + 30, 510, avY + 68, 540, avY + 86);
-          ctx.bezierCurveTo(570, avY + 68, 570, avY + 30, 540, avY - 5);
-          ctx.fill();
-
-          ctx.restore();
-        } else {
-          // Load Avatar via proxy
-          const avatarProxyUrl = `/api/landing/proxy-avatar?url=${encodeURIComponent(selectedStoryMember.avatar)}`;
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          
-          await new Promise((resolve) => {
-            img.onload = () => resolve(true);
-            img.onerror = () => resolve(false);
-            img.src = avatarProxyUrl;
-            setTimeout(() => resolve(false), 3000);
-          });
-
-          // Draw Avatar
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(540, avY, avR, 0, Math.PI * 2);
-          ctx.clip();
-          if (img.complete && img.naturalWidth > 0) {
-            ctx.drawImage(img, 540 - avR, avY - avR, avR * 2, avR * 2);
-          } else {
-            ctx.fillStyle = '#27272a';
-            ctx.fillRect(540 - avR, avY - avR, avR * 2, avR * 2);
-            ctx.fillStyle = '#f59e0b';
-            ctx.font = 'bold 90px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText((selectedStoryMember.displayName || 'C')[0].toUpperCase(), 540, avY + 30);
-          }
-          ctx.restore();
-        }
-
-        // 6. Member Details
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 54px sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0,0,0,0.9)';
-        ctx.shadowBlur = 18;
-        ctx.fillText(selectedStoryMember.displayName || selectedStoryMember.username, 540, 1020);
+        ctx.font = 'italic 30px Georgia, serif';
+        ctx.fillStyle = '#fde68a';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 14;
+        ctx.fillText('"Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."', 540, 305);
         ctx.shadowBlur = 0;
 
-        ctx.font = '28px "Courier New", monospace';
-        ctx.fillStyle = '#a1a1aa';
-        ctx.fillText(`@${selectedStoryMember.username}`, 540, 1070);
+        const vMembers = getActiveVoiceMembers();
 
-        // Role Badge Pill
-        const roleLabel = selectedStoryMember.inVoice
-          ? `🎙️ ${selectedStoryMember.channelName ? `Aktif di ${selectedStoryMember.channelName}` : 'Sedang di Voice Lounge'}`
-          : (selectedStoryMember.role || '🔥 Penjaga Lentera Checkpoint');
+        // 5. Middle Area: Voice Gathering Mode VS Profil Pengelana Mode
+        if (currentShareMode === 'gathering') {
+          if (vMembers.length > 0) {
+            // Dynamic Constellation Positions in the Starry Night Sky (Y: 540 to 920)
+            const count = Math.min(vMembers.length, 6);
+            let positions = [];
+            if (count === 1) {
+              positions = [{ x: 540, y: 720, r: 90 }];
+            } else if (count === 2) {
+              positions = [{ x: 380, y: 720, r: 85 }, { x: 700, y: 720, r: 85 }];
+            } else if (count === 3) {
+              positions = [{ x: 540, y: 620, r: 80 }, { x: 340, y: 790, r: 75 }, { x: 740, y: 790, r: 75 }];
+            } else if (count === 4) {
+              positions = [{ x: 350, y: 620, r: 75 }, { x: 730, y: 620, r: 75 }, { x: 320, y: 810, r: 70 }, { x: 760, y: 810, r: 70 }];
+            } else if (count === 5) {
+              positions = [{ x: 540, y: 580, r: 75 }, { x: 320, y: 700, r: 68 }, { x: 760, y: 700, r: 68 }, { x: 380, y: 860, r: 65 }, { x: 700, y: 860, r: 65 }];
+            } else {
+              positions = [{ x: 330, y: 570, r: 68 }, { x: 750, y: 570, r: 68 }, { x: 540, y: 700, r: 76 }, { x: 270, y: 840, r: 62 }, { x: 810, y: 840, r: 62 }, { x: 540, y: 920, r: 62 }];
+            }
 
-        ctx.font = 'bold 26px "Courier New", monospace';
-        const roleWidth = ctx.measureText(roleLabel).width + 60;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        drawCanvasRoundRect(ctx, 540 - roleWidth / 2, 1115, roleWidth, 54, 27);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+            for (let i = 0; i < count; i++) {
+              const mem = vMembers[i];
+              const pos = positions[i];
 
-        ctx.fillStyle = '#fef08a';
-        ctx.fillText(roleLabel, 540, 1150);
+              // Golden Ring with Warm Soft Glow
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(pos.x, pos.y, pos.r + 5, 0, Math.PI * 2);
+              ctx.strokeStyle = '#fbbf24';
+              ctx.lineWidth = 3.5;
+              ctx.shadowColor = '#f59e0b';
+              ctx.shadowBlur = 20;
+              ctx.stroke();
+              ctx.restore();
 
-        // 7. Bonfire Live Status Box
+              // Load & Draw Avatar
+              const avatarProxyUrl = `/api/landing/proxy-avatar?url=${encodeURIComponent(mem.avatar)}`;
+              const memImg = new Image();
+              memImg.crossOrigin = "anonymous";
+              await new Promise((resolve) => {
+                memImg.onload = () => resolve(true);
+                memImg.onerror = () => resolve(false);
+                memImg.src = avatarProxyUrl;
+                setTimeout(() => resolve(false), 2000);
+              });
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(pos.x, pos.y, pos.r, 0, Math.PI * 2);
+              ctx.clip();
+              if (memImg.complete && memImg.naturalWidth > 0) {
+                ctx.drawImage(memImg, pos.x - pos.r, pos.y - pos.r, pos.r * 2, pos.r * 2);
+              } else {
+                ctx.fillStyle = '#27272a';
+                ctx.fillRect(pos.x - pos.r, pos.y - pos.r, pos.r * 2, pos.r * 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = `bold ${Math.round(pos.r * 0.9)}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText((mem.displayName || 'C')[0].toUpperCase(), pos.x, pos.y + pos.r * 0.35);
+              }
+              ctx.restore();
+
+              // Sleek Minimalist Audio Soundwave Indicator (No keyboard emoji)
+              const waveCenterX = pos.x + pos.r * 0.65;
+              const waveCenterY = pos.y + pos.r * 0.65;
+              ctx.beginPath();
+              ctx.arc(waveCenterX, waveCenterY, 14, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(10, 8, 14, 0.85)';
+              ctx.fill();
+              ctx.strokeStyle = '#10b981';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+
+              // 3 clean soundwave bars
+              ctx.fillStyle = '#34d399';
+              drawCanvasRoundRect(ctx, waveCenterX - 6, waveCenterY - 4, 2.5, 8, 1.25);
+              ctx.fill();
+              drawCanvasRoundRect(ctx, waveCenterX - 1.25, waveCenterY - 7, 2.5, 14, 1.25);
+              ctx.fill();
+              drawCanvasRoundRect(ctx, waveCenterX + 3.5, waveCenterY - 5, 2.5, 10, 1.25);
+              ctx.fill();
+
+              // Member Name (Clean typography, no chip/pill box)
+              const nameStr = mem.displayName || mem.username;
+              ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+              ctx.fillStyle = '#fffbeb';
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+              ctx.shadowBlur = 10;
+              ctx.textAlign = 'center';
+              ctx.fillText(nameStr, pos.x, pos.y + pos.r + 34);
+              ctx.shadowBlur = 0;
+            }
+          } else {
+            // Natural Celestial Text on Starry Sky (No card box, no emoji)
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 38px "Cinzel", Georgia, serif';
+            ctx.fillStyle = '#fffbeb';
+            ctx.shadowColor = 'rgba(0,0,0,0.95)';
+            ctx.shadowBlur = 20;
+            ctx.fillText('Malam Hening di Perapian Bukit', 540, 720);
+            ctx.shadowBlur = 0;
+
+            ctx.font = 'italic 26px Georgia, serif';
+            ctx.fillStyle = '#fde68a';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = 12;
+            ctx.fillText('Suasana tenang di bawah taburan bintang.', 540, 775);
+            ctx.fillText('Masuk ke Voice untuk ikut menghangatkan malam.', 540, 820);
+            ctx.shadowBlur = 0;
+          }
+        } else {
+          // Profil Pengelana Mode: Spotlight Centerpiece
+          const avY = 720;
+          const avR = 150;
+
+          // Golden Outer Ring Glow
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(540, avY, avR + 6, 0, Math.PI * 2);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 4;
+          ctx.shadowColor = '#f97316';
+          ctx.shadowBlur = 28;
+          ctx.stroke();
+          ctx.restore();
+
+          // Draw Avatar or Watermark Crest
+          if (selectedStoryMember.isDefaultPlaceholder || selectedStoryMember.avatar.startsWith('data:')) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(540, avY, avR, 0, Math.PI * 2);
+            ctx.clip();
+            
+            ctx.fillStyle = '#180c07';
+            ctx.fillRect(540 - avR, avY - avR, avR * 2, avR * 2);
+
+            // Golden decorative dashed orbit
+            ctx.beginPath();
+            ctx.arc(540, avY, avR - 14, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([12, 8]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Flame Silhouette
+            const fg = ctx.createLinearGradient(540, avY - 85, 540, avY + 85);
+            fg.addColorStop(0, '#fef08a');
+            fg.addColorStop(0.4, '#f97316');
+            fg.addColorStop(1, '#991b1b');
+            ctx.fillStyle = fg;
+            
+            ctx.beginPath();
+            ctx.moveTo(540, avY - 90);
+            ctx.bezierCurveTo(465, avY - 15, 445, avY + 40, 475, avY + 80);
+            ctx.bezierCurveTo(505, avY + 105, 575, avY + 105, 605, avY + 80);
+            ctx.bezierCurveTo(635, avY + 40, 615, avY - 15, 540, avY - 90);
+            ctx.fill();
+
+            // Hot Inner Core
+            ctx.fillStyle = '#fffbeb';
+            ctx.beginPath();
+            ctx.moveTo(540, avY - 5);
+            ctx.bezierCurveTo(515, avY + 25, 515, avY + 60, 540, avY + 76);
+            ctx.bezierCurveTo(565, avY + 60, 565, avY + 25, 540, avY - 5);
+            ctx.fill();
+
+            ctx.restore();
+          } else {
+            const avatarProxyUrl = `/api/landing/proxy-avatar?url=${encodeURIComponent(selectedStoryMember.avatar)}`;
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            
+            await new Promise((resolve) => {
+              img.onload = () => resolve(true);
+              img.onerror = () => resolve(false);
+              img.src = avatarProxyUrl;
+              setTimeout(() => resolve(false), 3000);
+            });
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(540, avY, avR, 0, Math.PI * 2);
+            ctx.clip();
+            if (img.complete && img.naturalWidth > 0) {
+              ctx.drawImage(img, 540 - avR, avY - avR, avR * 2, avR * 2);
+            } else {
+              ctx.fillStyle = '#27272a';
+              ctx.fillRect(540 - avR, avY - avR, avR * 2, avR * 2);
+              ctx.fillStyle = '#f59e0b';
+              ctx.font = 'bold 85px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText((selectedStoryMember.displayName || 'C')[0].toUpperCase(), 540, avY + 30);
+            }
+            ctx.restore();
+          }
+
+          // Member Details (No chip, clean typography)
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = 'rgba(0,0,0,0.95)';
+          ctx.shadowBlur = 18;
+          ctx.fillText(selectedStoryMember.displayName || selectedStoryMember.username, 540, 950);
+          ctx.shadowBlur = 0;
+
+          ctx.font = '26px "Courier New", monospace';
+          ctx.fillStyle = '#a1a1aa';
+          ctx.shadowColor = 'rgba(0,0,0,0.85)';
+          ctx.shadowBlur = 10;
+          ctx.fillText(`@${selectedStoryMember.username}`, 540, 995);
+          ctx.shadowBlur = 0;
+
+          // Role / Status Text (Clean Italic, no pill box)
+          const roleLabel = selectedStoryMember.inVoice
+            ? (selectedStoryMember.channelName ? `Aktif di ${selectedStoryMember.channelName}` : 'Sedang di Voice Lounge')
+            : (selectedStoryMember.role || 'Pengelana Checkpoint');
+
+          ctx.font = 'italic 24px Georgia, serif';
+          ctx.fillStyle = '#fde68a';
+          ctx.shadowColor = 'rgba(0,0,0,0.9)';
+          ctx.shadowBlur = 8;
+          ctx.fillText(roleLabel, 540, 1040);
+          ctx.shadowBlur = 0;
+        }
+
+        // 6. Bonfire Live Status & Progress HUD (Clean Seamless HUD - No Card Box, No Emoji)
         const sparks = latestBonfireState?.sparks ?? totalSparks;
-        const vCount = latestBonfireState?.voiceCount ?? 0;
-        const boxX = 140;
-        const boxY = 1270;
-        const boxW = 800;
-        const boxH = 290;
-
-        ctx.fillStyle = 'rgba(15, 12, 18, 0.82)';
-        drawCanvasRoundRect(ctx, boxX, boxY, boxW, boxH, 28);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Inner stats
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 26px "Courier New", monospace';
-        ctx.fillStyle = '#f59e0b';
+        const vCount = latestBonfireState?.voiceCount ?? vMembers.length;
         const sDays = latestBonfireState?.streakDays ?? currentStreakDays;
-        ctx.fillText(`🔥 ${sDays} HARI STREAK NYALA`, boxX + 45, boxY + 65);
+        const leftX = 140;
+        const rightX = 940;
+        const hudY = 1620;
+
+        // Row 1: Streak (Left) & Sparks (Right)
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.fillStyle = '#f59e0b';
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(`STREAK ${sDays} HARI`, leftX, hudY);
 
         ctx.textAlign = 'right';
-        ctx.font = 'bold 30px "Courier New", monospace';
-        ctx.fillStyle = '#fef08a';
-        ctx.fillText(`${sparks.toLocaleString('id-ID')} / 1.000 BARA`, boxX + boxW - 45, boxY + 65);
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.fillStyle = '#fde047';
+        ctx.fillText(`${sparks.toLocaleString('id-ID')} / 1.000 BARA`, rightX, hudY);
 
-        // Progress Bar
-        const barX = boxX + 45;
-        const barY = boxY + 95;
-        const barW = boxW - 90;
-        const barH = 22;
+        // Row 2: Sleek Ultra-thin Glowing Progress Bar (5px)
+        const barY = hudY + 18;
+        const barW = rightX - leftX;
+        const barH = 5;
 
-        ctx.fillStyle = '#27272a';
-        drawCanvasRoundRect(ctx, barX, barY, barW, barH, 11);
+        // Track Background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+        drawCanvasRoundRect(ctx, leftX, barY, barW, barH, 2.5);
         ctx.fill();
 
-        const fillW = Math.max(20, (Math.min(1000, sparks) / 1000) * barW);
-        const barGrad = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
+        // Glowing Gradient Bar
+        const fillW = Math.max(15, (Math.min(1000, sparks) / 1000) * barW);
+        const barGrad = ctx.createLinearGradient(leftX, 0, leftX + fillW, 0);
         barGrad.addColorStop(0, '#ea580c');
-        barGrad.addColorStop(1, '#fbbf24');
+        barGrad.addColorStop(1, '#fde047');
         ctx.fillStyle = barGrad;
-        drawCanvasRoundRect(ctx, barX, barY, fillW, barH, 11);
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 12;
+        drawCanvasRoundRect(ctx, leftX, barY, fillW, barH, 2.5);
         ctx.fill();
+        ctx.shadowBlur = 0;
 
-        // Stage & Voice status text
-        ctx.textAlign = 'left';
-        ctx.font = 'italic 26px Georgia, serif';
+        // Row 3: Status Sub-text (Poetic, No Emoji)
+        ctx.textAlign = 'center';
+        ctx.font = 'italic 23px Georgia, serif';
         ctx.fillStyle = '#d4d4d8';
-        const vText = vCount > 0
-          ? `🔥 ${vCount} Pengelana sedang menghidupkan kehangatan di Voice Channel`
-          : `💨 Menjaga bara tetap hidup di sanctuary The Checkpoint`;
-        ctx.fillText(vText, boxX + 45, boxY + 165);
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur = 8;
+        let statusLine = '';
+        if (currentShareMode === 'gathering') {
+          statusLine = vMembers.length > 0
+            ? `${vMembers.length} pengelana sedang menghangatkan malam di Voice Lounge`
+            : `Bara tetap hangat di perapian sanctuary`;
+        } else {
+          statusLine = vCount > 0
+            ? `${vCount} pengelana sedang menghangatkan malam di Voice Lounge`
+            : `Bara tetap hangat di perapian sanctuary`;
+        }
+        ctx.fillText(statusLine, 540, barY + 44);
 
+        // Row 4: Compact Clean Watermark (No MAYA • THE CHECKPOINT)
         ctx.font = '22px "Courier New", monospace';
         ctx.fillStyle = '#a1a1aa';
-        ctx.fillText(`Maya Bonfire Engine • Realtime Sanctuary Sync`, boxX + 45, boxY + 225);
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur = 6;
+        ctx.fillText('discord.gg/TVKcyQqB3', 540, hudY + 115);
+        ctx.shadowBlur = 0;
 
-        // 8. Footer Watermark
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 30px "Courier New", monospace';
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillText('discord.gg/TVKcyQqB3', 540, 1690);
-
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillStyle = '#71717a';
-        ctx.fillText('THE CHECKPOINT • ALL NIGHT REFUGE', 540, 1735);
-
-        // 9. Export to PNG
+        // 7. Export to PNG
         const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
-        link.download = `checkpoint-story-${selectedStoryMember.username}.png`;
+        const fileSlug = currentShareMode === 'gathering' ? 'voice-gathering' : (selectedStoryMember.username || 'sanctuary');
+        link.download = `checkpoint-story-${fileSlug}.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
@@ -1538,10 +1816,19 @@
     // Copy Share Link
     btnCopyShareLink?.addEventListener('click', () => {
       const shareUrl = "https://discord.gg/TVKcyQqB3";
-      const isPlaceholder = selectedStoryMember.isDefaultPlaceholder;
-      const shareText = isPlaceholder
-        ? `Singgah sebentar. Hangatkan suasana di api unggun The Checkpoint: ${shareUrl}`
-        : `Halo! Aku lagi nongkrong di api unggun The Checkpoint bersama @${selectedStoryMember.username}. Yuk singgah dan hangatkan suasana: ${shareUrl}`;
+      let shareText = "";
+      if (currentShareMode === 'gathering') {
+        const vCount = getActiveVoiceMembers().length;
+        shareText = vCount > 0
+          ? `Malam ini ${vCount} pengelana sedang berkumpul di api unggun The Checkpoint. Yuk singgah dan hangatkan suasana: ${shareUrl}`
+          : `Singgah sebentar. Hangatkan suasana di perapian sanctuary The Checkpoint malam ini: ${shareUrl}`;
+      } else {
+        const isPlaceholder = selectedStoryMember.isDefaultPlaceholder;
+        shareText = isPlaceholder
+          ? `Singgah sebentar. Hangatkan suasana di api unggun The Checkpoint: ${shareUrl}`
+          : `Halo! Aku lagi nongkrong di api unggun The Checkpoint bersama @${selectedStoryMember.username}. Yuk singgah dan hangatkan suasana: ${shareUrl}`;
+      }
+
       navigator.clipboard.writeText(shareText).then(() => {
         copyBtnText.textContent = "✅ Tersalin!";
         setTimeout(() => { copyBtnText.textContent = "Salin Tautan"; }, 2000);
