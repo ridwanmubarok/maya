@@ -141,6 +141,44 @@
       0% { transform: scale(1) translate(0, 0); opacity: 1; }
       100% { transform: scale(0.2) translate(var(--dx), var(--dy)); opacity: 0; }
     }
+
+    /* Audio Equalizer Bars */
+    .eq-playing .eq-bar:nth-child(1) {
+      animation: eqBounce 0.75s ease-in-out infinite alternate;
+      background-color: #fbbf24;
+    }
+    .eq-playing .eq-bar:nth-child(2) {
+      animation: eqBounce 1.05s ease-in-out infinite alternate 0.15s;
+      background-color: #f59e0b;
+    }
+    .eq-playing .eq-bar:nth-child(3) {
+      animation: eqBounce 0.85s ease-in-out infinite alternate 0.35s;
+      background-color: #fbbf24;
+    }
+    @keyframes eqBounce {
+      0% { height: 3px; }
+      100% { height: 13px; }
+    }
+
+    /* Shooting Star Atmosphere */
+    .shooting-star {
+      position: absolute;
+      width: 120px;
+      height: 1.5px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), rgba(251, 191, 36, 0.6), transparent);
+      border-radius: 999px;
+      filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.8));
+      opacity: 0;
+      pointer-events: none;
+      transform-origin: left center;
+      animation: shootingStarAnim 1.6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    }
+    @keyframes shootingStarAnim {
+      0% { transform: translate(0, 0) scaleX(0.2); opacity: 0; }
+      15% { opacity: 1; transform: translate(45px, 32px) scaleX(1); }
+      75% { opacity: 0.85; }
+      100% { transform: translate(320px, 230px) scaleX(1.3); opacity: 0; }
+    }
   </style>
 </head>
 <body class="relative w-full h-full overflow-hidden select-none">
@@ -150,6 +188,9 @@
 
   <!-- Warmth Core Glow Behind Flame -->
   <div id="ambient-glow" class="warmth-ambient-glow"></div>
+
+  <!-- Shooting Stars Sky Layer -->
+  <div id="shooting-stars-layer" class="fixed inset-0 z-5 pointer-events-none overflow-hidden"></div>
 
   <!-- Visual Polish Overlays -->
   <div class="vignette-overlay"></div>
@@ -188,9 +229,14 @@
 
         <!-- Controls & Actions Right -->
         <div class="flex items-center space-x-2 sm:space-x-2.5">
-          <!-- Audio Ambience Toggle -->
-          <button id="btn-audio" title="Audio Api Unggun" class="glass-btn w-9 h-9 rounded-full flex items-center justify-center text-zinc-300 hover:text-white transition">
-            <i data-lucide="volume-x" class="w-4 h-4"></i>
+          <!-- Audio Ambience Pill (Lofi & Api Unggun) -->
+          <button id="btn-audio" title="Dengarkan Suasana Api Unggun & Lofi Melodi" class="glass-btn px-3 h-9 rounded-full flex items-center space-x-2 text-zinc-300 hover:text-white transition border border-white/10 hover:border-amber-400/40">
+            <div id="audio-eq" class="flex items-end space-x-[2px] h-3.5 w-3.5 py-[1px]">
+              <span class="eq-bar w-[2.5px] bg-zinc-400 rounded-full h-1 transition-all"></span>
+              <span class="eq-bar w-[2.5px] bg-zinc-400 rounded-full h-2 transition-all"></span>
+              <span class="eq-bar w-[2.5px] bg-zinc-400 rounded-full h-1.5 transition-all"></span>
+            </div>
+            <span id="audio-label" class="text-xs font-mono text-zinc-300">Audio: Off</span>
           </button>
 
           <!-- Share Story Button (Aesthetic 9:16 TikTok/IG) -->
@@ -239,7 +285,7 @@
       <!-- Real Sparks Counter & Tip -->
       <div class="flex items-center justify-between w-full px-3 text-[10px] text-zinc-500 font-mono">
         <span>Geser layar untuk hembuskan angin</span>
-        <div>Bara Aktif: <span id="total-sparks-count" class="text-amber-300 font-semibold">450</span> / 1.000</div>
+        <div>Bara Aktif: <span id="total-sparks-count" class="text-amber-300 font-semibold">10</span> / 1.000</div>
       </div>
     </footer>
   </div>
@@ -324,25 +370,32 @@
           <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 pointer-events-none"></div>
 
           <!-- Story Header (Clean Minimalist Cinematic) -->
-          <div class="relative z-10 space-y-1 pt-1">
+          <div class="relative z-10 space-y-0.5 pt-1">
             <h4 class="font-cinzel text-base sm:text-lg font-bold text-amber-50 tracking-widest drop-shadow-lg">THE CHECKPOINT</h4>
-            <p class="text-[8px] sm:text-[8.5px] text-amber-200/90 font-serif italic max-w-[200px] mx-auto leading-tight drop-shadow">
-              "Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."
+            <p class="text-[8px] sm:text-[8.5px] text-amber-200/80 font-mono tracking-wider uppercase drop-shadow">
+              Sanctuary • Voice Lounge
             </p>
           </div>
 
           <!-- STORY CONTENT LAYERS -->
           <!-- Mode 1 Layer: Voice Gathering (Default) -->
-          <div id="story-gathering-layer" class="relative z-10 flex flex-col items-center justify-center my-auto py-2 w-full">
-            <div id="story-voice-floating-cluster" class="flex flex-wrap items-center justify-center gap-2.5 max-w-[210px] mx-auto py-1">
+          <div id="story-gathering-layer" class="relative z-10 flex flex-col items-center justify-center my-auto py-1 w-full overflow-hidden">
+            <div id="story-voice-floating-cluster" class="w-full flex flex-col items-center justify-center py-1">
               <!-- Dynamic Voice Avatars populated via JS -->
             </div>
-            <!-- Natural Celestial Text (Tanpa kotak card, tanpa emoji) -->
-            <div id="story-empty-voice-notice" class="hidden text-center max-w-[200px] mx-auto space-y-1 py-1">
-              <div class="text-[10px] font-cinzel text-amber-100 font-semibold tracking-wider drop-shadow-md">Malam Hening di Perapian Bukit</div>
-              <p class="text-[8px] text-zinc-300/90 font-serif italic leading-relaxed drop-shadow">
-                Suasana tenang di bawah taburan bintang. Masuk ke Voice untuk ikut menghangatkan malam.
-              </p>
+            <!-- TikTok-Style Streak Centerpiece (When voice has no active members) -->
+            <div id="story-empty-voice-notice" class="hidden flex flex-col items-center justify-center text-center py-2 space-y-1.5">
+              <div class="relative flex items-center justify-center">
+                <div class="absolute -inset-2.5 rounded-full bg-orange-500/30 blur-md"></div>
+                <span class="text-3xl filter drop-shadow-[0_0_10px_rgba(249,115,22,0.9)]">🔥</span>
+              </div>
+              <div class="flex items-baseline space-x-1">
+                <span id="story-center-streak-num" class="text-2xl font-black text-white font-sans tracking-tight drop-shadow-md">1</span>
+                <span class="text-[9px] font-black uppercase tracking-widest text-orange-400">STREAK</span>
+              </div>
+              <div class="px-2 py-0.5 rounded-full bg-black/50 border border-orange-500/30 text-[8px] font-mono text-amber-200/90">
+                <span id="story-center-sparks-num">10</span> Bara
+              </div>
             </div>
           </div>
 
@@ -364,30 +417,28 @@
 
             <!-- Status / Role -->
             <div class="mt-1 text-[9px] text-amber-200/90 font-serif italic drop-shadow">
-              <span id="story-role-text">Pengelana Sanctuary</span>
+              <span id="story-role-text">Checkpoint Member</span>
             </div>
           </div>
 
-          <!-- Story Bonfire Live Status & Footer (No Card Box, Sleek Integrated HUD) -->
-          <div class="relative z-10 space-y-1.5 pt-1">
-            <!-- Row 1: Streak & Sparks -->
-            <div class="flex justify-between items-center text-[8.5px] font-mono tracking-wider text-amber-300 drop-shadow">
-              <span id="story-streak-badge">STREAK <span id="story-streak-val">1</span> HARI</span>
-              <span id="story-sparks-val" class="text-amber-200 font-mono">450 / 1.000 BARA</span>
-            </div>
-            
-            <!-- Row 2: Sleek Ultra-thin Glowing Progress Bar (3px) -->
-            <div class="w-full bg-white/15 h-[3px] rounded-full overflow-hidden backdrop-blur-sm">
-              <div id="story-sparks-bar" class="bg-gradient-to-r from-orange-500 to-amber-300 h-full rounded-full shadow-[0_0_8px_rgba(251,191,36,0.8)]" style="width: 45%;"></div>
+          <!-- Story Bonfire Live Status & Footer (TikTok Streak Aesthetic HUD) -->
+          <div class="relative z-10 flex flex-col items-center space-y-1.5 pt-1">
+            <!-- TikTok Streak Badge (Pill with Fire, Bold Number, and STREAK) -->
+            <div id="story-streak-container" class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-black/65 backdrop-blur-md border border-orange-500/70 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]">
+              <span class="text-[12px] filter drop-shadow-[0_0_6px_rgba(249,115,22,0.9)]">🔥</span>
+              <span class="text-[11px] font-black font-sans text-white tracking-tight"><span id="story-streak-val">1</span></span>
+              <span class="text-[8.5px] font-black tracking-widest text-orange-400 uppercase">STREAK</span>
             </div>
 
-            <!-- Row 3: Live Sub-text -->
-            <div id="story-voice-summary" class="text-zinc-300 text-[8px] font-serif italic truncate drop-shadow text-center">
-              Suasana hangat bersama para pengelana di Voice Lounge
+            <!-- Info Bar: Bara & Voice Status -->
+            <div class="flex items-center space-x-2 text-[9px] font-mono text-zinc-300 drop-shadow">
+              <span id="story-sparks-val" class="text-amber-200 font-semibold">10 Bara</span>
+              <span class="text-zinc-500">•</span>
+              <span id="story-voice-summary" class="text-zinc-300">Voice Lounge</span>
             </div>
 
-            <!-- Row 4: Compact Clean Watermark -->
-            <div class="pt-0.5 text-center text-[8.5px] font-mono text-zinc-400 drop-shadow">
+            <!-- Compact Clean Watermark -->
+            <div class="text-center text-[8.5px] font-mono text-zinc-400 drop-shadow pt-0.5">
               <span>discord.gg/TVKcyQqB3</span>
             </div>
           </div>
@@ -549,13 +600,17 @@
       }
     ];
 
-    // Procedural Sound Engine
+    // Procedural Sound Engine with Campfire Crackle & Gentle Ambient Lofi Pluck
     class BonfireSoundEngine {
       constructor() {
         this.ctx = null;
         this.isMuted = true;
         this.droneGain = null;
         this.crackleGain = null;
+        this.melodyGain = null;
+        this.melodyFilter = null;
+        this.melodyTimer = null;
+        this.scale = [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // Warm Dm/Am pentatonic
       }
 
       init() {
@@ -563,6 +618,7 @@
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         this.ctx = new AudioCtx();
 
+        // 1. Warm low drone
         const droneOsc = this.ctx.createOscillator();
         const droneFilter = this.ctx.createBiquadFilter();
         this.droneGain = this.ctx.createGain();
@@ -578,7 +634,7 @@
         this.droneGain.connect(this.ctx.destination);
         droneOsc.start();
 
-        // Subtle realistic crackle
+        // 2. Subtle realistic crackle
         const bufferSize = this.ctx.sampleRate * 2.0;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -602,6 +658,63 @@
         filter.connect(this.crackleGain);
         this.crackleGain.connect(this.ctx.destination);
         noise.start();
+
+        // 3. Ambient Lofi Pluck / Chime Bus
+        this.melodyFilter = this.ctx.createBiquadFilter();
+        this.melodyFilter.type = 'lowpass';
+        this.melodyFilter.frequency.setValueAtTime(1200, this.ctx.currentTime);
+
+        this.melodyGain = this.ctx.createGain();
+        this.melodyGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+
+        this.melodyFilter.connect(this.melodyGain);
+        this.melodyGain.connect(this.ctx.destination);
+      }
+
+      playPluckNote(freq, delay = 0) {
+        if (!this.ctx || this.isMuted) return;
+        const t = this.ctx.currentTime + delay;
+
+        const osc = this.ctx.createOscillator();
+        const noteGain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+
+        noteGain.gain.setValueAtTime(0.0001, t);
+        noteGain.gain.linearRampToValueAtTime(0.18, t + 0.025);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+
+        osc.connect(noteGain);
+        noteGain.connect(this.melodyFilter);
+
+        osc.start(t);
+        osc.stop(t + 2.5);
+      }
+
+      startMelodySequence() {
+        if (this.melodyTimer) clearInterval(this.melodyTimer);
+        const playArp = () => {
+          if (this.isMuted || !this.ctx) return;
+          const root = this.scale[Math.floor(Math.random() * this.scale.length)];
+          this.playPluckNote(root, 0);
+          if (Math.random() > 0.45) {
+            const harmonic = this.scale[Math.floor(Math.random() * this.scale.length)];
+            this.playPluckNote(harmonic, 0.28);
+          }
+        };
+
+        playArp();
+        this.melodyTimer = setInterval(() => {
+          if (!this.isMuted) playArp();
+        }, 4400 + Math.random() * 2200);
+      }
+
+      stopMelodySequence() {
+        if (this.melodyTimer) {
+          clearInterval(this.melodyTimer);
+          this.melodyTimer = null;
+        }
       }
 
       toggleAudio(enable) {
@@ -612,9 +725,13 @@
         if (this.isMuted) {
           this.droneGain.gain.linearRampToValueAtTime(0.0001, now + 0.3);
           this.crackleGain.gain.linearRampToValueAtTime(0.0001, now + 0.3);
+          this.melodyGain.gain.linearRampToValueAtTime(0.0001, now + 0.3);
+          this.stopMelodySequence();
         } else {
           this.droneGain.gain.linearRampToValueAtTime(0.14, now + 0.5);
           this.crackleGain.gain.linearRampToValueAtTime(0.20, now + 0.5);
+          this.melodyGain.gain.linearRampToValueAtTime(0.22, now + 0.5);
+          this.startMelodySequence();
         }
       }
 
@@ -954,9 +1071,9 @@
     scene.add(ambientLight);
 
     // --- Interaction Physics ---
-    let energy = 0.5;
-    let targetEnergy = 0.5;
-    let totalSparks = 128490;
+    let energy = 0.05;
+    let targetEnergy = 0.05;
+    let totalSparks = 10;
     let windVector = new THREE.Vector2(0, 0);
     let targetWind = new THREE.Vector2(0, 0);
     let isDragging = false;
@@ -1005,10 +1122,11 @@
     function applyBonfireState(state) {
       if (!state) return;
       latestBonfireState = state;
-      targetEnergy = state.energy;
+      targetEnergy = Math.max(0.04, state.energy);
       totalSparks = state.sparks;
       if (totalSparksText) totalSparksText.textContent = totalSparks.toLocaleString('id-ID');
       if (voiceCount && state.voiceCount !== undefined) voiceCount.textContent = state.voiceCount;
+      if (flameQuote && state.statusQuote) flameQuote.textContent = state.statusQuote;
 
       if (state.streakDays !== undefined) {
         currentStreakDays = state.streakDays;
@@ -1061,17 +1179,58 @@
       camera.position.z = 5.54;
     }
 
-    // Audio Button
+    // Audio Button Pill Controller
     const btnAudio = document.getElementById('btn-audio');
+    const audioEq = document.getElementById('audio-eq');
+    const audioLabel = document.getElementById('audio-label');
     let audioActive = false;
-    btnAudio.addEventListener('click', () => {
+    btnAudio?.addEventListener('click', () => {
       audioActive = !audioActive;
       soundEngine.toggleAudio(audioActive);
-      btnAudio.innerHTML = audioActive ? 
-        `<i data-lucide="volume-2" class="w-4 h-4 text-amber-400"></i>` : 
-        `<i data-lucide="volume-x" class="w-4 h-4 text-zinc-300"></i>`;
-      lucide.createIcons();
+      if (audioActive) {
+        audioEq?.classList.add('eq-playing');
+        if (audioLabel) audioLabel.textContent = "Lofi & Api";
+        btnAudio.classList.add('border-amber-400/50', 'text-amber-300');
+        btnAudio.classList.remove('text-zinc-300');
+      } else {
+        audioEq?.classList.remove('eq-playing');
+        if (audioLabel) audioLabel.textContent = "Audio: Off";
+        btnAudio.classList.remove('border-amber-400/50', 'text-amber-300');
+        btnAudio.classList.add('text-zinc-300');
+      }
     });
+
+    // Periodic Aesthetic Shooting Stars Spawner
+    const shootingStarsLayer = document.getElementById('shooting-stars-layer');
+    function spawnShootingStar() {
+      if (!shootingStarsLayer) return;
+      const star = document.createElement('div');
+      star.className = 'shooting-star';
+
+      const startX = Math.random() * (window.innerWidth * 0.7);
+      const startY = Math.random() * (window.innerHeight * 0.4);
+      const angle = 28 + Math.random() * 16;
+      const scale = 0.75 + Math.random() * 0.55;
+
+      star.style.left = `${startX}px`;
+      star.style.top = `${startY}px`;
+      star.style.transform = `rotate(${angle}deg) scale(${scale})`;
+
+      shootingStarsLayer.appendChild(star);
+      setTimeout(() => star.remove(), 1700);
+    }
+
+    function scheduleNextShootingStar() {
+      const delay = 4500 + Math.random() * 4500;
+      setTimeout(() => {
+        spawnShootingStar();
+        scheduleNextShootingStar();
+      }, delay);
+    }
+    setTimeout(() => {
+      spawnShootingStar();
+      scheduleNextShootingStar();
+    }, 2500);
 
     // Theme Switcher & Modals
     const btnTheme = document.getElementById('btn-theme');
@@ -1230,11 +1389,23 @@
       const vMembers = getActiveVoiceMembers();
       const vCount = latestBonfireState?.voiceCount ?? vMembers.length;
       const sDays = latestBonfireState?.streakDays ?? currentStreakDays;
+      
+      // TikTok-Style Streak Display
+      const streakNum = Math.max(1, sDays);
+      const storyStreakContainer = document.getElementById('story-streak-container');
       const storyStreakVal = document.getElementById('story-streak-val');
-      if (storyStreakVal) storyStreakVal.textContent = sDays;
+      if (storyStreakContainer) {
+        storyStreakContainer.classList.remove('hidden');
+        storyStreakContainer.classList.add('inline-flex');
+      }
+      if (storyStreakVal) storyStreakVal.textContent = streakNum;
 
-      if (storySparksVal) storySparksVal.textContent = `${sparks.toLocaleString('id-ID')} / 1.000`;
-      if (storySparksBar) storySparksBar.style.width = `${Math.min(100, Math.max(5, (sparks / 1000) * 100))}%`;
+      const storyCenterStreakNum = document.getElementById('story-center-streak-num');
+      if (storyCenterStreakNum) storyCenterStreakNum.textContent = streakNum;
+      const storyCenterSparksNum = document.getElementById('story-center-sparks-num');
+      if (storyCenterSparksNum) storyCenterSparksNum.textContent = Math.round(sparks).toLocaleString('id-ID');
+
+      if (storySparksVal) storySparksVal.textContent = `${sparks.toLocaleString('id-ID')} Bara`;
 
       if (currentShareMode === 'gathering') {
         if (voiceRosterCount) voiceRosterCount.textContent = `${vMembers.length} Online`;
@@ -1252,50 +1423,101 @@
           } else {
             voiceRosterList.innerHTML = `
               <div class="p-2 text-[10px] text-zinc-400 font-mono text-center w-full">
-                Lounge sedang hening. Suasana damai di bawah bintang.
+                Voice Lounge sedang hening.
               </div>
             `;
           }
         }
 
-        // Populate Floating Avatars in 9:16 Preview Card (No chips, no emojis)
+        // Populate Avatars in 9:16 Preview Card with Organic Staggered Cluster (No chips, no emojis, zero overflow)
         if (vMembers.length > 0) {
           storyVoiceFloatingCluster?.classList.remove('hidden');
           storyEmptyVoiceNotice?.classList.add('hidden');
+          if (storyStreakContainer) {
+            storyStreakContainer.classList.remove('hidden');
+            storyStreakContainer.classList.add('inline-flex');
+          }
           if (storyVoiceFloatingCluster) {
             const displayMembers = vMembers.slice(0, 6);
-            storyVoiceFloatingCluster.innerHTML = displayMembers.map((m, idx) => `
-              <div class="flex flex-col items-center transition-transform hover:scale-105" style="animation: float${(idx % 3) + 1} 3.5s ease-in-out infinite alternate;">
-                <div class="relative">
-                  <div class="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 blur-[2px] opacity-75"></div>
-                  <img src="${m.avatar}" class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-amber-300 shadow-md" />
+            const count = displayMembers.length;
+
+            if (count <= 3) {
+              storyVoiceFloatingCluster.className = "flex items-center justify-center gap-2.5 w-full py-1";
+              storyVoiceFloatingCluster.innerHTML = displayMembers.map((m, idx) => {
+                const staggerClass = idx === 1 ? 'translate-y-1' : '-translate-y-1';
+                const avSize = count === 1 ? 'w-14 h-14' : 'w-11 h-11';
+                return `
+                  <div class="flex flex-col items-center transition-transform hover:scale-105 ${staggerClass}">
+                    <div class="relative">
+                      <div class="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 blur-[2px] opacity-75"></div>
+                      <img src="${m.avatar}" class="relative ${avSize} rounded-full object-cover border border-amber-300 shadow-md" />
+                      <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-zinc-950/90 border border-emerald-400 rounded-full flex items-center justify-center shadow">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                      </div>
+                    </div>
+                    <span class="mt-1 text-[8px] font-sans text-amber-100 max-w-[60px] truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                      ${m.displayName || m.username}
+                    </span>
+                  </div>
+                `;
+              }).join('');
+            } else {
+              // 4 to 6 members: split into 2 compact staggered rows
+              const row1Count = Math.ceil(count / 2);
+              const row1 = displayMembers.slice(0, row1Count);
+              const row2 = displayMembers.slice(row1Count);
+
+              const renderRow = (row, isSecondRow) => `
+                <div class="flex items-center justify-center gap-2 w-full ${isSecondRow ? 'translate-y-0.5' : '-translate-y-0.5'}">
+                  ${row.map(m => `
+                    <div class="flex flex-col items-center transition-transform hover:scale-105">
+                      <div class="relative">
+                        <div class="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 blur-[2px] opacity-75"></div>
+                        <img src="${m.avatar}" class="relative w-9 h-9 rounded-full object-cover border border-amber-300 shadow-md" />
+                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-zinc-950/90 border border-emerald-400 rounded-full flex items-center justify-center shadow">
+                          <span class="w-1 h-1 bg-emerald-400 rounded-full"></span>
+                        </div>
+                      </div>
+                      <span class="mt-0.5 text-[7.5px] font-sans text-amber-100 max-w-[54px] truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        ${m.displayName || m.username}
+                      </span>
+                    </div>
+                  `).join('')}
                 </div>
-                <span class="mt-1 text-[8px] font-sans text-amber-100 max-w-[62px] truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                  ${m.displayName || m.username}
-                </span>
-              </div>
-            `).join('');
+              `;
+
+              storyVoiceFloatingCluster.className = "flex flex-col items-center justify-center gap-1.5 w-full py-1";
+              storyVoiceFloatingCluster.innerHTML = renderRow(row1, false) + renderRow(row2, true);
+            }
           }
           if (storyVoiceSummary) {
-            storyVoiceSummary.textContent = `${vMembers.length} pengelana sedang menghangatkan malam di Voice`;
+            storyVoiceSummary.textContent = `${vMembers.length} di Voice Lounge`;
           }
         } else {
           storyVoiceFloatingCluster?.classList.add('hidden');
           storyEmptyVoiceNotice?.classList.remove('hidden');
+          if (storyStreakContainer) {
+            storyStreakContainer.classList.add('hidden');
+            storyStreakContainer.classList.remove('inline-flex');
+          }
           if (storyVoiceSummary) {
-            storyVoiceSummary.textContent = `Bara tetap hangat di perapian sanctuary`;
+            storyVoiceSummary.textContent = `Voice Hening`;
           }
         }
       } else {
         // Profil Pengelana Mode
+        if (storyStreakContainer) {
+          storyStreakContainer.classList.remove('hidden');
+          storyStreakContainer.classList.add('inline-flex');
+        }
         const m = selectedStoryMember;
         if (storyAvatar) storyAvatar.src = m.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
         if (storyDisplayName) storyDisplayName.textContent = m.displayName || m.username;
         if (storyUsername) storyUsername.textContent = `@${m.username}`;
         
         const roleStr = m.inVoice 
-          ? (m.channelName ? `Aktif di ${m.channelName}` : 'Sedang di Voice Lounge')
-          : (m.role || 'Pengelana Checkpoint');
+          ? (m.channelName ? `Voice: ${m.channelName}` : 'Voice Lounge')
+          : (m.role || 'Checkpoint Member');
         if (storyRoleText) storyRoleText.textContent = roleStr;
 
         if (storyVoiceBadge) {
@@ -1304,8 +1526,8 @@
 
         if (storyVoiceSummary) {
           storyVoiceSummary.textContent = vCount > 0 
-            ? `${vCount} pengelana sedang menghangatkan malam di Voice Lounge`
-            : `Bara tetap hangat di perapian sanctuary`;
+            ? `${vCount} di Voice Lounge`
+            : `Voice Hening`;
         }
       }
     }
@@ -1483,12 +1705,12 @@
         ctx.fillText('THE CHECKPOINT', 540, 240);
         ctx.shadowBlur = 0;
 
-        // Subtitle Quote
-        ctx.font = 'italic 30px Georgia, serif';
+        // Subtitle (Clean & Aesthetic Community Branding)
+        ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.fillStyle = '#fde68a';
         ctx.shadowColor = 'rgba(0,0,0,0.85)';
-        ctx.shadowBlur = 14;
-        ctx.fillText('"Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan."', 540, 305);
+        ctx.shadowBlur = 12;
+        ctx.fillText('SANCTUARY • VOICE LOUNGE', 540, 298);
         ctx.shadowBlur = 0;
 
         const vMembers = getActiveVoiceMembers();
@@ -1496,21 +1718,49 @@
         // 5. Middle Area: Voice Gathering Mode VS Profil Pengelana Mode
         if (currentShareMode === 'gathering') {
           if (vMembers.length > 0) {
-            // Dynamic Constellation Positions in the Starry Night Sky (Y: 540 to 920)
+            // Dynamic Constellation Positions in the Starry Night Sky (Organic, strictly collision-free, Y: 610-890)
             const count = Math.min(vMembers.length, 6);
             let positions = [];
             if (count === 1) {
-              positions = [{ x: 540, y: 720, r: 90 }];
+              positions = [{ x: 540, y: 710, r: 85 }];
             } else if (count === 2) {
-              positions = [{ x: 380, y: 720, r: 85 }, { x: 700, y: 720, r: 85 }];
+              positions = [
+                { x: 370, y: 690, r: 76 },
+                { x: 710, y: 730, r: 76 }
+              ];
             } else if (count === 3) {
-              positions = [{ x: 540, y: 620, r: 80 }, { x: 340, y: 790, r: 75 }, { x: 740, y: 790, r: 75 }];
+              positions = [
+                { x: 300, y: 680, r: 70 },
+                { x: 540, y: 740, r: 74 },
+                { x: 780, y: 670, r: 70 }
+              ];
             } else if (count === 4) {
-              positions = [{ x: 350, y: 620, r: 75 }, { x: 730, y: 620, r: 75 }, { x: 320, y: 810, r: 70 }, { x: 760, y: 810, r: 70 }];
+              // 2 rows staggered constellation
+              positions = [
+                { x: 360, y: 630, r: 64 },
+                { x: 720, y: 645, r: 64 },
+                { x: 330, y: 815, r: 64 },
+                { x: 690, y: 830, r: 64 }
+              ];
             } else if (count === 5) {
-              positions = [{ x: 540, y: 580, r: 75 }, { x: 320, y: 700, r: 68 }, { x: 760, y: 700, r: 68 }, { x: 380, y: 860, r: 65 }, { x: 700, y: 860, r: 65 }];
+              // Row 1 (3 items staggered), Row 2 (2 items staggered)
+              positions = [
+                { x: 260, y: 625, r: 58 },
+                { x: 540, y: 650, r: 60 },
+                { x: 820, y: 620, r: 58 },
+                { x: 400, y: 815, r: 58 },
+                { x: 680, y: 825, r: 58 }
+              ];
             } else {
-              positions = [{ x: 330, y: 570, r: 68 }, { x: 750, y: 570, r: 68 }, { x: 540, y: 700, r: 76 }, { x: 270, y: 840, r: 62 }, { x: 810, y: 840, r: 62 }, { x: 540, y: 920, r: 62 }];
+              // 6 members: Row 1 (3 items zigzag), Row 2 (3 items zigzag)
+              positions = [
+                { x: 250, y: 625, r: 54 },
+                { x: 540, y: 615, r: 56 },
+                { x: 830, y: 635, r: 54 },
+                { x: 270, y: 815, r: 54 },
+                { x: 540, y: 835, r: 56 },
+                { x: 810, y: 815, r: 54 }
+              ];
             }
 
             for (let i = 0; i < count; i++) {
@@ -1555,52 +1805,107 @@
               }
               ctx.restore();
 
-              // Sleek Minimalist Audio Soundwave Indicator (No keyboard emoji)
-              const waveCenterX = pos.x + pos.r * 0.65;
-              const waveCenterY = pos.y + pos.r * 0.65;
+              // Sleek Minimalist Audio Soundwave Indicator (Scales with pos.r)
+              const waveRadius = Math.max(11, Math.round(pos.r * 0.22));
+              const waveCenterX = pos.x + pos.r * 0.68;
+              const waveCenterY = pos.y + pos.r * 0.68;
               ctx.beginPath();
-              ctx.arc(waveCenterX, waveCenterY, 14, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(10, 8, 14, 0.85)';
+              ctx.arc(waveCenterX, waveCenterY, waveRadius, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(10, 8, 14, 0.9)';
               ctx.fill();
               ctx.strokeStyle = '#10b981';
               ctx.lineWidth = 1.5;
               ctx.stroke();
 
-              // 3 clean soundwave bars
+              // 3 clean soundwave bars proportional to waveRadius
               ctx.fillStyle = '#34d399';
-              drawCanvasRoundRect(ctx, waveCenterX - 6, waveCenterY - 4, 2.5, 8, 1.25);
+              const barW = Math.max(2, Math.round(waveRadius * 0.18));
+              drawCanvasRoundRect(ctx, waveCenterX - waveRadius * 0.45, waveCenterY - waveRadius * 0.3, barW, waveRadius * 0.6, 1);
               ctx.fill();
-              drawCanvasRoundRect(ctx, waveCenterX - 1.25, waveCenterY - 7, 2.5, 14, 1.25);
+              drawCanvasRoundRect(ctx, waveCenterX - barW / 2, waveCenterY - waveRadius * 0.55, barW, waveRadius * 1.1, 1);
               ctx.fill();
-              drawCanvasRoundRect(ctx, waveCenterX + 3.5, waveCenterY - 5, 2.5, 10, 1.25);
+              drawCanvasRoundRect(ctx, waveCenterX + waveRadius * 0.25, waveCenterY - waveRadius * 0.35, barW, waveRadius * 0.7, 1);
               ctx.fill();
 
-              // Member Name (Clean typography, no chip/pill box)
-              const nameStr = mem.displayName || mem.username;
-              ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+              // Member Name (Clean typography with smart width truncation)
+              let nameStr = mem.displayName || mem.username;
+              const fontSize = Math.max(18, Math.min(24, Math.round(pos.r * 0.38)));
+              ctx.font = `500 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
               ctx.fillStyle = '#fffbeb';
               ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
               ctx.shadowBlur = 10;
               ctx.textAlign = 'center';
-              ctx.fillText(nameStr, pos.x, pos.y + pos.r + 34);
+
+              const maxNameWidth = pos.r * 2.6;
+              if (ctx.measureText(nameStr).width > maxNameWidth) {
+                while (nameStr.length > 3 && ctx.measureText(nameStr + '…').width > maxNameWidth) {
+                  nameStr = nameStr.slice(0, -1);
+                }
+                nameStr = nameStr + '…';
+              }
+              ctx.fillText(nameStr, pos.x, pos.y + pos.r + (fontSize + 6));
               ctx.shadowBlur = 0;
             }
           } else {
-            // Natural Celestial Text on Starry Sky (No card box, no emoji)
+            // TikTok-Style Streak Centerpiece Hero (No cheesy quotes, authentic TikTok streak style)
+            const streakNum = Math.max(1, sDays);
+            const heroCenterY = 740;
+
+            // 1. Radiant Flame Glow Halo
+            const glowGrad = ctx.createRadialGradient(540, heroCenterY - 45, 15, 540, heroCenterY - 45, 170);
+            glowGrad.addColorStop(0, 'rgba(249, 115, 22, 0.45)');
+            glowGrad.addColorStop(0.5, 'rgba(234, 88, 12, 0.15)');
+            glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glowGrad;
+            ctx.beginPath();
+            ctx.arc(540, heroCenterY - 45, 170, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Large Flame Icon 🔥
+            ctx.font = '88px -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif';
             ctx.textAlign = 'center';
-            ctx.font = 'bold 38px "Cinzel", Georgia, serif';
-            ctx.fillStyle = '#fffbeb';
-            ctx.shadowColor = 'rgba(0,0,0,0.95)';
-            ctx.shadowBlur = 20;
-            ctx.fillText('Malam Hening di Perapian Bukit', 540, 720);
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 35;
+            ctx.fillText('🔥', 540, heroCenterY - 20);
             ctx.shadowBlur = 0;
 
-            ctx.font = 'italic 26px Georgia, serif';
-            ctx.fillStyle = '#fde68a';
-            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            // 3. TikTok Streak Counter (Pill Capsule with Bold Number + "STREAK")
+            const heroPillW = 260;
+            const heroPillH = 72;
+            const heroPillX = 540 - heroPillW / 2;
+            const heroPillY = heroCenterY + 45;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(10, 8, 14, 0.78)';
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.85)';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = 'rgba(249, 115, 22, 0.5)';
+            ctx.shadowBlur = 24;
+            drawCanvasRoundRect(ctx, heroPillX, heroPillY, heroPillW, heroPillH, 36);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Inside Hero Pill: Bold Number + STREAK
+            ctx.textAlign = 'center';
+            ctx.font = '900 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0,0,0,0.95)';
             ctx.shadowBlur = 12;
-            ctx.fillText('Suasana tenang di bawah taburan bintang.', 540, 775);
-            ctx.fillText('Masuk ke Voice untuk ikut menghangatkan malam.', 540, 820);
+            ctx.fillText(`${streakNum}`, 500, heroPillY + 52);
+            ctx.shadowBlur = 0;
+
+            ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = '#fb923c';
+            ctx.fillText('STREAK', 568, heroPillY + 50);
+
+            // 4. Clean Bara Badge Below
+            const heroBara = `${Math.round(sparks).toLocaleString('id-ID')} Bara`;
+            ctx.font = '500 24px "Courier New", monospace';
+            ctx.fillStyle = '#fde68a';
+            ctx.shadowColor = 'rgba(0,0,0,0.85)';
+            ctx.shadowBlur = 8;
+            ctx.fillText(heroBara, 540, heroPillY + 120);
             ctx.shadowBlur = 0;
           }
         } else {
@@ -1719,73 +2024,72 @@
           ctx.shadowBlur = 0;
         }
 
-        // 6. Bonfire Live Status & Progress HUD (Clean Seamless HUD - No Card Box, No Emoji)
+        // 6. Bonfire Live Status HUD (TikTok-Style Streak & Clean Stats)
         const sparks = latestBonfireState?.sparks ?? totalSparks;
         const vCount = latestBonfireState?.voiceCount ?? vMembers.length;
         const sDays = latestBonfireState?.streakDays ?? currentStreakDays;
-        const leftX = 140;
-        const rightX = 940;
-        const hudY = 1620;
+        const streakNum = Math.max(1, sDays);
+        const hudCenterY = 1660;
 
-        // Row 1: Streak (Left) & Sparks (Right)
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 24px "Courier New", monospace';
-        ctx.fillStyle = '#f59e0b';
+        // Tampilkan TikTok Streak Pill di HUD jika ada anggota di voice ATAU di mode profile
+        const showHudStreakPill = (currentShareMode === 'profile') || (vMembers.length > 0);
+
+        if (showHudStreakPill) {
+          // TikTok Streak Pill Badge (Glass capsule with orange fire edge)
+          const pillW = 200;
+          const pillH = 52;
+          const pillX = 540 - pillW / 2;
+          const pillY = hudCenterY - 64;
+
+          ctx.save();
+          ctx.fillStyle = 'rgba(12, 10, 16, 0.8)';
+          ctx.strokeStyle = 'rgba(249, 115, 22, 0.85)';
+          ctx.lineWidth = 2.5;
+          ctx.shadowColor = 'rgba(249, 115, 22, 0.5)';
+          ctx.shadowBlur = 20;
+          drawCanvasRoundRect(ctx, pillX, pillY, pillW, pillH, 26);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+
+          // Inside TikTok Streak Pill: 🔥 [Number] STREAK
+          ctx.textAlign = 'center';
+          ctx.font = '26px -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif';
+          ctx.fillText('🔥', pillX + 32, pillY + 36);
+
+          ctx.font = '900 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = 'rgba(0,0,0,0.9)';
+          ctx.shadowBlur = 8;
+          ctx.fillText(`${streakNum}`, pillX + 75, pillY + 37);
+          ctx.shadowBlur = 0;
+
+          ctx.font = '900 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#fb923c';
+          ctx.fillText('STREAK', pillX + 138, pillY + 35);
+        }
+
+        // 2. Main Status Line (Clean Bara & Voice count, no alay phrasing)
+        const voiceStatusText = currentShareMode === 'gathering'
+          ? (vMembers.length > 0 ? `${vMembers.length} di Voice Lounge` : 'Voice Hening')
+          : (vCount > 0 ? `${vCount} di Voice Lounge` : 'Voice Hening');
+
+        const statsText = `${Math.round(sparks).toLocaleString('id-ID')} Bara • ${voiceStatusText}`;
+        ctx.font = '500 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = '#fffbeb';
         ctx.shadowColor = 'rgba(0,0,0,0.95)';
-        ctx.shadowBlur = 8;
-        ctx.fillText(`STREAK ${sDays} HARI`, leftX, hudY);
-
-        ctx.textAlign = 'right';
-        ctx.font = 'bold 24px "Courier New", monospace';
-        ctx.fillStyle = '#fde047';
-        ctx.fillText(`${sparks.toLocaleString('id-ID')} / 1.000 BARA`, rightX, hudY);
-
-        // Row 2: Sleek Ultra-thin Glowing Progress Bar (5px)
-        const barY = hudY + 18;
-        const barW = rightX - leftX;
-        const barH = 5;
-
-        // Track Background
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-        drawCanvasRoundRect(ctx, leftX, barY, barW, barH, 2.5);
-        ctx.fill();
-
-        // Glowing Gradient Bar
-        const fillW = Math.max(15, (Math.min(1000, sparks) / 1000) * barW);
-        const barGrad = ctx.createLinearGradient(leftX, 0, leftX + fillW, 0);
-        barGrad.addColorStop(0, '#ea580c');
-        barGrad.addColorStop(1, '#fde047');
-        ctx.fillStyle = barGrad;
-        ctx.shadowColor = '#f59e0b';
-        ctx.shadowBlur = 12;
-        drawCanvasRoundRect(ctx, leftX, barY, fillW, barH, 2.5);
-        ctx.fill();
+        ctx.shadowBlur = 10;
+        ctx.textAlign = 'center';
+        ctx.fillText(statsText, 540, hudCenterY + (showHudStreakPill ? 18 : -8));
         ctx.shadowBlur = 0;
 
-        // Row 3: Status Sub-text (Poetic, No Emoji)
-        ctx.textAlign = 'center';
-        ctx.font = 'italic 23px Georgia, serif';
-        ctx.fillStyle = '#d4d4d8';
-        ctx.shadowColor = 'rgba(0,0,0,0.95)';
-        ctx.shadowBlur = 8;
-        let statusLine = '';
-        if (currentShareMode === 'gathering') {
-          statusLine = vMembers.length > 0
-            ? `${vMembers.length} pengelana sedang menghangatkan malam di Voice Lounge`
-            : `Bara tetap hangat di perapian sanctuary`;
-        } else {
-          statusLine = vCount > 0
-            ? `${vCount} pengelana sedang menghangatkan malam di Voice Lounge`
-            : `Bara tetap hangat di perapian sanctuary`;
-        }
-        ctx.fillText(statusLine, 540, barY + 44);
-
-        // Row 4: Compact Clean Watermark (No MAYA • THE CHECKPOINT)
-        ctx.font = '22px "Courier New", monospace';
+        // 3. Compact Clean Watermark
+        ctx.font = '20px "Courier New", monospace';
         ctx.fillStyle = '#a1a1aa';
-        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
         ctx.shadowBlur = 6;
-        ctx.fillText('discord.gg/TVKcyQqB3', 540, hudY + 115);
+        ctx.textAlign = 'center';
+        ctx.fillText('discord.gg/TVKcyQqB3', 540, hudCenterY + (showHudStreakPill ? 64 : 38));
         ctx.shadowBlur = 0;
 
         // 7. Export to PNG

@@ -22,6 +22,7 @@ export interface BonfireState {
   streakDays: number;
   streakTier: number; // 0: Padam, 1: 1-2 hari (Bara Emas), 2: 3-6 hari (Stardust Sparkle), 3: 7+ hari (Cosmic Vortex)
   streakMultiplier: number; // 1.0 - 1.30
+  dailyCap: number; // Batas cap bara harian (Day 1: 250, Day 2: 500, Day 3: 750, Day 4+: 1000)
   litSince: number;
   lastUpdated: number;
 }
@@ -30,7 +31,7 @@ const MAX_SPARKS = 1000;
 const STATE_FILE_PATH = path.join(process.cwd(), "data", "bonfire-state.json");
 
 class BonfireManager {
-  private sparks: number = 450;
+  private sparks: number = 10;
   private streakDays: number = 1;
   private litSince: number = Date.now();
   private lastTick: number = Date.now();
@@ -60,11 +61,23 @@ class BonfireManager {
       this.tick();
     }, 3000);
 
-    logger.info(`BonfireManager: Initialized bonfire dynamics engine. Current sparks: ${Math.round(this.sparks)}/${MAX_SPARKS}`);
+    logger.info(`BonfireManager: Initialized bonfire dynamics engine. Current sparks: ${Math.round(this.sparks)}/${MAX_SPARKS} (Cap Hari ke-${this.streakDays}: ${this.getStreakDailyCap()})`);
   }
 
   public setCallback(cb: (state: BonfireState) => void) {
     this.onStateChangeCallback = cb;
+  }
+
+  /**
+   * Batas akumulasi bara harian berdasarkan streak hari berturut-turut
+   * Day 1: 250 bara, Day 2: 500 bara, Day 3: 750 bara, Day 4+: 1000 bara
+   */
+  public getStreakDailyCap(): number {
+    const days = Math.max(1, this.streakDays);
+    if (days === 1) return 250;
+    if (days === 2) return 500;
+    if (days === 3) return 750;
+    return 1000;
   }
 
   public getState(): BonfireState {
@@ -73,25 +86,27 @@ class BonfireManager {
     const sparksRounded = Math.round(Math.max(0, Math.min(MAX_SPARKS, this.sparks)));
     const energy = Number((sparksRounded / MAX_SPARKS).toFixed(3));
     const isExtinguished = sparksRounded <= 0;
+    const dailyCap = this.getStreakDailyCap();
 
-    let stageText = "STOKE THE FLAME";
+    let stageText = "MENJAGA LENTERA";
     let statusQuote = "Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan.";
 
     if (isExtinguished) {
       stageText = "API TELAH PADAM";
-      statusQuote = "Api unggun telah padam dalam keheningan... Masuklah ke Voice Channel untuk menyalakan kembali kehangatan sanctuary.";
+      statusQuote = "Api unggun telah padam dalam keheningan... Masuklah ke Voice Channel untuk menyalakan kembali kehangatan lentera sanctuary.";
     } else if (voiceCount === 1) {
-      stageText = "MENJAGA LENTERA";
-      statusQuote = "1 pengelana sedang menjaga kehangatan lentera. Masuk ke Voice Channel untuk mulai mengobarkan api.";
-    } else if (energy < 0.2) {
-      stageText = "BARA MEREDUP";
-      statusQuote = "Bara api meredup dingin. Kehangatan suara di Voice Channel dibutuhkan agar api tidak padam.";
-    } else if (energy > 0.8) {
-      stageText = "BERKOBAR MAKSIMAL";
-      statusQuote = "Api berkobar cerah dan hangat, dipelihara oleh tawa dan obrolan para pengelana The Checkpoint.";
-    } else if (voiceCount > 1) {
-      stageText = "KEHANGATAN TUMBUH";
-      statusQuote = `${voiceCount} pengelana sedang berkumpul di Voice Channel, menghidupkan nyala api unggun.`;
+      stageText = "MENJAGA LENTERA (10 BARA)";
+      statusQuote = "1 pengelana sedang menjaga kehangatan lentera (stabil di 10 bara). Ajak kawan ke Voice Channel agar api mulai berkobar!";
+    } else if (voiceCount === 2) {
+      stageText = "PERCIKAN BERDUA (15 BARA)";
+      statusQuote = "2 pengelana menghangatkan perapian (stabil di 15 bara). Butuh 3+ pengelana untuk mulai mengobarkan api!";
+    } else if (voiceCount >= 3) {
+      stageText = `API BERKOBAR BERSAMA (DAY ${this.streakDays})`;
+      statusQuote = `${voiceCount} pengelana berkumpul! Api berkobar hangat menuju batas ${dailyCap} bara hari ini.`;
+    } else {
+      // voiceCount === 0 tapi masih ada bara
+      stageText = "BARA MEREDUP PERLAHAN";
+      statusQuote = `Bara api meredup perlahan (${sparksRounded} bara tersisa). Masuklah ke Voice Channel agar bara tidak padam!`;
     }
 
     let streakTier = 0;
@@ -120,6 +135,7 @@ class BonfireManager {
       streakDays: isExtinguished ? 0 : this.streakDays,
       streakTier,
       streakMultiplier,
+      dailyCap,
       litSince: this.litSince,
       lastUpdated: Date.now()
     };
@@ -183,28 +199,44 @@ class BonfireManager {
     const wasExtinguished = this.sparks <= 0;
 
     if (voiceCount === 0) {
-      // Tidak ada orang di voice: Api berkurang hingga padam dalam ~20 menit (1200 detik)
-      // Decay rate: ~0.833 sparks per detik
-      const decayRate = 0.833;
+      // Tidak ada orang di voice: Api berkurang perlahan menuju padam
+      // Decay rate: ~0.035 sparks per detik (butuh ~2 jam dari 250 bara hingga padam total)
+      const decayRate = 0.035;
       this.sparks = Math.max(0, this.sparks - (decayRate * deltaSec));
     } else if (voiceCount === 1) {
-      // 1 orang sendirian di voice:
-      // Soft Threshold: menahan bara agar tidak padam (stagnan di level saat ini, tidak bertambah sampai penuh).
-      // Jika api sebelumnya padam total (0), nyalakan bara lentera awal (35 bara) lalu tahan stabil di situ.
-      if (this.sparks < 35) {
-        this.sparks = Math.min(35, this.sparks + (2.0 * deltaSec));
+      // 1 orang sendirian di voice: Api stabil di 10 bara
+      const targetSparks = 10;
+      if (this.sparks < targetSparks) {
+        // Naik bertahap hingga menyentuh 10 bara
+        this.sparks = Math.min(targetSparks, this.sparks + (0.5 * deltaSec));
+      } else if (this.sparks > targetSparks) {
+        // Meredup bertahap hingga menyentuh 10 bara (dan bertahan stabil di 10 bara)
+        this.sparks = Math.max(targetSparks, this.sparks - (0.5 * deltaSec));
       }
-      // Tingkat bara bertahan stabil (tidak berkurang dan tidak bertambah)
+    } else if (voiceCount === 2) {
+      // 2 orang di voice: Api stabil di 15 bara
+      const targetSparks = 15;
+      if (this.sparks < targetSparks) {
+        // Naik bertahap hingga menyentuh 15 bara
+        this.sparks = Math.min(targetSparks, this.sparks + (0.5 * deltaSec));
+      } else if (this.sparks > targetSparks) {
+        // Meredup bertahap hingga menyentuh 15 bara (dan bertahan stabil di 15 bara)
+        this.sparks = Math.max(targetSparks, this.sparks - (0.5 * deltaSec));
+      }
     } else {
-      // 2+ orang di voice: baru mulai bertambah
-      // 2 orang: ~3.5 sparks/s (pulih bertahap)
-      // 3+ orang: bertambah lumayan cepat (~5.0 - 7.5 sparks/s, tidak over)
-      let rate = 3.5;
-      if (voiceCount >= 3) {
-        rate = Math.min(7.5, 4.0 + (voiceCount - 2) * 1.0);
-      }
+      // 3+ orang di voice: Api berkobar bersama komunitas!
+      // Tumbuh bertahap menuju Batas Streak Harian (Day 1: 250, Day 2: 500, Day 3: 750, Day 4+: 1000)
+      const dailyCap = this.getStreakDailyCap();
 
-      this.sparks = Math.min(MAX_SPARKS, this.sparks + (rate * deltaSec));
+      // Rate penambahan: 3 orang = 0.06 bara/s (~3.6 bara/menit), tambahan per orang di atas 3 = +0.015 bara/s (max 0.15 bara/s)
+      const growthRate = Math.min(0.15, 0.06 + (voiceCount - 3) * 0.015);
+
+      if (this.sparks < dailyCap) {
+        this.sparks = Math.min(dailyCap, this.sparks + (growthRate * deltaSec));
+      } else if (this.sparks > dailyCap) {
+        // Jika melebihi cap hari ini (misal sisa data lama), langsung potong ke batas daily cap
+        this.sparks = dailyCap;
+      }
     }
 
     // Kalkulasi Fire Streak (Akumulasi 24 Jam berturut-turut tanpa padam)
@@ -233,10 +265,11 @@ class BonfireManager {
   }
 
   /**
-   * Beri bonus spark langsung saat ada aktivitas chat / voice join
+   * Beri bonus spark saat ada aktivitas chat / wood boost (dibatasi oleh daily streak cap)
    */
-  public addActivitySpark(amount: number = 5): BonfireState {
-    this.sparks = Math.min(MAX_SPARKS, this.sparks + amount);
+  public addActivitySpark(amount: number = 1): BonfireState {
+    const dailyCap = this.getStreakDailyCap();
+    this.sparks = Math.min(dailyCap, this.sparks + amount);
     const state = this.getState();
     if (this.onStateChangeCallback) {
       this.onStateChangeCallback(state);
@@ -252,17 +285,12 @@ class BonfireManager {
     const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
 
-    // Jika member join dan api sebelumnya padam, beri dorongan awal
+    // Jika member join dan api sebelumnya padam total, nyalakan lentera awal
     if (!oldState.channelId && newState.channelId) {
       if (this.sparks <= 0) {
-        this.sparks = 35; // Nyalakan bara lentera awal
+        this.sparks = 10; // Nyalakan lentera awal 1 orang
         this.litSince = Date.now();
         this.streakDays = 1;
-      } else {
-        const count = this.getActiveVoiceMembersCount();
-        if (count > 1) {
-          this.addActivitySpark(8);
-        }
       }
     }
 
@@ -315,12 +343,13 @@ class BonfireManager {
     try {
       if (fs.existsSync(STATE_FILE_PATH)) {
         const data = JSON.parse(fs.readFileSync(STATE_FILE_PATH, "utf8"));
-        if (typeof data.sparks === "number" && !isNaN(data.sparks)) {
-          this.sparks = Math.max(0, Math.min(MAX_SPARKS, data.sparks));
-          logger.info(`BonfireManager: Restored persisted bonfire state with ${Math.round(this.sparks)} sparks`);
-        }
         if (typeof data.streakDays === "number" && !isNaN(data.streakDays)) {
           this.streakDays = Math.max(0, data.streakDays);
+        }
+        if (typeof data.sparks === "number" && !isNaN(data.sparks)) {
+          const cap = this.getStreakDailyCap();
+          this.sparks = Math.max(0, Math.min(cap, data.sparks));
+          logger.info(`BonfireManager: Restored persisted bonfire state with ${Math.round(this.sparks)} sparks (Capped to Day ${this.streakDays}: max ${cap})`);
         }
         if (typeof data.litSince === "number" && !isNaN(data.litSince)) {
           this.litSince = data.litSince;
