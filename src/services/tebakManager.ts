@@ -14,7 +14,7 @@ import {
   ChatInputCommandInteraction,
 } from "discord.js";
 import { prisma } from "./database";
-import { askNvidia } from "./aiClient";
+import { askGemini, askAI } from "./aiClient";
 import { logger } from "../utils/logger";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 import { addTriviaXp } from "./levelingManager";
@@ -53,69 +53,6 @@ export interface ActiveSession {
   logs?: UserAnswerLog[];
 }
 
-const QUESTION_BANK: TebakQuestion[] = [
-  { id: "q1", category: "Jokes Bapak-Bapak", question: "Kenapa ayam kalau berkokok matanya merem?", answer: "Karena udah hafal teksnya", acceptableAnswers: ["hafal teks", "hafal teksnya", "udah hafal teksnya", "karena hafal teks", "karena sudah hafal teks", "udah hafal liriknya", "hafal lirik"], clue: "Coba bayangkan kalau kamu nyanyi lagu yang udah sering banget dinyanyikan." },
-  { id: "q2", category: "Plesetan Hewan", question: "Hewan apa yang bersaudara?", answer: "Katak beradik", acceptableAnswers: ["katak beradik", "katak", "kodok beradik"], clue: "Plesetan dari hubungan keluarga: kakak dan..." },
-  { id: "q3", category: "Plesetan Hewan", question: "Hewan apa yang paling hening dan gak pernah berisik?", answer: "Semute", acceptableAnswers: ["semute", "semut", "se mute"], clue: "Hewan kecil yang tombol audionya dimatikan di Zoom atau Discord." },
-  { id: "q4", category: "Teka-Teki Receh", question: "Pintu apa yang didorong sama 10 orang berotot pun nggak bakal kebuka?", answer: "Pintu yang tulisannya TARIK", acceptableAnswers: ["pintu tarik", "pintu tulisan tarik", "tarik", "pintu geser"], clue: "Lihat instruksi yang tertempel jelas di gagang pintunya!" },
-  { id: "q5", category: "Humor Sehari-Hari", question: "Pocong apa yang paling disenangi sama ibu-ibu?", answer: "Pocongan harga", acceptableAnswers: ["pocongan harga", "potongan harga", "diskon"], clue: "Plesetan dari diskon belanja saat ada promo supermarket." },
-  { id: "q6", category: "Plesetan Romantis", question: "Kipas apa yang paling ditunggu-tunggu sama cewek?", answer: "Kipastian", acceptableAnswers: ["kipastian", "kepastian", "kepastian hubungan"], clue: "Bukan kipas angin, tapi sesuatu yang bikin hubungan gak digantung!" },
-  { id: "q7", category: "Jokes Bapak-Bapak", question: "Lemari apa yang muat dan bisa masuk ke dalam kantong celana?", answer: "Lemaribuan", acceptableAnswers: ["lemaribuan", "lima ribuan", "uang lima ribu", "limaribuan", "uang 5000", "5000"], clue: "Plesetan dari uang kertas pecahan lima ribu rupiah." },
-  { id: "q8", category: "Humor Makanan", question: "Sayur apa yang jago bela diri dan jago silat?", answer: "Brokoli", acceptableAnswers: ["brokoli", "bruce lee", "sayur brokoli"], clue: "Nama sayur hijau yang bunyinya mirip aktor laga Bruce Lee." },
-  { id: "q9", category: "Plesetan Hewan", question: "Hewan apa yang paling taat peraturan lalu lintas?", answer: "Unta-makan keselamatan", acceptableAnswers: ["unta", "unta makan keselamatan", "utamakan keselamatan"], clue: "Hewan padang pasir yang bunyinya mirip slogan berkendara tertib." },
-  { id: "q10", category: "Jokes Bapak-Bapak", question: "Bebek apa yang kalau jalan muter-muter ke kiri terus?", answer: "Bebek dikunci stang", acceptableAnswers: ["bebek dikunci stang", "kunci stang", "dikunci stang", "motor bebek"], clue: "Kendaraan motor bebek yang lagi diparkir di pinggir jalan." },
-  { id: "q11", category: "Humor Makanan", question: "Kue apa yang paling tua di dunia?", answer: "Kue serabi", acceptableAnswers: ["kue serabi", "serabi", "seratus ribu tahun"], clue: "Plesetan dari angka seratus ribu tahun yang lalu." },
-  { id: "q12", category: "Teka-Teki Receh", question: "Kenapa pohon kelapa di depan rumah harus ditebang?", answer: "Karena kalau dicabut berat", acceptableAnswers: ["kalau dicabut berat", "dicabut berat", "karena kalau dicabut berat", "berat kalau dicabut", "kalo dicabut berat"], clue: "Coba bayangkan kalau kamu cabut akarnya pakai tangan kosong." },
-  { id: "q13", category: "Plesetan Hewan", question: "Gajah apa yang belalainya pendek?", answer: "Gajah pesek", acceptableAnswers: ["gajah pesek", "pesek"], clue: "Lawan kata dari hidung mancung." },
-  { id: "q14", category: "Jokes Bapak-Bapak", question: "Bulu apa yang berat banget sampai gak bisa diangkat manusia?", answer: "Buludoser", acceptableAnswers: ["buludoser", "buldoser", "bulldozer"], clue: "Alat berat perata tanah di lokasi proyek konstruksi." },
-  { id: "q15", category: "Plesetan Hewan", question: "Rusa apa yang gak bisa lari dan gak bisa jalan?", answer: "Rusak", acceptableAnswers: ["rusak", "barang rusak", "mesin rusak"], clue: "Tinggal tambahkan satu huruf 'k' di akhir nama rusanya." },
-  { id: "q16", category: "Jokes Bapak-Bapak", question: "Mobil apa yang gasnya selalu ada di belakang?", answer: "Truk gas elpiji", acceptableAnswers: ["truk gas", "truk elpiji", "truk gas elpiji", "mobil elpiji", "truk lpg"], clue: "Kendaraan pengangkut tabung melon hijau isi 3 kg." },
-  { id: "q17", category: "Humor Sehari-Hari", question: "Kendaraan apa yang paling imut dan menggemaskan?", answer: "Kereta api", acceptableAnswers: ["kereta api", "kereta", "tut tut tut", "cute cute cute"], clue: "Bunyi suaranya terdengar seperti kata 'cute cute cute'!" },
-  { id: "q18", category: "Teka-Teki Receh", question: "Kenapa matahari kalau sore tenggelam ke barat?", answer: "Karena nggak bisa berenang", acceptableAnswers: ["nggak bisa berenang", "karena gak bisa berenang", "tidak bisa berenang", "gabisa renang", "gak bisa renang"], clue: "Pikirkan apa yang terjadi kalau orang nyebur ke air tapi gak bisa renang." },
-  { id: "q19", category: "Humor Sehari-Hari", question: "Nasi apa yang nggak bisa dimakan sama sekali?", answer: "Nasihat", acceptableAnswers: ["nasihat", "nasehat"], clue: "Sering diberikan orang tua atau guru agar kita tidak bandel." },
-  { id: "q20", category: "Jokes Bapak-Bapak", question: "Kota apa yang paling sabar dan santai, nggak pernah buru-buru?", answer: "Cikarang", acceptableAnswers: ["cikarang", "cikarang atau nanti", "kota cikarang"], clue: "Plesetan dari pilihan waktu: mau sekarang atau..." },
-  { id: "q21", category: "Plesetan Romantis", question: "Kopi apa yang bikin hati nyesek dan sedih banget?", answer: "Kopilih dia daripada aku", acceptableAnswers: ["kopilih dia", "kopilih dia daripada aku", "kopilih dia dibanding aku"], clue: "Lagu galau saat pujaan hati ternyata memilih orang ketiga." },
-  { id: "q22", category: "Humor Sehari-Hari", question: "Sabun apa yang paling genit dan suka menggoda?", answer: "Sabun colek", acceptableAnswers: ["sabun colek", "colek"], clue: "Sabun cuci tradisional yang cara ambilnya disentuh pakai jari." },
-  { id: "q23", category: "Jokes Bapak-Bapak", question: "Gitar apa yang bunyinya bukan jreng, tapi 'aduh'?", answer: "Gitarik rambutnya", acceptableAnswers: ["gitarik rambutnya", "ditarik rambutnya", "tarik rambut"], clue: "Plesetan dari menjambak atau menarik helai rambut seseorang." },
-  { id: "q24", category: "Teka-Teki Receh", question: "Kuda apa yang paling capek dan pegal-pegal?", answer: "Kudaki gunung sendirian", acceptableAnswers: ["kudaki gunung", "kudaki gunung sendirian", "kudaki", "kudaki gunung"], clue: "Plesetan dari aktivitas mendaki bukit atau puncak gunung yang tinggi." },
-  { id: "q25", category: "Jokes Bapak-Bapak", question: "Artis Hollywood siapa yang hobi banget isi bahan bakar solar?", answer: "Vin Diesel", acceptableAnswers: ["vin diesel", "diesel"], clue: "Bintang utama film Fast & Furious yang namanya mirip jenis solar." },
-  { id: "q26", category: "Plesetan Hewan", question: "Ban apa yang posisinya selalu ada di atas pohon atau di udara?", answer: "Bango", acceptableAnswers: ["bango", "burung bango", "bangau"], clue: "Burung rawa berkaki panjang yang juga jadi merk kecap manis terkenal." },
-  { id: "q27", category: "Teka-Teki Receh", question: "Jus apa yang turunnya dari langit pas mendung?", answer: "Jus hujan", acceptableAnswers: ["jus hujan", "jas hujan"], clue: "Plesetan dari mantel pelindung air hujan saat naik motor." },
-  { id: "q28", category: "Jokes Bapak-Bapak", question: "Batu apa yang bisa melayang dan mengeluarkan suara musik di radio?", answer: "Batu baterai", acceptableAnswers: ["batu baterai", "baterai", "batre"], clue: "Benda silinder kecil sumber daya jam dinding dan remote TV." },
-  { id: "q29", category: "Humor Makanan", question: "Sepatu apa yang bisa dimakan dan sering ada di dapur?", answer: "Sepatula", acceptableAnswers: ["sepatula", "spatula"], clue: "Sodet atau alat penggorengan untuk membalik masakan di wajan." },
-  { id: "q30", category: "Jokes Bapak-Bapak", question: "Soto apa yang bikin kaget setengah mati?", answer: "Soto gebrak", acceptableAnswers: ["soto gebrak", "sotong", "gebrak"], clue: "Kuliner soto yang penjualnya suka menggebrak meja saat menyiapkan mangkuk." },
-  { id: "q31", category: "Teka-Teki Receh", question: "Kenapa suara nyamuk di kuping kita bunyinya 'nging-nging'?", answer: "Karena menghisap darah, kalau menghisap bensin bunyinya ngeng-ngeng", acceptableAnswers: ["kalau hisap bensin bunyinya ngeng", "bukan hisap bensin", "kalau sedot bensin ngeng", "karena hisap darah", "karena sedot darah"], clue: "Coba bayangkan kalau nyamuknya isi bahan bakar bensin motor balap." },
-  { id: "q32", category: "Plesetan Hewan", question: "Hewan laut apa yang namanya cuma terdiri dari dua huruf alfabet?", answer: "U dan g", acceptableAnswers: ["udang", "u dan g", "u dan gak"], clue: "Plesetan dari ejaan hewan bercangkang gurih yang dibaca U-dang." },
-  { id: "q33", category: "Humor Makanan", question: "Buah apa yang paling jago silat dan berani melawan musuh?", answer: "Buah naga", acceptableAnswers: ["buah naga", "naga"], clue: "Buah berkulit merah bersisik hijau dengan nama makhluk mitologi penyembur api." },
-  { id: "q34", category: "Humor Makanan", question: "Ikan apa yang matanya banyak banget sampai ribuan?", answer: "Ikan teri sekilo", acceptableAnswers: ["ikan teri sekilo", "ikan teri", "teri 1 kg", "teri sekilo"], clue: "Ikan asin kecil-kecil yang kalau ditimbang satu kilogram ada ratusan ekor." },
-  { id: "q35", category: "Plesetan Hewan", question: "Ular apa yang paling bikin tubuh sehat dan bugar?", answer: "Ularaga teratur", acceptableAnswers: ["ularaga", "olahraga", "olahraga teratur"], clue: "Plesetan dari aktivitas fisik seperti jogging pagi atau senam." },
-  { id: "q36", category: "Jokes Bapak-Bapak", question: "Kenapa Batman memakai kostum dan jubah warna hitam?", answer: "Karena kalau pakai warna pink kelucuan", acceptableAnswers: ["kalau pink kelucuan", "kalau warna pink lucu", "biar gak kelucuan", "kelucuan", "warna pink lucu"], clue: "Bayangkan superhero malam garang kalau pakai warna unyu imut." },
-  { id: "q37", category: "Plesetan Romantis", question: "Minyak apa yang bikin orang senyum-senyum sendiri dan berbunga-bunga?", answer: "Minyaksikan kamu bahagia", acceptableAnswers: ["minyaksikan kamu bahagia", "minyaksikan kamu", "minyaksikan"], clue: "Plesetan dari kata 'menyaksikan' momen indah bersama orang tersayang." },
-  { id: "q38", category: "Plesetan Romantis", question: "Kue apa yang paling bikin baper dan cocok buat melamar pacar?", answer: "Kue-miliki kamu selamanya", acceptableAnswers: ["kuemiliki kamu", "kuemiliki", "kue miliki kamu"], clue: "Plesetan dari lirik lagu 'ku miliki kamu seutuhnya'." },
-  { id: "q39", category: "Humor Sehari-Hari", question: "Pohon apa yang paling banyak dicari orang saat hari raya Idul Fitri?", answer: "Pohon maaf lahir dan batin", acceptableAnswers: ["pohon maaf", "pohon maaf lahir batin", "mohon maaf lahir batin", "mohon maaf"], clue: "Plesetan dari ucapan silaturahmi saat sungkeman lebaran." },
-  { id: "q40", category: "Jokes Bapak-Bapak", question: "Presiden negara mana yang paling sering kedinginan dan menggigil?", answer: "Presiden Chili", acceptableAnswers: ["presiden chili", "chili", "chile"], clue: "Plesetan nama negara di Amerika Selatan yang mirip kata 'chilly' (dingin)." },
-  { id: "q41", category: "Jokes Bapak-Bapak", question: "Penyanyi internasional siapa yang suka banget main layangan di lapangan?", answer: "Ariana Ulur", acceptableAnswers: ["ariana ulur", "ariana grande ulur", "ulur"], clue: "Plesetan nama Ariana Grande saat benang layangan ditarik..." },
-  { id: "q42", category: "Teka-Teki Receh", question: "Gajah bisa terbang dengan cara apa?", answer: "Dengan susah payah", acceptableAnswers: ["dengan susah payah", "susah payah", "usaha keras"], clue: "Bayangkan hewan sebesar tronton mencoba terbang ke udara." },
-  { id: "q43", category: "Jokes Bapak-Bapak", question: "Kenapa kostum Superman di bagian dadanya ada lambang huruf S besar?", answer: "Karena kalau XL kegedean", acceptableAnswers: ["kalau xl kegedean", "kalau m kekecilan", "ukuran baju", "kegedean", "karena kalau xl kegedean"], clue: "Plesetan dari ukuran baju: S (Small), M (Medium), L, XL." },
-  { id: "q44", category: "Plesetan Hewan", question: "Kecoa apa yang bisa masuk dan dirawat di rumah sakit?", answer: "Kecoalakaan", acceptableAnswers: ["kecoalakaan", "kecelakaan"], clue: "Plesetan dari musibah tabrakan di jalan raya." },
-  { id: "q45", category: "Teka-Teki Receh", question: "Ditembaknya ke arah bawah, tapi yang kena kok malah hidung?", answer: "Kentut", acceptableAnswers: ["kentut", "buang angin"], clue: "Gas alami yang aromanya semerbak dan bunyinya pret." },
-  { id: "q46", category: "Humor Sehari-Hari", question: "Tukang apa yang kalau dipanggil orangnya malah gak noleh dan jalan terus?", answer: "Tukang gali kubur", acceptableAnswers: ["tukang gali kubur", "tukang becak", "gali kubur"], clue: "Orang yang bekerja menggali tanah pemakaman." },
-  { id: "q47", category: "Teka-Teki Receh", question: "Benda apa yang kalau bagian bawahnya dipotong malah jadi makin tinggi?", answer: "Celana panjang", acceptableAnswers: ["celana", "celana panjang"], clue: "Pakaian bawahan yang kalau dipotong jadi celana pendek ngatung." },
-  { id: "q48", category: "Teka-Teki Receh", question: "Kalau warnanya hitam dibilang bersih, tapi kalau ada putih-putihnya dibilang kotor. Apa itu?", answer: "Papan tulis hitam", acceptableAnswers: ["papan tulis", "papan tulis hitam", "blackboard"], clue: "Alat di depan kelas zaman dulu yang ditulis menggunakan kapur tulis." },
-  { id: "q49", category: "Plesetan Hewan", question: "Hewan apa yang punya keahlian serba bisa: bisa bangunan, kayu, sampai ledeng?", answer: "Kukang", acceptableAnswers: ["kukang", "tukang"], clue: "Plesetan dari panggilan profesi 'tukang'." },
-  { id: "q50", category: "Plesetan Hewan", question: "Belut apa yang paling berbahaya dan bikin orang ketar-ketir tiap tanggal muda?", answer: "Belutang banyak tapi belum bayar", acceptableAnswers: ["belutang", "belutang banyak", "berutang", "hutang"], clue: "Plesetan dari tagihan pinjol atau kasbon di warung kelontong." },
-  { id: "q51", category: "Humor Makanan", question: "Bumi itu bulat, kalau martabak telur itu apa?", answer: "Spesial", acceptableAnswers: ["spesial", "istimewa"], clue: "Pilihan menu martabak dengan ekstra telur bebek dan daging cincang." },
-  { id: "q52", category: "Plesetan Hewan", question: "Tentara apa yang ukurannya paling kecil di dunia?", answer: "Tentara sekutu", acceptableAnswers: ["tentara sekutu", "sekutu", "kutu"], clue: "Plesetan dari hewan kecil pengisap darah di sela rambut kepala." },
-  { id: "q53", category: "Jokes Bapak-Bapak", question: "Lampu bohlam apa yang kalau dipecahkan langsung keluar orangnya?", answer: "Lampu tetangga", acceptableAnswers: ["lampu tetangga", "tetangga"], clue: "Coba lempar lampu depan rumah sebelah, pasti pemilik rumahnya langsung keluar marah-marah!" },
-  { id: "q54", category: "Plesetan Romantis", question: "Gelas apa yang paling bikin grogi dan deg-degan bagi kaum jomblo?", answer: "Gelas pelaminan", acceptableAnswers: ["gelas pelaminan", "pelaminan", "menikah"], clue: "Plesetan dari panggung tempat pengantin bersanding." },
-  { id: "q55", category: "Jokes Bapak-Bapak", question: "Kenapa dalang wayang kulit kalau mendongeng selalu bawa keris di punggungnya?", answer: "Karena kalau bawa kompor gas repot masaknya", acceptableAnswers: ["kalau bawa kompor repot", "kalau kompor repot", "bawa kompor repot"], clue: "Alat masak dapur yang gak nyambung kalau dibawa di atas panggung wayang." },
-  { id: "q56", category: "Plesetan Hewan", question: "Bebek apa yang paling legendaris di bioskop film Hollywood?", answer: "Bebek to the future", acceptableAnswers: ["bebek to the future", "back to the future"], clue: "Plesetan dari judul film mesin waktu mobil DeLorean karya Steven Spielberg." },
-  { id: "q57", category: "Humor Makanan", question: "Telor apa yang paling ditakuti dan dihindari masyarakat?", answer: "Telorasin", acceptableAnswers: ["telorasin", "telur asin", "teror"], clue: "Plesetan dari kata 'teror' atau makanan telur bebek khas Brebes." },
-  { id: "q58", category: "Teka-Teki Receh", question: "Kuda apa yang jalannya mundur dan gak mau maju?", answer: "Kuda main catur yang ditarik lagi langkahnya", acceptableAnswers: ["kuda catur", "kuda main catur", "catur"], clue: "Pion hewan berbentuk kepala kuda di atas papan bidak hitam-putih." },
-  { id: "q59", category: "Jokes Bapak-Bapak", question: "Daun apa yang gak ada batangnya dan gak boleh disentuh sembarangan?", answer: "Daun touch me", acceptableAnswers: ["daun touch me", "dont touch me", "don't touch me"], clue: "Plesetan dari bahasa Inggris yang artinya 'jangan sentuh aku'." },
-  { id: "q60", category: "Jokes Bapak-Bapak", question: "Kipas apa yang bikin kedinginan tapi gak pake listrik?", answer: "Kipas-ang angin di kutub utara", acceptableAnswers: ["kipas kutub", "kutub utara", "di kutub utara"], clue: "Lokasi tempat tinggal beruang kutub es." }
-];
-
 export class TebakManager {
   private static instance: TebakManager;
   private activeSessions: Map<string, ActiveSession> = new Map(); // key: sessionId
@@ -143,19 +80,46 @@ export class TebakManager {
     }
   }
 
+  /**
+   * 100% Pure Gemini AI Reasoning: Generate a completely unique, fresh receh dad joke on every session.
+   * Employs up to 5 retries to guarantee a valid, non-duplicate, hilarious riddle without static banks.
+   */
   private async getUniqueQuestion(): Promise<TebakQuestion> {
-    let question = await this.generateAiTebakQuestion();
-    if (!question || this.askedQuestionHistory.has(question.question.trim().toLowerCase())) {
-      const unused = QUESTION_BANK.filter((q) => !this.askedQuestionHistory.has(q.question.trim().toLowerCase()));
-      const pool = unused.length > 0 ? unused : QUESTION_BANK;
-      // If all questions in pool were exhausted, refresh history
-      if (unused.length === 0) {
-        this.askedQuestionHistory.clear();
+    const maxAttempts = 5;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const question = await this.generateAiTebakQuestion(attempt);
+        if (question && question.question && question.answer) {
+          const key = question.question.trim().toLowerCase();
+          if (!this.askedQuestionHistory.has(key)) {
+            this.askedQuestionHistory.add(key);
+            // Cap history at 250 items to keep memory bounded while preventing repeats
+            if (this.askedQuestionHistory.size > 250) {
+              const firstKey = this.askedQuestionHistory.values().next().value;
+              if (firstKey) this.askedQuestionHistory.delete(firstKey);
+            }
+            logger.info(`TebakManager: Berhasil men-generate tebakan receh murni AI Gemini (attempt ${attempt}): "${question.question}" -> "${question.answer}"`);
+            return question;
+          } else {
+            logger.info(`TebakManager: Soal duplikat terdeteksi pada attempt ${attempt}, mencoba generasi topik baru...`);
+          }
+        }
+      } catch (err) {
+        logger.warn(`TebakManager: Attempt ${attempt} gagal generate AI question:`, err);
       }
-      question = pool[Math.floor(Math.random() * pool.length)];
     }
-    this.askedQuestionHistory.add(question.question.trim().toLowerCase());
-    return question;
+
+    // Emergency dynamic fallback only if network/API fails across all 5 attempts
+    logger.error("TebakManager: Seluruh 5 attempt AI reasoning gagal/timeout, menggunakan emergency fallback.");
+    const emergencyId = `emergency-${Date.now()}`;
+    return {
+      id: emergencyId,
+      category: "Jokes Bapak-Bapak",
+      question: "Kenapa ayam kalau berkokok matanya selalu merem?",
+      answer: "Karena udah hafal teksnya",
+      acceptableAnswers: ["hafal teks", "hafal teksnya", "udah hafal teksnya", "karena hafal teks", "karena sudah hafal teks", "udah hafal liriknya"],
+      clue: "Coba bayangkan kalau kamu nyanyi lagu yang udah sering banget dinyanyikan.",
+    };
   }
 
   /**
@@ -340,9 +304,9 @@ export class TebakManager {
       return { isAccepted: true, evalStatus: "BENAR", reason: "Jawaban tepat sesuai kunci jawaban." };
     }
 
-    // Call NVIDIA AI for Fuzzy / Semantic Similarity Evaluation
+    // Call Gemini AI for Fuzzy / Semantic Similarity Evaluation
     const systemPrompt =
-      "Anda adalah juri kuis tebak-tebakan receh dan jokes bapak-bapak (dad jokes) Bahasa Indonesia. Tugas Anda adalah menilai apakah jawaban peserta BENAR (punchline tepat atau semakna), MENDEKATI (hampir tepat, plesetan mirip, ide punchline tertangkap, atau typo ringan), atau SALAH (tidak nyambung sama sekali). Jawab HANYA JSON valid.";
+      "Anda adalah juri kuis tebak-tebakan receh dan jokes bapak-bapak (dad jokes) Bahasa Indonesia yang santai, apresiatif, dan humoris. Tugas Anda adalah menilai apakah jawaban peserta BENAR (punchline tepat atau semakna), MENDEKATI (hampir tepat, plesetan mirip, ide punchline tertangkap, atau tebakan alternatif yang kreatif), atau SALAH (tidak nyambung sama sekali). Jika salah, berikan alasan/feedback receh santai yang menghibur. Jawab HANYA JSON valid.";
 
     const prompt = `
 Pertanyaan Kuis / Tebak-Tebakan Receh: "${question.question}"
@@ -359,12 +323,12 @@ Tugas Evaluasi (Konteks Humor / Jokes Bapak-Bapak):
 Format JSON wajib:
 {
   "status": "BENAR" / "MENDEKATI" / "SALAH",
-  "reason": "Alasan singkat 1 kalimat santai..."
+  "reason": "Alasan singkat santai & humoris (1 kalimat)..."
 }
 `.trim();
 
     try {
-      const raw = await askNvidia(prompt, systemPrompt);
+      const raw = await askGemini(prompt, systemPrompt);
       const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -376,7 +340,7 @@ Format JSON wajib:
         return {
           isAccepted,
           evalStatus: status,
-          reason: data.reason || (isAccepted ? "Jawaban mendekati kebenaran." : "Jawaban belum tepat."),
+          reason: data.reason || (isAccepted ? "Jawaban mendekati kebenaran!" : "Belum nyambung ke punchline-nya nih, coba yang lebih receh!"),
         };
       }
     } catch (e) {
@@ -629,9 +593,9 @@ Format JSON wajib:
   }
 
   /**
-   * Generate dynamic AI Daily Quiz / Riddle using NVIDIA AI adhering strictly to DAILY QUIZ RULES
+   * Generate dynamic AI Daily Quiz / Riddle using Gemini AI adhering strictly to RECEH DAD JOKES & HUMOR
    */
-  private async generateAiTebakQuestion(): Promise<TebakQuestion | null> {
+  private async generateAiTebakQuestion(attempt: number = 1): Promise<TebakQuestion | null> {
     const seedTopics = [
       { category: "Jokes Bapak-Bapak", examples: "ayam berkokok merem hafal teks, bebek kunci stang, gajah pesek, lemari masuk saku, kipas kepastian" },
       { category: "Plesetan Hewan Lucu", examples: "katak beradik, unta-makan keselamatan, semute, ikan teri sekilo, buludoser, kukang serba bisa" },
@@ -641,47 +605,30 @@ Format JSON wajib:
       { category: "Humor Sehari-Hari & Populer", examples: "lampu tetangga dipecahin keluar orangnya, vin diesel isi solar, superman ukuran S, dalang wayang bawa keris bukan kompor" }
     ];
 
-    const randomSeed = seedTopics[Math.floor(Math.random() * seedTopics.length)];
-    const historyList = Array.from(this.askedQuestionHistory).slice(-25).join("; ");
+    // Cycle through varied topics based on attempt and random
+    const randomSeed = seedTopics[(Math.floor(Math.random() * seedTopics.length) + attempt) % seedTopics.length];
+    const historyList = Array.from(this.askedQuestionHistory).slice(-15).join("; ");
 
     const systemPrompt = `Kamu adalah komedian dan master pembuat tebak-tebakan receh / jokes bapak-bapak (dad jokes) khas tongkrongan Indonesia yang sangat kreatif.
 Tugasmu menciptakan 1 tebak-tebakan receh, menggelitik, lucu, dan humoris yang menghibur ("receh banget bapak-bapak!").
 PRINSIP UTAMA:
-HUMOR & RECEH > FORMAL KAKU
-PUNCHLINE JELAS & MASUK AKAL DALAM KONTEKS PLESETAN/HUMOR
-PLESETAN KATA CERDAS & FAMILIAR BAGI ORANG INDONESIA
-CLUE MEMBANTU MENGARAHKAN PIKIRAN KE JAWABAN TANPA MEMBOCORKAN LANGSUNG`;
+- MURNI PENALARAN HUMOR & RECEH (BUKAN SOAL ENSIKLOPEDIA/SAINS KAKU)
+- PUNCHLINE JELAS & MASUK AKAL DALAM KONTEKS PLESETAN/HUMOR
+- PLESETAN KATA CERDAS & FAMILIAR BAGI ORANG INDONESIA
+- CLUE MEMBANTU MENGARAHKAN PIKIRAN KE JAWABAN TANPA MEMBOCORKAN LANGSUNG`;
 
     const prompt = `
-## PANDUAN TEBAK-TEBAKAN RECEH & JOKES BAPAK-BAPAK
+## PANDUAN TEBAK-TEBAKAN RECEH & JOKES BAPAK-BAPAK (PERCOBAAN KE-${attempt})
 
 Buatlah 1 tebak-tebakan receh bertema "${randomSeed.category}" (Inspirasi seputar: ${randomSeed.examples}) dengan gaya humor khas bapak-bapak Indonesia yang bikin senyum atau ketawa receh!
 
 ### KRITERIA SOAL:
 1. **Pertanyaan**: Menarik, menggelitik, tidak kaku/tidak serius, dan khas tebak-tebakan tongkrongan bapak-bapak (Contoh: "Kenapa ayam kalau berkokok matanya merem?", "Hewan apa yang bersaudara?", "Kipas apa yang ditunggu-tunggu cewek?").
 2. **Jawaban / Punchline**: Jawaban yang lucu, receh, plesetan kata (pun), atau logika terbalik yang nyambung (Contoh: "Karena udah hafal teksnya", "Katak beradik", "Kipastian").
-3. **Acceptable Answers**: Berikan beberapa variasi jawaban yang mungkin diketik oleh pemain (kata kunci inti, variasi kata) agar pemain tidak kesulitan saat menebak.
+3. **Acceptable Answers**: Berikan beberapa variasi kata kunci alternatif yang mungkin diketik oleh pemain (kata kunci inti, sinonim santai, variasi kata) agar pemain tidak kesulitan saat menebak.
 4. **Clue**: Berikan petunjuk yang cerdas dan mengarahkan ke punchline atau plesetan kata tersebut.
 
-### CONTOH-CONTOH YANG BAGUS:
-- Contoh 1:
-  - Pertanyaan: "Kenapa pohon kelapa di depan rumah harus ditebang?"
-  - Jawaban: "Karena kalau dicabut berat"
-  - Clue: "Pikirkan alternatif lain selain menebang menggunakan tangan kosong."
-  - AcceptableAnswers: ["karena kalau dicabut berat", "dicabut berat", "kalau dicabut berat", "berat kalau dicabut"]
-- Contoh 2:
-  - Pertanyaan: "Hewan apa yang paling hening dan gak pernah berisik?"
-  - Jawaban: "Semute"
-  - Clue: "Hewan kecil yang tombol suaranya dimatikan di Zoom atau Discord."
-  - AcceptableAnswers: ["semute", "semut", "se mute"]
-- Contoh 3:
-  - Pertanyaan: "Pocong apa yang paling disenangi sama ibu-ibu?"
-  - Jawaban: "Pocongan harga"
-  - Clue: "Plesetan dari diskon belanja saat ada promo supermarket."
-  - AcceptableAnswers: ["pocongan harga", "potongan harga", "diskon"]
-
-### ANTI-DUPLIKASI:
-Hindari tebakan yang mirip dengan riwayat ini:
+### ANTI-DUPLIKASI (JANGAN SAMA DENGAN RIWAYAT INI):
 [${historyList || "Belum ada"}]
 
 Jawab HANYA dalam format JSON persis seperti berikut tanpa teks atau markdown tambahan apapun:
@@ -695,54 +642,34 @@ Jawab HANYA dalam format JSON persis seperti berikut tanpa teks atau markdown ta
 `.trim();
 
     try {
-      const raw = await askNvidia(prompt, systemPrompt);
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const raw = await askGemini(prompt, systemPrompt);
+      const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
-        if (data.question && data.answer) {
-          // Double-check validation filter with AI (Humor & Punchline Verification)
-          const validationPrompt = `Tinjau apakah tebak-tebakan receh / jokes bapak-bapak berikut lucu, nyambung plesetannya, dan cocok untuk kuis humor santai di Discord:
-Pertanyaan: "${data.question}"
-Jawaban: "${data.answer}"
-Clue: "${data.clue}"
-
-Kriteria:
-1. Soal berupa tebak-tebakan humor / jokes receh / dad joke yang seru dan nyambung punchline-nya.
-2. Tidak menyinggung SARA atau hal terlarang.
-3. Bisa dimengerti dan ditebak oleh orang Indonesia.
-
-Jawab HANYA 1 KATA: "VALID" jika lolos, atau "INVALID" jika tidak nyambung sama sekali.`;
-
-          const checkRes = await askNvidia(validationPrompt, "Kamu adalah juri validator humor tebak-tebakan receh yang teliti.");
-          const isLogicallyValid = checkRes.toUpperCase().includes("VALID") && !checkRes.toUpperCase().includes("INVALID");
-
-          if (!isLogicallyValid) {
-            logger.warn(`TebakManager: Soal AI dibuang karena gagal humor check: [Q: "${data.question}" | A: "${data.answer}"] -> Validator: "${checkRes.trim()}"`);
-            return null;
-          }
-
+        if (data.question && data.answer && typeof data.question === "string" && typeof data.answer === "string") {
           const acceptable = Array.isArray(data.acceptableAnswers) && data.acceptableAnswers.length > 0
-            ? data.acceptableAnswers.map((a: string) => a.toLowerCase())
-            : [data.answer.toLowerCase()];
+            ? data.acceptableAnswers.map((a: string) => String(a).toLowerCase().trim())
+            : [data.answer.toLowerCase().trim()];
 
-          if (!acceptable.includes(data.answer.toLowerCase())) {
-            acceptable.push(data.answer.toLowerCase());
+          if (!acceptable.includes(data.answer.toLowerCase().trim())) {
+            acceptable.push(data.answer.toLowerCase().trim());
           }
 
-          logger.info(`TebakManager: Soal AI VALID dibuat: "${data.question}" -> "${data.answer}" (Clue: "${data.clue}")`);
+          logger.info(`TebakManager: Soal receh murni AI berhasil dibuat: "${data.question}" -> "${data.answer}" (Clue: "${data.clue}")`);
 
           return {
-            id: `ai-q-${Date.now()}`,
+            id: `ai-q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             category: data.category || randomSeed.category,
-            question: data.question,
-            answer: data.answer,
+            question: data.question.trim(),
+            answer: data.answer.trim(),
             acceptableAnswers: acceptable,
-            clue: data.clue || "Perhatikan petunjuk konteks pertanyaan dengan seksama.",
+            clue: data.clue?.trim() || "Gunakan logika receh ala jokes bapak-bapak!",
           };
         }
       }
     } catch (error) {
-      logger.error("TebakManager: Error generating AI Daily Quiz via NVIDIA:", error);
+      logger.warn(`TebakManager: Error generating AI riddle via Gemini (attempt ${attempt}):`, error);
     }
     return null;
   }
