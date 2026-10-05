@@ -312,8 +312,8 @@
         </div>
       </header>
 
-      <!-- TOP CENTER TITLE & MAGNETIC HERO JOIN CTA -->
-      <main class="w-full max-w-xl mx-auto text-center pointer-events-auto flex flex-col items-center">
+      <!-- TOP CENTER TITLE -->
+      <main class="w-full max-w-xl mx-auto text-center pointer-events-auto">
         <h2 class="font-cinzel text-2xl sm:text-4xl lg:text-5xl font-extrabold text-amber-50 tracking-wider leading-tight drop-shadow-[0_4px_30px_rgba(0,0,0,0.95)]">
           The Checkpoint
         </h2>
@@ -321,25 +321,6 @@
         <p id="flame-quote" class="mt-1 text-xs sm:text-sm text-amber-200/90 font-serif italic max-w-md mx-auto leading-relaxed transition-all duration-300 drop-shadow">
           Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan.
         </p>
-
-        <!-- PRESTIGIOUS HERO JOIN SERVER CTA -->
-        <div class="mt-3 sm:mt-4 flex flex-col items-center group">
-          <a id="hero-join-btn" href="https://discord.gg/TVKcyQqB3" target="_blank"
-             class="relative inline-flex items-center space-x-2.5 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full bg-gradient-to-r from-amber-600 via-orange-500 to-amber-500 hover:from-amber-500 hover:to-orange-400 text-white font-semibold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:shadow-[0_0_45px_rgba(251,191,36,0.8)] hover:scale-105 active:scale-95 border border-amber-300/40">
-            <span class="text-base sm:text-lg animate-pulse">🔥</span>
-            <span class="font-cinzel tracking-widest font-bold">Singgah & Masuk Sanctuary</span>
-            <svg class="w-4 h-4 fill-current ml-1 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24">
-              <path d="M13.025 1l-2.847 2.828 6.176 6.172h-16.354v4h16.354l-6.176 6.172 2.847 2.828 10.975-11z"/>
-            </svg>
-          </a>
-          <div class="flex items-center space-x-2 mt-2 text-[11px] text-amber-200/80 font-mono drop-shadow">
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>1,429 Pengelana • Komunitas Hangat & Maya AI</span>
-          </div>
-        </div>
       </main>
     </div>
 
@@ -1336,9 +1317,9 @@
     window.addEventListener('pointerup', () => { isDragging = false; });
     window.addEventListener('pointercancel', () => { isDragging = false; });
 
-    // Connect Hero Join CTA hover to gently fan the flames
-    const heroJoinBtn = document.getElementById('hero-join-btn');
-    heroJoinBtn?.addEventListener('mouseenter', () => {
+    // Connect Discord Invite Button in header hover to gently fan the flames
+    const discordInviteBtn = document.getElementById('discord-invite-btn');
+    discordInviteBtn?.addEventListener('mouseenter', () => {
       igniteFlameFromActivity(0.08, false);
     });
 
