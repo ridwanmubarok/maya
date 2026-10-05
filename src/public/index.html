@@ -958,31 +958,33 @@
     swordGroup.rotation.x = -0.05;
     pitGroup.add(swordGroup);
 
-    // Ancient Blackened Steel Blade Material
+    // Ancient Coiled Blade Materials
     const bladeMat = new THREE.MeshStandardMaterial({
-      color: 0x362e28,
-      metalness: 0.88,
-      roughness: 0.32,
+      vertexColors: true,
+      metalness: 0.94,
+      roughness: 0.24,
       emissive: activeTheme.innerColor,
-      emissiveIntensity: 0.55
+      emissiveIntensity: 0.85
     });
 
     const guardMat = new THREE.MeshStandardMaterial({
-      color: 0x221b16,
-      metalness: 0.9,
-      roughness: 0.38
+      color: 0x1f1915,
+      metalness: 0.92,
+      roughness: 0.35
     });
 
-    // Procedural Twisted Helical Coiled Blade (1.95m height)
+    // Procedural Twisted Helical Coiled Blade with Thermodynamic Incandescence
     const bladeHeight = 1.95;
     const bladeGeo = new THREE.CylinderGeometry(0.042, 0.016, bladeHeight, 16, 64);
     const bPos = bladeGeo.attributes.position;
+    const bColors = new Float32Array(bPos.count * 3);
+
     for (let i = 0; i < bPos.count; i++) {
       let x = bPos.getX(i);
       let y = bPos.getY(i);
       let z = bPos.getZ(i);
 
-      // Flatten along Z to form sword blade profile
+      // Flatten along Z to form realistic sword blade edge
       z *= 0.26;
 
       // Helical twist along height Y (~1.6 full rotations)
@@ -994,7 +996,25 @@
       const nZ = x * sinT + z * cosT;
 
       bPos.setXYZ(i, nX, y, nZ);
+
+      // Thermodynamic Heat Incandescence: Red-Hot Ember -> Tempered Bronze/Blue -> Blackened Ancient Steel
+      const yNorm = (y + bladeHeight / 2) / bladeHeight;
+      if (yNorm < 0.42) {
+        bColors[i * 3] = 1.0;
+        bColors[i * 3 + 1] = 0.42 + (1.0 - yNorm / 0.42) * 0.38;
+        bColors[i * 3 + 2] = 0.12;
+      } else if (yNorm < 0.70) {
+        const t = (yNorm - 0.42) / 0.28;
+        bColors[i * 3] = 0.85 - t * 0.4;
+        bColors[i * 3 + 1] = 0.45 - t * 0.2;
+        bColors[i * 3 + 2] = 0.22 + t * 0.4;
+      } else {
+        bColors[i * 3] = 0.32;
+        bColors[i * 3 + 1] = 0.29;
+        bColors[i * 3 + 2] = 0.26;
+      }
     }
+    bladeGeo.setAttribute('color', new THREE.BufferAttribute(bColors, 3));
     bladeGeo.computeVertexNormals();
 
     const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
@@ -1247,28 +1267,34 @@
     const smokeParticles = new THREE.Points(smokeGeo, smokeMat);
     fireWorld.add(smokeParticles);
 
-    // --- 5. 350 Swirling Embers (Helical Updraft Physics) ---
-    const sparkCount = 350;
+    // --- 5. 450 Thermodynamically Cooled Embers ---
+    const sparkCount = 450;
     const sparkGeo = new THREE.BufferGeometry();
     const sparkPos = new Float32Array(sparkCount * 3);
     const sparkVel = new Float32Array(sparkCount * 3);
+    const sparkColors = new Float32Array(sparkCount * 3);
 
     for (let i = 0; i < sparkCount; i++) {
-      sparkPos[i * 3] = (Math.random() - 0.5) * 0.5;
-      sparkPos[i * 3 + 1] = -0.25 + Math.random() * 2.3;
-      sparkPos[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
+      sparkPos[i * 3] = (Math.random() - 0.5) * 0.55;
+      sparkPos[i * 3 + 1] = -0.25 + Math.random() * 2.4;
+      sparkPos[i * 3 + 2] = (Math.random() - 0.5) * 0.55;
 
-      sparkVel[i * 3] = (Math.random() - 0.5) * 0.012;
-      sparkVel[i * 3 + 1] = 0.014 + Math.random() * 0.032;
-      sparkVel[i * 3 + 2] = (Math.random() - 0.5) * 0.012;
+      sparkVel[i * 3] = (Math.random() - 0.5) * 0.015;
+      sparkVel[i * 3 + 1] = 0.012 + Math.random() * 0.035;
+      sparkVel[i * 3 + 2] = (Math.random() - 0.5) * 0.015;
+
+      sparkColors[i * 3] = 1.0;
+      sparkColors[i * 3 + 1] = 0.75;
+      sparkColors[i * 3 + 2] = 0.25;
     }
 
     sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+    sparkGeo.setAttribute('color', new THREE.BufferAttribute(sparkColors, 3));
     const sparkMat = new THREE.PointsMaterial({
-      color: activeTheme.sparkColor,
-      size: 0.032,
+      vertexColors: true,
+      size: 0.036,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -1337,8 +1363,8 @@
     let currentStreakDays = 1;
     let currentStreakTier = 1;
 
-    // --- 6. Campfire Point Lights ---
-    const fireLight = new THREE.PointLight(activeTheme.lightColor, 3.2, 7.5, 2.0);
+    // --- 6. Campfire Point Lights & Volumetric Twilight Beam ---
+    const fireLight = new THREE.PointLight(activeTheme.lightColor, 3.4, 7.8, 2.0);
     fireLight.position.set(0, 0.52, 0.2);
     scene.add(fireLight);
 
@@ -1348,6 +1374,34 @@
 
     const ambientLight = new THREE.AmbientLight(0x14100c, 0.9);
     scene.add(ambientLight);
+
+    // Volumetric Warm Atmospheric Light Shaft
+    const coneGeo = new THREE.CylinderGeometry(1.6, 0.35, 4.2, 32, 1, true);
+    const coneMat = new THREE.MeshBasicMaterial({
+      color: activeTheme.lightColor,
+      transparent: true,
+      opacity: 0.038,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const lightConeMesh = new THREE.Mesh(coneGeo, coneMat);
+    lightConeMesh.position.set(0, 1.8, 0);
+    pitGroup.add(lightConeMesh);
+
+    // Warm Ground Heat Contact Illumination Ring
+    const groundGlowGeo = new THREE.CircleGeometry(2.4, 32);
+    const groundGlowMat = new THREE.MeshBasicMaterial({
+      color: activeTheme.innerColor,
+      transparent: true,
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const groundGlowMesh = new THREE.Mesh(groundGlowGeo, groundGlowMat);
+    groundGlowMesh.rotation.x = -Math.PI / 2;
+    groundGlowMesh.position.y = -0.04;
+    pitGroup.add(groundGlowMesh);
 
     // --- 7. Cinematic Parallax & Damped Orbit Controls ---
     let energy = 0.05;
@@ -1560,7 +1614,8 @@
           coalMat.emissive.setHex(activeTheme.innerColor);
           if (typeof bladeMat !== 'undefined' && bladeMat) bladeMat.emissive.setHex(activeTheme.innerColor);
           if (typeof plasmaMat !== 'undefined' && plasmaMat) plasmaMat.color.setHex(activeTheme.coreColor);
-          if (typeof emberMat !== 'undefined' && emberMat) emberMat.color.setHex(activeTheme.innerColor);
+          if (typeof lightConeMesh !== 'undefined' && lightConeMesh?.material) lightConeMesh.material.color.setHex(activeTheme.lightColor);
+          if (typeof groundGlowMesh !== 'undefined' && groundGlowMesh?.material) groundGlowMesh.material.color.setHex(activeTheme.innerColor);
           if (ambientGlow) ambientGlow.style.background = `radial-gradient(circle, ${activeTheme.glow} 0%, rgba(0,0,0,0) 70%)`;
           themeModal?.classList.add('opacity-0', 'pointer-events-none');
         }
@@ -2758,26 +2813,57 @@
         smokeGeo.attributes.position.needsUpdate = true;
       }
 
-      // Embers (Thin smoldering embers when extinguished, lively when blazing)
-      const positions = sparkGeo.attributes.position.array;
-      const sparkRiseSpeed = isExtinguished ? 0.25 : (0.6 + energy * 0.5);
-      sparkMat.opacity = isExtinguished ? 0.28 : Math.min(0.9, 0.4 + energy * 0.5);
-
-      for (let i = 0; i < sparkCount; i++) {
-        let y = positions[i * 3 + 1];
-        y += sparkVel[i * 3 + 1] * sparkRiseSpeed;
-
-        positions[i * 3] += windVector.x * 0.008 + Math.sin(time * 2.0 + i) * 0.0018;
-        positions[i * 3 + 2] += windVector.y * 0.008 + Math.cos(time * 2.0 + i) * 0.0018;
-
-        if (y > (isExtinguished ? 0.2 : 2.2)) {
-          y = -0.25;
-          positions[i * 3] = (Math.random() - 0.5) * 0.4;
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
-        }
-        positions[i * 3 + 1] = y;
+      // Volumetric light cone & ground contact heat glow breathing
+      if (typeof groundGlowMesh !== 'undefined' && groundGlowMesh?.material) {
+        groundGlowMesh.material.opacity = isExtinguished ? 0.02 : Math.max(0.06, 0.13 + Math.sin(time * 9.5) * 0.035 + energy * 0.06);
       }
-      sparkGeo.attributes.position.needsUpdate = true;
+      if (typeof lightConeMesh !== 'undefined' && lightConeMesh?.material) {
+        lightConeMesh.material.opacity = isExtinguished ? 0.005 : Math.max(0.015, 0.035 + Math.sin(time * 8.0) * 0.01 + energy * 0.02);
+      }
+
+      // Embers (Thermodynamic cooling simulation & vortex curl)
+      if (typeof sparkGeo !== 'undefined' && sparkGeo.attributes.position && sparkGeo.attributes.color) {
+        const positions = sparkGeo.attributes.position.array;
+        const colors = sparkGeo.attributes.color.array;
+        const sparkRiseSpeed = isExtinguished ? 0.25 : (0.65 + energy * 0.55);
+        sparkMat.opacity = isExtinguished ? 0.28 : Math.min(0.95, 0.45 + energy * 0.5);
+
+        for (let i = 0; i < sparkCount; i++) {
+          let y = positions[i * 3 + 1];
+          y += sparkVel[i * 3 + 1] * sparkRiseSpeed;
+
+          // Spiral vortex updraft near center
+          const rDist = Math.sqrt(positions[i * 3] * positions[i * 3] + positions[i * 3 + 2] * positions[i * 3 + 2]);
+          const curlForce = 0.002 / (rDist + 0.12);
+          positions[i * 3] += -positions[i * 3 + 2] * curlForce + windVector.x * 0.008 + Math.sin(time * 2.5 + i) * 0.0018;
+          positions[i * 3 + 2] += positions[i * 3] * curlForce + windVector.y * 0.008 + Math.cos(time * 2.5 + i) * 0.0018;
+
+          // Thermodynamic Color Shift from White-Gold (hot) -> Deep Red-Ember (cooling)
+          const coolProgress = Math.min(1.0, Math.max(0.0, (y + 0.2) / 2.3));
+          if (coolProgress < 0.25) {
+            colors[i * 3] = 1.0;
+            colors[i * 3 + 1] = 0.95;
+            colors[i * 3 + 2] = 0.65;
+          } else if (coolProgress < 0.65) {
+            colors[i * 3] = 1.0;
+            colors[i * 3 + 1] = 0.55 - (coolProgress - 0.25) * 0.6;
+            colors[i * 3 + 2] = 0.1;
+          } else {
+            colors[i * 3] = 0.85 - (coolProgress - 0.65) * 0.5;
+            colors[i * 3 + 1] = 0.15;
+            colors[i * 3 + 2] = 0.02;
+          }
+
+          if (y > (isExtinguished ? 0.2 : 2.3)) {
+            y = -0.25;
+            positions[i * 3] = (Math.random() - 0.5) * 0.38;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 0.38;
+          }
+          positions[i * 3 + 1] = y;
+        }
+        sparkGeo.attributes.position.needsUpdate = true;
+        sparkGeo.attributes.color.needsUpdate = true;
+      }
 
       // Cosmic Spiral Embers (Tier 3: 7+ Hari Streak Milestone)
       if (currentStreakTier >= 3 && !isExtinguished) {
