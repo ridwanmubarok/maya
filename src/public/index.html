@@ -312,8 +312,8 @@
         </div>
       </header>
 
-      <!-- TOP CENTER TITLE -->
-      <main class="w-full max-w-xl mx-auto text-center pointer-events-auto">
+      <!-- TOP CENTER TITLE & MAGNETIC HERO JOIN CTA -->
+      <main class="w-full max-w-xl mx-auto text-center pointer-events-auto flex flex-col items-center">
         <h2 class="font-cinzel text-2xl sm:text-4xl lg:text-5xl font-extrabold text-amber-50 tracking-wider leading-tight drop-shadow-[0_4px_30px_rgba(0,0,0,0.95)]">
           The Checkpoint
         </h2>
@@ -321,6 +321,25 @@
         <p id="flame-quote" class="mt-1 text-xs sm:text-sm text-amber-200/90 font-serif italic max-w-md mx-auto leading-relaxed transition-all duration-300 drop-shadow">
           Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan.
         </p>
+
+        <!-- PRESTIGIOUS HERO JOIN SERVER CTA -->
+        <div class="mt-3 sm:mt-4 flex flex-col items-center group">
+          <a id="hero-join-btn" href="https://discord.gg/TVKcyQqB3" target="_blank"
+             class="relative inline-flex items-center space-x-2.5 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full bg-gradient-to-r from-amber-600 via-orange-500 to-amber-500 hover:from-amber-500 hover:to-orange-400 text-white font-semibold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:shadow-[0_0_45px_rgba(251,191,36,0.8)] hover:scale-105 active:scale-95 border border-amber-300/40">
+            <span class="text-base sm:text-lg animate-pulse">🔥</span>
+            <span class="font-cinzel tracking-widest font-bold">Singgah & Masuk Sanctuary</span>
+            <svg class="w-4 h-4 fill-current ml-1 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24">
+              <path d="M13.025 1l-2.847 2.828 6.176 6.172h-16.354v4h16.354l-6.176 6.172 2.847 2.828 10.975-11z"/>
+            </svg>
+          </a>
+          <div class="flex items-center space-x-2 mt-2 text-[11px] text-amber-200/80 font-mono drop-shadow">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>1,429 Pengelana • Komunitas Hangat & Maya AI</span>
+          </div>
+        </div>
       </main>
     </div>
 
@@ -849,65 +868,178 @@
 
     let activeTheme = THEMES.solar;
 
-    // Three.js Scene Setup
+    // Three.js Scene Setup (Atmospheric Dark Fantasy Sanctuary)
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x040303, 0.045);
+    scene.fog = new THREE.FogExp2(0x040303, 0.04);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 0.65, 5.6);
-    camera.lookAt(0, 0.15, 0);
+    camera.position.set(0, 0.82, 5.2);
+    camera.lookAt(0, 0.35, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.35;
     container.appendChild(renderer.domElement);
 
     const fireWorld = new THREE.Group();
     scene.add(fireWorld);
 
-    // --- 1. Campfire Pit (Logs & Embers Bed) ---
+    // --- 1. Ancient Hearth & Ground Pit ---
     const pitGroup = new THREE.Group();
-    pitGroup.position.y = -0.52;
+    pitGroup.position.y = -0.48;
     fireWorld.add(pitGroup);
 
-    // Ground Ash Disc
-    const ashGeo = new THREE.CircleGeometry(1.2, 32);
-    const ashMat = new THREE.MeshBasicMaterial({ color: 0x090807 });
+    // Deep Dark Ground Floor
+    const groundGeo = new THREE.PlaneGeometry(36, 36, 16, 16);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x070605,
+      roughness: 0.95,
+      metalness: 0.08
+    });
+    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.position.y = -0.05;
+    pitGroup.add(groundMesh);
+
+    // Volcanic Ash Mound (Sculpted Mound with organic displacement)
+    const ashGeo = new THREE.ConeGeometry(1.6, 0.42, 32, 5);
+    const ashPos = ashGeo.attributes.position;
+    for (let i = 0; i < ashPos.count; i++) {
+      const y = ashPos.getY(i);
+      if (y > -0.2) {
+        ashPos.setX(i, ashPos.getX(i) * (1.0 + (Math.sin(i * 1.7) * 0.14)));
+        ashPos.setZ(i, ashPos.getZ(i) * (1.0 + (Math.cos(i * 2.1) * 0.14)));
+      }
+    }
+    ashGeo.computeVertexNormals();
+    const ashMat = new THREE.MeshStandardMaterial({ color: 0x110c09, roughness: 0.96 });
     const ashMesh = new THREE.Mesh(ashGeo, ashMat);
-    ashMesh.rotation.x = -Math.PI / 2;
+    ashMesh.position.y = 0.05;
     pitGroup.add(ashMesh);
 
-    // Realistic Coals (Glowing Charcoal)
-    const coalGeo = new THREE.DodecahedronGeometry(0.28, 2);
+    // 14 Ancient Weathered Hearth Stones (Dark Souls Stone Ring)
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: 0x1f1915,
+      roughness: 0.92,
+      metalness: 0.12
+    });
+    for (let i = 0; i < 14; i++) {
+      const angle = (i / 14) * Math.PI * 2 + (Math.sin(i * 1.5) * 0.08);
+      const dist = 1.35 + (Math.cos(i * 2.3) * 0.12);
+      const stoneSize = 0.18 + ((i % 3) * 0.04);
+      const stoneGeo = new THREE.DodecahedronGeometry(stoneSize, 1);
+      const stone = new THREE.Mesh(stoneGeo, stoneMat);
+      stone.position.set(Math.cos(angle) * dist, 0.08, Math.sin(angle) * dist);
+      stone.scale.set(1.1 + (i % 2) * 0.35, 0.7 + (i % 3) * 0.25, 1.0 + (i % 2) * 0.25);
+      stone.rotation.set(i * 0.4, angle + 0.3, i * 0.25);
+      pitGroup.add(stone);
+    }
+
+    // Glowing Charcoal & Coals (Bed of Embers)
     const coalMat = new THREE.MeshStandardMaterial({
       color: 0x150805,
       emissive: activeTheme.innerColor,
-      emissiveIntensity: 1.2,
-      roughness: 0.7
+      emissiveIntensity: 1.8,
+      roughness: 0.75
     });
-    const coalMesh = new THREE.Mesh(coalGeo, coalMat);
-    coalMesh.position.set(0, 0.1, 0);
-    coalMesh.scale.set(1.3, 0.4, 1.3);
-    pitGroup.add(coalMesh);
+    for (let i = 0; i < 5; i++) {
+      const cAngle = (i / 5) * Math.PI * 2;
+      const cDist = 0.28 + (i % 2) * 0.12;
+      const cGeo = new THREE.DodecahedronGeometry(0.18 + (i % 2) * 0.06, 1);
+      const coal = new THREE.Mesh(cGeo, coalMat);
+      coal.position.set(Math.cos(cAngle) * cDist, 0.14, Math.sin(cAngle) * cDist);
+      coal.scale.set(1.2, 0.6, 1.2);
+      coal.rotation.set(i, i * 2, i * 0.5);
+      pitGroup.add(coal);
+    }
 
-    // 6 Crossed Wood Logs (Natural Campfire formation)
-    const logGeo = new THREE.CylinderGeometry(0.05, 0.075, 0.9, 8);
-    const logMat = new THREE.MeshStandardMaterial({ color: 0x1f1814, roughness: 0.95 });
-    const burntMat = new THREE.MeshStandardMaterial({ color: 0x0a0705, emissive: 0x220b05, emissiveIntensity: 0.4, roughness: 0.9 });
+    // 8 Charred Campfire Logs (Crossed leaning into hearth)
+    const logGeo = new THREE.CylinderGeometry(0.045, 0.07, 0.95, 8);
+    const logMat = new THREE.MeshStandardMaterial({ color: 0x18120e, roughness: 0.95 });
+    const burntMat = new THREE.MeshStandardMaterial({ color: 0x090605, emissive: 0x280b04, emissiveIntensity: 0.5, roughness: 0.92 });
 
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + (i % 2) * 0.15;
       const log = new THREE.Mesh(logGeo, i % 2 === 0 ? burntMat : logMat);
-      log.position.set(Math.cos(angle) * 0.25, 0.22, Math.sin(angle) * 0.25);
-      log.rotation.z = Math.PI / 3.4;
-      log.rotation.y = angle + 0.25;
+      log.position.set(Math.cos(angle) * 0.38, 0.22, Math.sin(angle) * 0.38);
+      log.rotation.z = Math.PI / 3.2;
+      log.rotation.y = angle + 0.28;
       pitGroup.add(log);
     }
 
-    // --- 2. AAA Crossed-Geometry Realistic Fire Shader ---
+    // --- 2. The Legendary Coiled Sword (Dark Souls Bonfire Icon) ---
+    const swordGroup = new THREE.Group();
+    swordGroup.position.set(0, 0.06, 0);
+    swordGroup.rotation.z = 0.06;
+    swordGroup.rotation.x = -0.05;
+    pitGroup.add(swordGroup);
+
+    // Ancient Blackened Steel Blade Material
+    const bladeMat = new THREE.MeshStandardMaterial({
+      color: 0x362e28,
+      metalness: 0.88,
+      roughness: 0.32,
+      emissive: activeTheme.innerColor,
+      emissiveIntensity: 0.55
+    });
+
+    const guardMat = new THREE.MeshStandardMaterial({
+      color: 0x221b16,
+      metalness: 0.9,
+      roughness: 0.38
+    });
+
+    // Procedural Twisted Helical Coiled Blade (1.95m height)
+    const bladeHeight = 1.95;
+    const bladeGeo = new THREE.CylinderGeometry(0.042, 0.016, bladeHeight, 16, 64);
+    const bPos = bladeGeo.attributes.position;
+    for (let i = 0; i < bPos.count; i++) {
+      let x = bPos.getX(i);
+      let y = bPos.getY(i);
+      let z = bPos.getZ(i);
+
+      // Flatten along Z to form sword blade profile
+      z *= 0.26;
+
+      // Helical twist along height Y (~1.6 full rotations)
+      const twist = (y + bladeHeight / 2) * 2.85;
+      const cosT = Math.cos(twist);
+      const sinT = Math.sin(twist);
+
+      const nX = x * cosT - z * sinT;
+      const nZ = x * sinT + z * cosT;
+
+      bPos.setXYZ(i, nX, y, nZ);
+    }
+    bladeGeo.computeVertexNormals();
+
+    const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
+    bladeMesh.position.y = 0.62;
+    swordGroup.add(bladeMesh);
+
+    // Ancient Curved Crossguard
+    const guardGeo = new THREE.BoxGeometry(0.38, 0.042, 0.08);
+    const guardMesh = new THREE.Mesh(guardGeo, guardMat);
+    guardMesh.position.y = 1.58;
+    guardMesh.rotation.y = 0.2;
+    swordGroup.add(guardMesh);
+
+    // Hilt Grip
+    const gripGeo = new THREE.CylinderGeometry(0.024, 0.028, 0.44, 12);
+    const gripMesh = new THREE.Mesh(gripGeo, guardMat);
+    gripMesh.position.y = 1.82;
+    swordGroup.add(gripMesh);
+
+    // Pommel
+    const pommelGeo = new THREE.DodecahedronGeometry(0.065, 1);
+    const pommelMesh = new THREE.Mesh(pommelGeo, guardMat);
+    pommelMesh.position.y = 2.06;
+    swordGroup.add(pommelMesh);
+
+    // --- 3. Volumetric Multi-Shell Flame Shader ---
     const flameVertexShader = `
       uniform float uTime;
       uniform vec2 uWind;
@@ -918,9 +1050,9 @@
         vec3 pos = position;
 
         // Gentle natural heat sway at the flame tips
-        float sway = sin(uTime * 3.5 + pos.y * 4.0) * 0.03 * uv.y;
-        pos.x += sway + uWind.x * uv.y * uv.y * 0.25;
-        pos.z += uWind.y * uv.y * uv.y * 0.25;
+        float sway = sin(uTime * 3.5 + pos.y * 3.8) * 0.035 * uv.y;
+        pos.x += sway + uWind.x * uv.y * uv.y * 0.28;
+        pos.z += uWind.y * uv.y * uv.y * 0.28;
 
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
@@ -992,13 +1124,12 @@
         float silhouette = smoothstep(1.0, 0.0, centerDist / taper);
 
         // Dynamic multi-speed noise erosion for licking flame tips
-        float speed = 2.4 + uEnergy * 0.8;
-        float n1 = snoise(vec3(uv.x * 3.2, uv.y * 2.8 - uTime * speed, uTime * 0.3));
-        float n2 = snoise(vec3(uv.x * 6.5, uv.y * 5.5 - uTime * (speed * 1.4), uTime * 0.6)) * 0.5;
+        float speed = 2.5 + uEnergy * 0.9;
+        float n1 = snoise(vec3(uv.x * 3.4, uv.y * 3.0 - uTime * speed, uTime * 0.3));
+        float n2 = snoise(vec3(uv.x * 6.8, uv.y * 5.8 - uTime * (speed * 1.4), uTime * 0.6)) * 0.5;
         float noise = n1 + n2;
 
-        // Licking flames
-        float shape = silhouette * 1.25 + noise * 0.4 * (uv.y + 0.15);
+        float shape = silhouette * 1.25 + noise * 0.42 * (uv.y + 0.15);
         float alpha = smoothstep(0.42, 0.85, shape) * (1.0 - uv.y * 0.95);
 
         // Realistic Color Mapping
@@ -1006,9 +1137,9 @@
         color = mix(color, uColorOuter, smoothstep(0.32, 0.85, uv.y));
 
         // Hot incandescent core
-        color += uColorCore * smoothstep(0.35, 0.0, length(vec2(uv.x - 0.5, uv.y * 0.45))) * 0.9;
+        color += uColorCore * smoothstep(0.35, 0.0, length(vec2(uv.x - 0.5, uv.y * 0.45))) * 0.95;
 
-        gl_FragColor = vec4(color, alpha * (0.8 + uEnergy * 0.2));
+        gl_FragColor = vec4(color, alpha * (0.85 + uEnergy * 0.2));
       }
     `;
 
@@ -1031,24 +1162,24 @@
       side: THREE.DoubleSide
     });
 
-    // 4 Crossed Planes for 3D Omnidirectional Campfire (Dark Souls / AAA style)
+    // 6 Curved Intersecting Shells for Volumetric 3D Flame
     const flameGroup = new THREE.Group();
-    flameGroup.position.set(0, -0.28, 0);
+    flameGroup.position.set(0, -0.22, 0);
     fireWorld.add(flameGroup);
 
-    const flameGeo = new THREE.PlaneGeometry(0.75, 1.4, 32, 32);
-    flameGeo.translate(0, 0.65, 0);
+    const flameGeo = new THREE.PlaneGeometry(0.78, 1.45, 32, 32);
+    flameGeo.translate(0, 0.68, 0);
 
-    const angles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4];
-    angles.forEach(rad => {
+    const flameAngles = [0, Math.PI / 6, Math.PI / 3, Math.PI / 2, (2 * Math.PI) / 3, (5 * Math.PI) / 6];
+    flameAngles.forEach(rad => {
       const plane = new THREE.Mesh(flameGeo, flameMat);
       plane.rotation.y = rad;
       flameGroup.add(plane);
     });
 
-    // Inner bright core plane
-    const coreGeo = new THREE.PlaneGeometry(0.5, 0.9, 16, 16);
-    coreGeo.translate(0, 0.45, 0);
+    // Inner bright core planes
+    const coreGeo = new THREE.PlaneGeometry(0.52, 0.95, 16, 16);
+    coreGeo.translate(0, 0.48, 0);
     const corePlane1 = new THREE.Mesh(coreGeo, flameMat);
     corePlane1.rotation.y = Math.PI / 8;
     flameGroup.add(corePlane1);
@@ -1056,35 +1187,63 @@
     corePlane2.rotation.y = (5 * Math.PI) / 8;
     flameGroup.add(corePlane2);
 
-    // --- 3. Delicate Embers ---
-    const sparkCount = 200;
+    // --- 4. Rising Smoke Haze ---
+    const smokeCount = 45;
+    const smokeGeo = new THREE.BufferGeometry();
+    const smokePos = new Float32Array(smokeCount * 3);
+    const smokeVel = new Float32Array(smokeCount * 3);
+
+    for (let i = 0; i < smokeCount; i++) {
+      smokePos[i * 3] = (Math.random() - 0.5) * 0.45;
+      smokePos[i * 3 + 1] = 0.5 + Math.random() * 2.2;
+      smokePos[i * 3 + 2] = (Math.random() - 0.5) * 0.45;
+
+      smokeVel[i * 3] = (Math.random() - 0.5) * 0.006;
+      smokeVel[i * 3 + 1] = 0.008 + Math.random() * 0.016;
+      smokeVel[i * 3 + 2] = (Math.random() - 0.5) * 0.006;
+    }
+
+    smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
+    const smokeMat = new THREE.PointsMaterial({
+      color: 0x221a15,
+      size: 0.16,
+      transparent: true,
+      opacity: 0.22,
+      blending: THREE.NormalBlending,
+      depthWrite: false
+    });
+    const smokeParticles = new THREE.Points(smokeGeo, smokeMat);
+    fireWorld.add(smokeParticles);
+
+    // --- 5. 350 Swirling Embers (Helical Updraft Physics) ---
+    const sparkCount = 350;
     const sparkGeo = new THREE.BufferGeometry();
     const sparkPos = new Float32Array(sparkCount * 3);
     const sparkVel = new Float32Array(sparkCount * 3);
 
     for (let i = 0; i < sparkCount; i++) {
-      sparkPos[i * 3] = (Math.random() - 0.5) * 0.45;
-      sparkPos[i * 3 + 1] = -0.25 + Math.random() * 2.0;
-      sparkPos[i * 3 + 2] = (Math.random() - 0.5) * 0.45;
+      sparkPos[i * 3] = (Math.random() - 0.5) * 0.5;
+      sparkPos[i * 3 + 1] = -0.25 + Math.random() * 2.3;
+      sparkPos[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
 
-      sparkVel[i * 3] = (Math.random() - 0.5) * 0.01;
-      sparkVel[i * 3 + 1] = 0.012 + Math.random() * 0.028;
-      sparkVel[i * 3 + 2] = (Math.random() - 0.5) * 0.01;
+      sparkVel[i * 3] = (Math.random() - 0.5) * 0.012;
+      sparkVel[i * 3 + 1] = 0.014 + Math.random() * 0.032;
+      sparkVel[i * 3 + 2] = (Math.random() - 0.5) * 0.012;
     }
 
     sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
     const sparkMat = new THREE.PointsMaterial({
       color: activeTheme.sparkColor,
-      size: 0.028,
+      size: 0.032,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
     const sparkParticles = new THREE.Points(sparkGeo, sparkMat);
     fireWorld.add(sparkParticles);
 
-    // --- 3B. Cosmic Spiral Embers (Tier 3: 7+ Hari Streak Milestone) ---
+    // --- 5B. Cosmic Spiral Embers (Tier 3: 7+ Hari Streak Milestone) ---
     const spiralCount = 120;
     const spiralGeo = new THREE.BufferGeometry();
     const spiralPos = new Float32Array(spiralCount * 3);
@@ -1115,46 +1274,73 @@
     let currentStreakDays = 1;
     let currentStreakTier = 1;
 
-    // --- 4. Campfire Point Lights ---
-    const fireLight = new THREE.PointLight(activeTheme.lightColor, 2.8, 6.5, 2.0);
-    fireLight.position.set(0, 0.45, 0.2);
+    // --- 6. Campfire Point Lights ---
+    const fireLight = new THREE.PointLight(activeTheme.lightColor, 3.2, 7.5, 2.0);
+    fireLight.position.set(0, 0.52, 0.2);
     scene.add(fireLight);
 
-    const coalLight = new THREE.PointLight(0xff3300, 1.5, 3.5, 2.0);
-    coalLight.position.set(0, -0.25, 0);
+    const coalLight = new THREE.PointLight(0xff3300, 1.8, 4.0, 2.0);
+    coalLight.position.set(0, -0.2, 0);
     scene.add(coalLight);
 
-    const ambientLight = new THREE.AmbientLight(0x110e0c, 0.8);
+    const ambientLight = new THREE.AmbientLight(0x14100c, 0.9);
     scene.add(ambientLight);
 
-    // --- Interaction Physics ---
+    // --- 7. Cinematic Parallax & Damped Orbit Controls ---
     let energy = 0.05;
     let targetEnergy = 0.05;
     let totalSparks = 10;
     let windVector = new THREE.Vector2(0, 0);
     let targetWind = new THREE.Vector2(0, 0);
+
+    let orbitAngle = 0;
+    let orbitVelocity = 0;
+    let orbitRadius = 5.2;
+    let targetParallaxX = 0;
+    let targetParallaxY = 0;
+    let camParallaxX = 0;
+    let camParallaxY = 0;
+
     let isDragging = false;
-    let lastX = 0, lastY = 0;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
 
     window.addEventListener('pointerdown', (e) => {
       if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.glass-nav')) return;
       isDragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
       spawnClickSpark(e.clientX, e.clientY);
+      igniteFlameFromActivity(0.04, true);
     });
 
     window.addEventListener('pointermove', (e) => {
+      // Smooth Parallax tracking on any pointer movement
+      const ndcX = (e.clientX / window.innerWidth - 0.5) * 2;
+      const ndcY = (e.clientY / window.innerHeight - 0.5) * 2;
+      targetParallaxX = ndcX;
+      targetParallaxY = ndcY;
+
       if (!isDragging) return;
-      const dx = (e.clientX - lastX) * 0.005;
-      const dy = (e.clientY - lastY) * 0.005;
+      const dx = (e.clientX - lastPointerX) * 0.005;
+      const dy = (e.clientY - lastPointerY) * 0.005;
+
+      orbitVelocity -= dx * 0.45;
       targetWind.x = Math.max(-0.6, Math.min(0.6, targetWind.x + dx));
       targetWind.y = Math.max(-0.6, Math.min(0.6, targetWind.y - dy));
-      lastX = e.clientX;
-      lastY = e.clientY;
+
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
     });
 
     window.addEventListener('pointerup', () => { isDragging = false; });
+    window.addEventListener('pointercancel', () => { isDragging = false; });
+
+    // Connect Hero Join CTA hover to gently fan the flames
+    const heroJoinBtn = document.getElementById('hero-join-btn');
+    heroJoinBtn?.addEventListener('mouseenter', () => {
+      igniteFlameFromActivity(0.08, false);
+    });
 
     function spawnClickSpark(x, y) {
       for (let i = 0; i < 4; i++) {
@@ -1309,6 +1495,7 @@
           sparkMat.color.setHex(activeTheme.sparkColor);
           fireLight.color.setHex(activeTheme.lightColor);
           coalMat.emissive.setHex(activeTheme.innerColor);
+          if (typeof bladeMat !== 'undefined' && bladeMat) bladeMat.emissive.setHex(activeTheme.innerColor);
           if (ambientGlow) ambientGlow.style.background = `radial-gradient(circle, ${activeTheme.glow} 0%, rgba(0,0,0,0) 70%)`;
           themeModal?.classList.add('opacity-0', 'pointer-events-none');
         }
@@ -2440,9 +2627,20 @@
       // Server-authoritative energy interpolation
       energy += (targetEnergy - energy) * 0.05;
 
-      // Smooth camera recovery with elevated view
-      camera.position.z += (5.6 - camera.position.z) * 0.05;
-      camera.lookAt(0, 0.15, 0);
+      // Damped orbit velocity & smooth camera positioning
+      orbitAngle += orbitVelocity;
+      orbitVelocity *= 0.93;
+
+      camParallaxX += (targetParallaxX - camParallaxX) * 0.05;
+      camParallaxY += (targetParallaxY - camParallaxY) * 0.05;
+
+      const breathingY = Math.sin(time * 0.6) * 0.04;
+      const camX = Math.sin(orbitAngle) * orbitRadius + camParallaxX * 0.42;
+      const camZ = Math.cos(orbitAngle) * orbitRadius;
+      const camY = 0.82 + breathingY - camParallaxY * 0.32;
+
+      camera.position.set(camX, camY, camZ);
+      camera.lookAt(0, 0.35, 0);
 
       // Smooth wind decay
       targetWind.lerp(new THREE.Vector2(0, 0), 0.025);
@@ -2464,13 +2662,35 @@
       if (isExtinguished) {
         fireLight.intensity = 0.0;
         coalLight.intensity = 0.35 + Math.sin(time * 2.0) * 0.08; // Faint smoldering coal
+        if (typeof bladeMat !== 'undefined' && bladeMat) bladeMat.emissiveIntensity = 0.05;
       } else {
-        fireLight.intensity = (1.0 + energy * 2.0) + Math.sin(time * 10) * 0.25;
-        coalLight.intensity = (0.7 + energy * 0.8) + Math.sin(time * 3) * 0.2;
+        fireLight.intensity = (1.2 + energy * 2.2) + Math.sin(time * 9.5) * 0.28 + Math.cos(time * 14.0) * 0.15;
+        coalLight.intensity = (0.8 + energy * 0.9) + Math.sin(time * 3.2) * 0.2;
+        if (typeof bladeMat !== 'undefined' && bladeMat) {
+          bladeMat.emissiveIntensity = (0.45 + energy * 0.5) + Math.sin(time * 7.0) * 0.12;
+        }
       }
 
       if (ambientGlow) {
         ambientGlow.style.opacity = isExtinguished ? "0.05" : (energy * 0.65).toFixed(2);
+      }
+
+      // Volumetric smoke rising animation
+      if (typeof smokeGeo !== 'undefined' && smokeGeo.attributes.position) {
+        const smkPositions = smokeGeo.attributes.position.array;
+        for (let i = 0; i < smokeCount; i++) {
+          let sy = smkPositions[i * 3 + 1];
+          sy += smokeVel[i * 3 + 1] * (0.6 + energy * 0.4);
+          smkPositions[i * 3] += windVector.x * 0.005 + Math.sin(time * 1.5 + i) * 0.0012;
+          smkPositions[i * 3 + 2] += windVector.y * 0.005 + Math.cos(time * 1.5 + i) * 0.0012;
+          if (sy > 2.8) {
+            sy = 0.5;
+            smkPositions[i * 3] = (Math.random() - 0.5) * 0.35;
+            smkPositions[i * 3 + 2] = (Math.random() - 0.5) * 0.35;
+          }
+          smkPositions[i * 3 + 1] = sy;
+        }
+        smokeGeo.attributes.position.needsUpdate = true;
       }
 
       // Embers (Thin smoldering embers when extinguished, lively when blazing)
@@ -2482,13 +2702,13 @@
         let y = positions[i * 3 + 1];
         y += sparkVel[i * 3 + 1] * sparkRiseSpeed;
 
-        positions[i * 3] += windVector.x * 0.008 + Math.sin(time * 2.0 + i) * 0.0015;
-        positions[i * 3 + 2] += windVector.y * 0.008 + Math.cos(time * 2.0 + i) * 0.0015;
+        positions[i * 3] += windVector.x * 0.008 + Math.sin(time * 2.0 + i) * 0.0018;
+        positions[i * 3 + 2] += windVector.y * 0.008 + Math.cos(time * 2.0 + i) * 0.0018;
 
-        if (y > (isExtinguished ? 0.2 : 2.0)) {
+        if (y > (isExtinguished ? 0.2 : 2.2)) {
           y = -0.25;
-          positions[i * 3] = (Math.random() - 0.5) * 0.35;
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 0.35;
+          positions[i * 3] = (Math.random() - 0.5) * 0.4;
+          positions[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
         }
         positions[i * 3 + 1] = y;
       }
