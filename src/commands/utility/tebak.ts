@@ -5,21 +5,21 @@ import { tebakManager } from "../../services/tebakManager";
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("tebak")
-    .setDescription("Game Tebak-Tebakan Harian & Papan Peringkat (Leaderboard)")
+    .setDescription("Game Tebak-Tebakan Receh & Jokes Bapak-Bapak (Humor & Kuis RTK)")
     .addSubcommand((sub) =>
       sub
         .setName("main")
-        .setDescription("Mulai sesi tebak-tebakan mode instant di channel ini")
+        .setDescription("Mulai sesi tebak-tebakan receh & jokes bapak-bapak di channel ini")
     )
     .addSubcommand((sub) =>
       sub
         .setName("daily")
-        .setDescription("Mulai Tebak-Tebakan Harian (@everyone Broadcast) di channel ini")
+        .setDescription("Siarkan Tebak-Tebakan Receh Harian (@everyone Broadcast) di channel ini")
     )
     .addSubcommand((sub) =>
       sub
         .setName("leaderboard")
-        .setDescription("Tampilkan papan peringkat skor tebak-tebakan server")
+        .setDescription("Tampilkan papan peringkat skor tebak-tebakan receh server")
         .addStringOption((opt) =>
           opt
             .setName("tipe")
@@ -86,8 +86,8 @@ const command: Command = {
         }
 
         const embed = new EmbedBuilder()
-          .setTitle(`🏆 Leaderboard Tebak-Tebakan Harian • ${interaction.guild?.name || "Server"}`)
-          .setDescription("Daftar 10 besar anggota server dengan perolehan skor **Tebak-Tebakan Harian** tertinggi hari ini:")
+          .setTitle(`🏆 Leaderboard Tebak-Tebakan Receh Harian • ${interaction.guild?.name || "Server"}`)
+          .setDescription("Daftar 10 besar anggota server dengan perolehan skor **Tebak-Tebakan Receh Harian** tertinggi hari ini:")
           .setColor("#9333EA")
           .setFooter({
             text: `Maya Daily Trivia Leaderboard • Diperbarui Real-Time`,
