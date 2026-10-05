@@ -347,9 +347,20 @@ const event: BotEvent = {
         }
       }
 
-      // Check if message is a mention to Maya or a reply to Maya's message
+      // Check if message is addressed to Maya (either direct text mention or clean reply)
       const botId = message.client.user?.id;
-      const isMentioned = botId && message.mentions.users.has(botId) && !message.mentions.everyone;
+      if (!botId) return;
+
+      // Check if Maya is explicitly tagged in the text body
+      const isExplicitlyMentionedInText = new RegExp(`<@!?${botId}>`).test(message.content);
+
+      // Check if any OTHER users are mentioned explicitly in the text body
+      const textMentions = message.content.match(/<@!?(\d+)>/g) || [];
+      const mentionsOtherUserInText = textMentions.some((m) => {
+        const id = m.replace(/<@!?|>/g, "");
+        return id !== botId;
+      });
+
       let isReplyToMaya = false;
       if (message.reference?.messageId) {
         try {
@@ -360,7 +371,15 @@ const event: BotEvent = {
         } catch (_) {}
       }
 
-      if (isMentioned || isReplyToMaya) {
+      // If the message explicitly mentions other users in the text AND does NOT explicitly tag @Maya in the text,
+      // the user is talking to that other person, NOT Maya (even if replying to Maya's previous message!).
+      if (mentionsOtherUserInText && !isExplicitlyMentionedInText) {
+        return;
+      }
+
+      // Trigger Maya only if explicitly tagged in text OR if replying to Maya without tagging anyone else
+      const shouldRespond = isExplicitlyMentionedInText || (isReplyToMaya && !mentionsOtherUserInText);
+      if (shouldRespond && !message.mentions.everyone) {
         // Send typing status
         if ("sendTyping" in message.channel) {
           await message.channel.sendTyping().catch(() => {});
