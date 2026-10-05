@@ -347,46 +347,58 @@ const event: BotEvent = {
         }
       }
 
-      // Check if message is addressed to Maya (either direct text mention or clean reply)
+      // Check if message is addressed to Maya (either direct text mention or reply)
       const botId = message.client.user?.id;
       if (!botId) return;
 
       // Check if Maya is explicitly tagged in the text body
       const isExplicitlyMentionedInText = new RegExp(`<@!?${botId}>`).test(message.content);
 
-      // Check if any OTHER users are mentioned explicitly in the text body
-      const textMentions = message.content.match(/<@!?(\d+)>/g) || [];
-      const mentionsOtherUserInText = textMentions.some((m) => {
-        const id = m.replace(/<@!?|>/g, "");
-        return id !== botId;
-      });
-
       let isReplyToMaya = false;
+      let repliedMessage: Message | null = null;
       if (message.reference?.messageId) {
         try {
           const refMsg = await message.channel.messages.fetch(message.reference.messageId);
-          if (refMsg && refMsg.author.id === botId) {
-            isReplyToMaya = true;
+          if (refMsg) {
+            repliedMessage = refMsg;
+            if (refMsg.author.id === botId) {
+              isReplyToMaya = true;
+            }
           }
         } catch (_) {}
       }
 
-      // If the message explicitly mentions other users in the text AND does NOT explicitly tag @Maya in the text,
-      // the user is talking to that other person, NOT Maya (even if replying to Maya's previous message!).
-      if (mentionsOtherUserInText && !isExplicitlyMentionedInText) {
-        return;
-      }
-
-      // Trigger Maya only if explicitly tagged in text OR if replying to Maya without tagging anyone else
-      const shouldRespond = isExplicitlyMentionedInText || (isReplyToMaya && !mentionsOtherUserInText);
+      // Trigger Maya only if explicitly tagged in text OR if replying to Maya
+      const shouldRespond = isExplicitlyMentionedInText || isReplyToMaya;
       if (shouldRespond && !message.mentions.everyone) {
         // Send typing status
         if ("sendTyping" in message.channel) {
           await message.channel.sendTyping().catch(() => {});
         }
 
-        const rawContent = message.content.replace(new RegExp(`<@!?${botId}>`, "g"), "").trim();
-        const userPrompt = rawContent || "halo maya!";
+        // Resolve all user mentions in message content so AI gets clear readable names (@DisplayName) instead of raw <@id> tokens
+        let resolvedContent = message.content.replace(new RegExp(`<@!?${botId}>`, "g"), "").trim();
+        const rawMentions = message.content.match(/<@!?(\d+)>/g) || [];
+        const otherMentionedNames: string[] = [];
+
+        for (const mentionToken of rawMentions) {
+          const targetId = mentionToken.replace(/<@!?|>/g, "");
+          if (targetId !== botId) {
+            let targetName = "";
+            const member = message.guild?.members.cache.get(targetId) || (await message.guild?.members.fetch(targetId).catch(() => null));
+            if (member) {
+              targetName = member.displayName || member.user.username;
+            } else {
+              const u = message.client.users.cache.get(targetId) || (await message.client.users.fetch(targetId).catch(() => null));
+              if (u) targetName = u.displayName || u.username;
+            }
+            if (!targetName) targetName = "teman";
+            otherMentionedNames.push(`@${targetName}`);
+            resolvedContent = resolvedContent.replace(new RegExp(`<@!?${targetId}>`, "g"), `@${targetName}`);
+          }
+        }
+
+        const userPrompt = resolvedContent.trim() || "halo maya!";
 
         // 1. Natural Mention Intent: Leave / Disconnect Voice Channel
         if (
@@ -587,29 +599,40 @@ const event: BotEvent = {
           content: msg.content
         }));
 
+        const authorName = message.member?.displayName || message.author.displayName || message.author.username;
+        let contextAddition = "";
+
         // If this is a reply to Maya's message, inject that replied-to message into context
         // so Gemini knows what Maya said and can continue naturally without repeating
-        if (isReplyToMaya && message.reference?.messageId) {
-          try {
-            const refMsg = await message.channel.messages.fetch(message.reference.messageId);
-            if (refMsg && refMsg.content) {
-              // Check if it's already in history (avoid duplication)
-              const alreadyInHistory = historyMessages.some(
-                h => h.role === "assistant" && h.content.trim().startsWith(refMsg.content.trim().slice(0, 80))
-              );
-              if (!alreadyInHistory) {
-                // Insert the replied-to message as the most recent assistant context
-                historyMessages.push({
-                  role: "assistant",
-                  content: refMsg.content
-                });
-              }
-            }
-          } catch (_) {}
+        if (isReplyToMaya && repliedMessage && repliedMessage.content) {
+          const alreadyInHistory = historyMessages.some(
+            h => h.role === "assistant" && h.content.trim().startsWith(repliedMessage!.content.trim().slice(0, 80))
+          );
+          if (!alreadyInHistory) {
+            historyMessages.push({
+              role: "assistant",
+              content: repliedMessage.content
+            });
+          }
+        }
+
+        // Add contextual clarity if this is a reply or if other members were tagged
+        if (repliedMessage) {
+          const refAuthorName = repliedMessage.member?.displayName || repliedMessage.author.displayName || repliedMessage.author.username;
+          let refText = repliedMessage.content.replace(new RegExp(`<@!?${botId}>`, "g"), "@Maya").trim();
+          if (refText.length > 120) refText = refText.slice(0, 120) + "...";
+          if (isReplyToMaya) {
+            contextAddition += `\n[Konteks Reply: ${authorName} sedang membalas chat Maya sebelumnya: "${refText}"]`;
+          } else {
+            contextAddition += `\n[Konteks Reply: ${authorName} sedang membalas chat dari ${refAuthorName}: "${refText}"]`;
+          }
+        }
+
+        if (otherMentionedNames.length > 0) {
+          contextAddition += `\n[Konteks Mention: ${authorName} me-mention ${otherMentionedNames.join(", ")}. Sadarilah bahwa kamu adalah Maya (bukan ${otherMentionedNames.join(", ")}). Berikan tanggapan/opini sebagai Maya kepada ${authorName} terkait hal yang dibicarakan atau orang yang disebut secara santai.]`;
         }
 
         // Extract other mentioned members for live context awareness ONLY when asking about whereabouts
-        let contextAddition = "";
         const isAskingWhereabouts = /(kemana|ke\s+mana|di\s+mana|dimana|lagi\s+apa|sedang\s+apa|ada\s+gak|online\s+gak|lagi\s+ngapain|nyari|nyariin)\b/i.test(userPrompt);
         const otherMentions = message.mentions.users.filter(u => u.id !== botId);
 
@@ -624,11 +647,9 @@ const event: BotEvent = {
             contextParts.push(`Status Target ${targetName}: ${inVoice}`);
           }
           if (contextParts.length > 0) {
-            contextAddition = `\n[Info Live Server Discord: ${contextParts.join("; ")}]`;
+            contextAddition += `\n[Info Live Server Discord: ${contextParts.join("; ")}]`;
           }
         }
-
-        const authorName = message.member?.displayName || message.author.displayName || message.author.username;
 
         // Live Context Awareness for Economy, Leaderboard, & Season Redeem
         const isAskingEconomyOrSeason = /(poin|koin|rtk|saldo|leaderboard|peringkat|juara|rank|redeem|penarikan|tarik|tukar|shop|toko|golden candidate|kandidat|cooldown)/i.test(userPrompt);
