@@ -98,18 +98,18 @@ const command: Command = {
       let redeemEligibility = "✅ Memenuhi Syarat & Berhak Redeem di /shop!";
       if (isOwnerOrAmubhya) {
         redeemEligibility = "👑 Akun Pemilik Server (@amubhya) Dikecualikan dari Penukaran Hadiah";
+      } else if (isCooldown) {
+        redeemEligibility = "⏳ Masa Cooldown (Pemenang Bulan Lalu)\n> *Kamu beristirahat 1 bulan agar rekan lain kebagian. Koinmu tetap aman & bertambah, dan dapat redeem kembali season depan!*";
+      } else if (hasRedeemed) {
+        redeemEligibility = `✅ Telah Klaim Hadiah Season Ini (${currentRedeemed.length}/${quotaMax} Pemenang)\n> *Kamu sudah menukarkan hadiah bulan ini! Bersiap untuk masa istirahat di season depan.*`;
       } else if (dateInfo.day < 3) {
-        redeemEligibility = `⏳ Masa Redeem Belum Dibuka (Buka tgl 3 s.d. 5 ${dateInfo.monthName} untuk 2 Golden Candidates)`;
+        redeemEligibility = `⏳ Masa Redeem Belum Dibuka (Buka tgl 3 s.d. 5 ${dateInfo.monthName} untuk Golden Candidates)`;
       } else if (dateInfo.day > 5) {
         redeemEligibility = `🔒 Masa Redeem Bulan Ini Telah Ditutup (Buka kembali tgl 3 bulan depan)`;
-      } else if (isCooldown) {
-        redeemEligibility = "⏳ Masa Istirahat (Pemenang Bulan Lalu)";
-      } else if (hasRedeemed) {
-        redeemEligibility = "✅ Sudah Klaim Hadiah Bulan Ini";
       } else if (goldenCandidates.length > 0 && !isGolden) {
-        redeemEligibility = "❌ Khusus 2 Golden Candidates Terpilih (Tgl 3–5)";
+        redeemEligibility = "❌ Khusus Golden Candidates (Peringkat Teratas Leaderboard Tgl 3–5)";
       } else if (currentRedeemed.length >= quotaMax) {
-        redeemEligibility = "❌ Kuota Habis (2/2 Pemenang)";
+        redeemEligibility = `❌ Kuota Habis (${currentRedeemed.length}/${quotaMax} Pemenang)`;
       } else if (!isActive) {
         redeemEligibility = "❌ Belum Memenuhi (Minimal aktif di 1 fitur/voice)";
       }

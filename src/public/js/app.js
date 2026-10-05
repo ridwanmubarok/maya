@@ -399,7 +399,7 @@ async function selectGuild(guildId) {
     }
 
     if (typeof loadEconomyConfig === 'function') {
-      loadEconomyConfig(config);
+      loadEconomyConfig(config, channels);
     }
 
     if (typeof loadLevelingConfig === 'function') {

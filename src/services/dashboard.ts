@@ -353,6 +353,7 @@ export function startDashboard(client: MayaClient) {
           dateInfo,
           config: {
             monthlyResetEnabled: config?.monthlyResetEnabled ?? true,
+            monthlyResetChannelId: config?.monthlyResetChannelId ?? null,
             monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 2,
             goldenCandidateIds,
             goldenCandidateDetails,

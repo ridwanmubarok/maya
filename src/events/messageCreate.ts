@@ -19,6 +19,7 @@ import { buildMemberCardPayload } from "../commands/utility/card";
 import { addChatXp } from "../services/levelingManager";
 import { broadcastLandingActivity } from "../services/dashboard";
 import { bonfireManager } from "../services/bonfireManager";
+import { getWibDateInfo } from "../services/monthlySeasonManager";
 
 // Helper deterministic query parsers (Bypasses AI reasoning for precision and speed ONLY on explicit search/catalog requests)
 function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
@@ -608,9 +609,58 @@ const event: BotEvent = {
           }
         }
 
+        const authorName = message.member?.displayName || message.author.displayName || message.author.username;
+
+        // Live Context Awareness for Economy, Leaderboard, & Season Redeem
+        const isAskingEconomyOrSeason = /(poin|koin|rtk|saldo|leaderboard|peringkat|juara|rank|redeem|penarikan|tarik|tukar|shop|toko|golden candidate|kandidat|cooldown)/i.test(userPrompt);
+        if (isAskingEconomyOrSeason && message.guild) {
+          try {
+            const contextItems: string[] = [];
+            // 1. Author's personal balance
+            const userScore = await prisma.triviaScore.findUnique({
+              where: { guildId_userId: { guildId, userId: message.author.id } }
+            });
+            if (userScore) {
+              contextItems.push(`Saldo koin RTK penanya (${authorName}): ${userScore.score.toLocaleString("id-ID")} RTK (Harian: ${userScore.dailyScore})`);
+            }
+
+            // 2. Top 5 Leaderboard
+            const topScores = await prisma.triviaScore.findMany({
+              where: { guildId, score: { gt: 0 } },
+              orderBy: { score: "desc" },
+              take: 5
+            });
+            if (topScores.length > 0) {
+              const lbSummary = topScores.map((s, idx) => `#${idx + 1} ${s.username} (${s.score.toLocaleString("id-ID")} RTK)`).join(", ");
+              contextItems.push(`Live Top 5 Leaderboard RTK: ${lbSummary}`);
+            }
+
+            // 3. Season & Candidate Info
+            const dateInfo = getWibDateInfo();
+            let goldenIds: string[] = [];
+            try { goldenIds = JSON.parse(config?.goldenCandidateIds || "[]"); } catch (_) {}
+            let cooldownIds: string[] = [];
+            try { cooldownIds = JSON.parse(config?.cooldownUserIds || "[]"); } catch (_) {}
+            let redeemedIds: string[] = [];
+            try { redeemedIds = JSON.parse(config?.currentMonthRedeemedUsers || "[]"); } catch (_) {}
+
+            contextItems.push(`Info Musim: Bulan ${dateInfo.monthName}, Tgl ${dateInfo.day}, Status Jendela Redeem: ${dateInfo.isRedeemPeriod ? "SEDANG BUKA (Tgl 3-5)" : "TUTUP (Baru buka tgl 3-5)"}, Kuota Terisi: ${redeemedIds.length}/${config?.monthlyRedeemQuota || 2}`);
+            if (goldenIds.length > 0) {
+              contextItems.push(`Kandidat Plafon 50k Saat Ini (Rank #1 & #2): User ID [${goldenIds.join(", ")}]`);
+            }
+            if (cooldownIds.includes(message.author.id)) {
+              contextItems.push(`Status Penanya: Sedang dalam masa Cooldown 1 Bulan (Pemenang bulan lalu, koin tetap bertambah tapi belum bisa redeem di /shop bulan ini)`);
+            }
+            if (redeemedIds.includes(message.author.id)) {
+              contextItems.push(`Status Penanya: Sudah sukses menukarkan hadiah di musim ini`);
+            }
+
+            contextAddition += `\n[Info Live Database Ekonomi & Season: ${contextItems.join("; ")}]`;
+          } catch (_) {}
+        }
+
         const personality = config?.aiPersonality || undefined;
         const preferredModel = config?.aiModel || undefined;
-        const authorName = message.member?.displayName || message.author.displayName || message.author.username;
         const promptWithUser = `${authorName}: ${userPrompt}${contextAddition}`;
 
         const aiResponse = await askNvidia(promptWithUser, personality, historyMessages, preferredModel);

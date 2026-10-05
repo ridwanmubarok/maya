@@ -70,10 +70,14 @@ const command: Command = {
         `Penukaran hadiah menggunakan **Rogatekno Koin (RTK)**.\n\n` +
         `${statusText}\n\n` +
         `**Katalog Produk:**\n` +
-        items.map((item, idx) => 
-          `**${idx + 1}. ${item.title}** — **${item.priceRtk.toLocaleString("id-ID")} RTK**\n` +
-          `${item.description ? `${item.description}\n` : ""}`
-        ).join("\n") +
+        items.map((item, idx) => {
+          const isEwallet = item.category === "EWALLET" || /e-?wallet|dana|gopay|ovo|shopeepay/i.test(item.title);
+          const priceText = isEwallet
+            ? "**Nominal Bebas (Min. 10.000 RTK)**"
+            : `**${item.priceRtk.toLocaleString("id-ID")} RTK**`;
+          return `**${idx + 1}. ${item.title}** — ${priceText}\n` +
+            `${item.description ? `${item.description}\n` : ""}`;
+        }).join("\n") +
         `\nPilih produk dari menu di bawah untuk melakukan penukaran.`
       )
       .setColor(dateInfo.isRedeemPeriod ? "#10B981" : "#3B82F6")
@@ -92,11 +96,12 @@ const command: Command = {
       .setPlaceholder("Pilih produk yang ingin ditukarkan...");
 
     items.slice(0, 25).forEach(item => {
+      const isEwallet = item.category === "EWALLET" || /e-?wallet|dana|gopay|ovo|shopeepay/i.test(item.title);
       selectMenu.addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel(`${item.title.substring(0, 50)}`)
           .setValue(`${item.id}`)
-          .setDescription(`Harga: ${item.priceRtk.toLocaleString("id-ID")} RTK`)
+          .setDescription(isEwallet ? "Nominal bebas diisi saat checkout (Min 10.000 RTK)" : `Harga: ${item.priceRtk.toLocaleString("id-ID")} RTK`)
       );
     });
 

@@ -13,10 +13,46 @@ export interface CreateShopItemInput {
 }
 
 /**
+ * Pastikan ada produk E-Wallet nominal bebas di toko guild
+ */
+export async function ensureDefaultEwalletItem(guildId: string) {
+  try {
+    const existing = await prisma.shopItem.findFirst({
+      where: {
+        guildId,
+        active: true,
+        OR: [
+          { category: "EWALLET" },
+          { title: { contains: "E-Wallet", mode: "insensitive" } },
+          { title: { contains: "Ewallet", mode: "insensitive" } },
+        ]
+      }
+    });
+
+    if (!existing) {
+      await prisma.shopItem.create({
+        data: {
+          guildId,
+          title: "💳 Saldo E-Wallet (DANA / GoPay / OVO / ShopeePay)",
+          description: "Tukarkan koin RTK kamu ke saldo E-Wallet! Nominal bebas diisi saat checkout (Minimal 10.000 RTK s.d. 50.000 RTK).",
+          priceRtk: 10000,
+          category: "EWALLET",
+          imageUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80",
+          active: true
+        }
+      });
+    }
+  } catch (err) {
+    logger.error(`Error ensuring default ewallet item for guild ${guildId}:`, err);
+  }
+}
+
+/**
  * Ambil daftar produk toko aktif untuk guild (Murni dari Database)
  */
 export async function getGuildShopItems(guildId: string) {
   try {
+    await ensureDefaultEwalletItem(guildId);
     const items = await prisma.shopItem.findMany({
       where: { guildId, active: true },
       orderBy: { id: "asc" }
@@ -75,18 +111,35 @@ export async function deleteShopItem(id: number, guildId: string) {
 }
 
 /**
- * Proses Pembelian Produk Toko oleh Member Discord
+ * Proses Pembelian Produk Toko oleh Member Discord (Mendukung Fixed & Custom Amount E-Wallet)
  */
 export async function processShopPurchase(
   guildId: string,
   userId: string,
   username: string,
   itemId: number,
-  targetInput: string
+  targetInput: string,
+  customAmount?: number
 ) {
   const item = await prisma.shopItem.findUnique({ where: { id: itemId } });
   if (!item || !item.active) {
     return { success: false, reason: "Produk tidak ditemukan atau sudah tidak aktif." };
+  }
+
+  const isEwallet = item.category === "EWALLET" || /e-?wallet|dana|gopay|ovo|shopeepay/i.test(item.title);
+  let finalPrice = item.priceRtk;
+
+  if (isEwallet) {
+    if (customAmount === undefined || isNaN(customAmount) || customAmount <= 0) {
+      return { success: false, reason: "Harap masukkan jumlah nominal koin RTK yang valid untuk penukaran E-Wallet." };
+    }
+    if (customAmount < 10000) {
+      return { success: false, reason: "Batas minimal penukaran saldo E-Wallet adalah **10.000 RTK**." };
+    }
+    if (customAmount > 50000) {
+      return { success: false, reason: "Batas maksimal plafon penukaran hadiah adalah **50.000 RTK** per bulan." };
+    }
+    finalPrice = customAmount;
   }
 
   // Validasi Kuota Bulanan (Maks 2 orang), Cooldown, dan Syarat Keaktifan
@@ -104,17 +157,17 @@ export async function processShopPurchase(
   });
 
   const userBalance = record?.score ?? 0;
-  if (userBalance < item.priceRtk) {
+  if (userBalance < finalPrice) {
     return {
       success: false,
-      reason: `Saldo kamu saat ini **${userBalance} RTK**, tidak cukup untuk membeli **${item.title}** seharga **${item.priceRtk} RTK**.`
+      reason: `Saldo kamu saat ini **${userBalance.toLocaleString("id-ID")} RTK**, tidak cukup untuk menukarkan **${item.title}** sebesar **${finalPrice.toLocaleString("id-ID")} RTK**.`
     };
   }
 
   // Potong saldo RTK
   await prisma.triviaScore.update({
     where: { id: record!.id },
-    data: { score: userBalance - item.priceRtk }
+    data: { score: userBalance - finalPrice }
   });
 
   // Catat partisipasi redeem musim ini
@@ -124,6 +177,7 @@ export async function processShopPurchase(
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const randomCode = Math.floor(1000 + Math.random() * 9000);
   const orderId = `TRX-${dateStr}-${randomCode}`;
+  const finalTitle = isEwallet ? `${item.title} (Rp ${finalPrice.toLocaleString("id-ID")})` : item.title;
 
   const order = await prisma.shopOrder.create({
     data: {
@@ -131,12 +185,14 @@ export async function processShopPurchase(
       guildId,
       userId,
       username,
-      itemTitle: item.title,
-      priceRtk: item.priceRtk,
+      itemTitle: finalTitle,
+      priceRtk: finalPrice,
       targetInput,
       status: "PENDING"
     }
   });
+
+  logger.info(`Shop: Order ${orderId} created by ${username} (${userId}) for ${finalTitle} - ${finalPrice} RTK`);
 
   return {
     success: true,

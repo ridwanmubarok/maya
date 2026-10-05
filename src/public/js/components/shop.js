@@ -41,7 +41,7 @@ async function loadShopProducts() {
           }
           <div class="flex justify-between items-start">
             <h4 class="font-bold text-sm text-white font-outfit">${escapeHtml(item.title)}</h4>
-            <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-bold text-xs font-mono whitespace-nowrap">${item.priceRtk.toLocaleString('id-ID')} RTK</span>
+            <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-bold text-xs font-mono whitespace-nowrap">${item.category === 'EWALLET' || /e-?wallet/i.test(item.title) ? 'Nominal Bebas (Min 10k)' : `${item.priceRtk.toLocaleString('id-ID')} RTK`}</span>
           </div>
           <p class="text-xs text-gray-400 line-clamp-2">${escapeHtml(item.description || 'Tidak ada deskripsi.')}</p>
         </div>

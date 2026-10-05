@@ -7,6 +7,7 @@ import { tebakManager } from "../services/tebakManager";
 import { submitMenfess } from "../services/menfessService";
 import { trackAnalyticsEvent } from "../services/analyticsTracker";
 import { processShopPurchase } from "../services/shopService";
+import { prisma } from "../services/database";
 import { translateWithNvidia } from "../services/translationService";
 import { translationCache } from "../commands/utility/translateMsg";
 import { generateFreeImage } from "../services/imageGenService";
@@ -646,20 +647,36 @@ const event: BotEvent = {
     // Handle String Select Menu Interactions
     if (interaction.isStringSelectMenu() && interaction.customId === "shop_select_item") {
       const itemId = interaction.values[0];
+      const item = await prisma.shopItem.findUnique({ where: { id: parseInt(itemId, 10) } });
+      const isEwallet = item?.category === "EWALLET" || /e-?wallet|dana|gopay|ovo|shopeepay/i.test(item?.title || "");
+
       const modal = new ModalBuilder()
         .setCustomId(`modal_shop_checkout:${itemId}`)
-        .setTitle("🛒 Form Pembelian Toko Server");
+        .setTitle(isEwallet ? "💳 Redeem E-Wallet (Nominal Bebas)" : "🛒 Form Pembelian Toko Server");
+
+      const rows: ActionRowBuilder<TextInputBuilder>[] = [];
+
+      if (isEwallet) {
+        const amountInput = new TextInputBuilder()
+          .setCustomId("shop_amount_input")
+          .setLabel("Jumlah Koin RTK (Min 10.000 RTK)")
+          .setPlaceholder("Contoh: 15000 (Sesuai saldo koinmu, Maks 50.000)")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(6);
+        rows.push(new ActionRowBuilder<TextInputBuilder>().addComponents(amountInput));
+      }
 
       const input = new TextInputBuilder()
         .setCustomId("shop_target_input")
-        .setLabel("Data Target / ID Game / Contact")
-        .setPlaceholder("Contoh: ID Game (Zone ID) / Nickname Role / No HP DANA")
+        .setLabel(isEwallet ? "Provider E-Wallet & No HP Target" : "Data Target / ID Game / Contact")
+        .setPlaceholder(isEwallet ? "Contoh: DANA - 08123456789 (a.n. Budi)" : "Contoh: ID Game (Zone ID) / No HP")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMaxLength(200);
 
-      const row = new ActionRowBuilder<TextInputBuilder>().addComponents(input);
-      modal.addComponents(row);
+      rows.push(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+      modal.addComponents(...rows);
 
       await interaction.showModal(modal);
       return;
@@ -672,6 +689,13 @@ const event: BotEvent = {
       if (customId.startsWith("modal_shop_checkout:")) {
         const itemId = parseInt(customId.split(":")[1], 10);
         const targetInput = interaction.fields.getTextInputValue("shop_target_input").trim();
+        let customAmount: number | undefined;
+        try {
+          const rawAmount = interaction.fields.getTextInputValue("shop_amount_input")?.trim();
+          if (rawAmount) {
+            customAmount = parseInt(rawAmount.replace(/[^0-9]/g, ""), 10);
+          }
+        } catch (_) {}
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -685,7 +709,8 @@ const event: BotEvent = {
           interaction.user.id,
           interaction.user.displayName || interaction.user.username,
           itemId,
-          targetInput
+          targetInput,
+          customAmount
         );
 
         if (!res.success) {

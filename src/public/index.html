@@ -112,14 +112,71 @@
       transform: scale(0.96);
     }
 
-    /* Floating Avatar Animations */
-    @keyframes float1 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
-    @keyframes float2 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-11px); } }
-    @keyframes float3 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-7px); } }
+    /* Floating Avatar Animations - Ultra Smooth, Natural & Hardware Accelerated */
+    @keyframes smoothFloat1 {
+      0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+      33% { transform: translate3d(2px, -8px, 0) rotate(0.6deg); }
+      66% { transform: translate3d(-2px, -12px, 0) rotate(-0.5deg); }
+    }
+    @keyframes smoothFloat2 {
+      0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+      35% { transform: translate3d(-2.5px, -11px, 0) rotate(-0.7deg); }
+      70% { transform: translate3d(2px, -6px, 0) rotate(0.5deg); }
+    }
+    @keyframes smoothFloat3 {
+      0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+      30% { transform: translate3d(2.5px, -7px, 0) rotate(0.5deg); }
+      65% { transform: translate3d(-2px, -13px, 0) rotate(-0.6deg); }
+    }
+    @keyframes smoothFloat4 {
+      0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+      40% { transform: translate3d(-2.5px, -10px, 0) rotate(-0.5deg); }
+      75% { transform: translate3d(2px, -5px, 0) rotate(0.6deg); }
+    }
+    @keyframes smoothFloat5 {
+      0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+      32% { transform: translate3d(3px, -12px, 0) rotate(0.7deg); }
+      68% { transform: translate3d(-1.5px, -6px, 0) rotate(-0.4deg); }
+    }
+    @keyframes smoothFloat6 {
+      0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+      38% { transform: translate3d(-2px, -9px, 0) rotate(-0.6deg); }
+      72% { transform: translate3d(2.5px, -14px, 0) rotate(0.5deg); }
+    }
 
-    .float-item-1 { animation: float1 5s ease-in-out infinite; }
-    .float-item-2 { animation: float2 6s ease-in-out infinite 0.8s; }
-    .float-item-3 { animation: float3 5.4s ease-in-out infinite 1.6s; }
+    .voice-float-1 { animation: smoothFloat1 6.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+    .voice-float-2 { animation: smoothFloat2 7.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.8s; }
+    .voice-float-3 { animation: smoothFloat3 6.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 1.5s; }
+    .voice-float-4 { animation: smoothFloat4 7.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.4s; }
+    .voice-float-5 { animation: smoothFloat5 6.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 2.0s; }
+    .voice-float-6 { animation: smoothFloat6 7.0s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 1.2s; }
+
+    /* Backward compatibility mappings */
+    .float-item-1 { animation: smoothFloat1 6.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+    .float-item-2 { animation: smoothFloat2 7.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.8s; }
+    .float-item-3 { animation: smoothFloat3 6.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 1.5s; }
+
+    @keyframes voiceAuraPulse {
+      0%, 100% { opacity: 0.45; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.12); }
+    }
+    .voice-aura {
+      animation: voiceAuraPulse 3.8s ease-in-out infinite;
+      will-change: transform, opacity;
+    }
+
+    .voice-avatar-slot {
+      will-change: transform, opacity, left, top;
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                  left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+                  top 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .voice-avatar-inner {
+      will-change: transform;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
 
     /* Custom Scrollbar */
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -2155,19 +2212,24 @@
     const tickerText = document.getElementById('ticker-text');
 
     // --- 1. BOTTOM DOCK: CLEAN ROUND AVATAR ICONS WITH HOVER TOOLTIP ---
+    let lastRenderedDockKey = '';
     function renderGuardiansDock(members) {
-      if (!guardiansDock) return;
+      if (!guardiansDock || !members) return;
+      const key = members.map(m => m.id).join(',');
+      if (key === lastRenderedDockKey) return;
+      lastRenderedDockKey = key;
       guardiansDock.innerHTML = '';
       members.forEach(m => {
         const item = document.createElement('div');
         item.className = 'relative group cursor-pointer flex-shrink-0';
         item.innerHTML = `
-          <img src="${m.avatar}" alt="${m.displayName}" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-white/20 group-hover:border-amber-400 group-hover:scale-115 transition duration-200 shadow-md" />
+          <img src="${m.avatar}" alt="${m.displayName}" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-white/20 group-hover:border-amber-400 group-hover:scale-115 transition duration-200 shadow-md" onerror="this.onerror=null; this.src='https://cdn.discordapp.com/embed/avatars/0.png';" />
           <div class="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-black/90 border border-white/15 text-[10px] text-amber-200 font-sans whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-xl z-30">
             ${m.displayName}
           </div>
         `;
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          if (e) spawnClickSpark(e.clientX, e.clientY);
           igniteFlameFromActivity(0.04, false);
           tickerText.innerHTML = `Menyapa <strong class="text-amber-300">${m.displayName}</strong> di sanctuary`;
         });
@@ -2176,53 +2238,129 @@
     }
 
     // --- 2. FLOATING VOICE MEMBERS: REAL-TIME ACTIVE VOICE OCCUPANTS ONLY ---
+    // Smooth outer flank positions to avoid headers, campfire center, and bottom dock
+    const flankPositions = [
+      { x: '9%', y: '40%', anim: 'voice-float-1' },
+      { x: '91%', y: '40%', anim: 'voice-float-2' },
+      { x: '12%', y: '60%', anim: 'voice-float-3' },
+      { x: '88%', y: '60%', anim: 'voice-float-4' },
+      { x: '8%', y: '23%', anim: 'voice-float-5' },
+      { x: '92%', y: '23%', anim: 'voice-float-6' },
+    ];
+
+    // Keyed cache for non-destructive DOM updates (avoids reset/flicker/blink)
+    const mountedFloatingSlots = new Map();
+
     function renderFloatingVoiceMembers(voiceMembers) {
       if (!floatingLayer) return;
-      floatingLayer.innerHTML = '';
 
-      // Sembunyi sepenuhnya jika voice channel kosong
-      if (!voiceMembers || voiceMembers.length === 0) {
-        return;
+      const activeList = Array.isArray(voiceMembers) ? voiceMembers.slice(0, 6) : [];
+      const incomingIds = new Set(activeList.map(m => String(m.id)));
+
+      // 1. Smoothly fade out members who left the voice channel
+      for (const [id, item] of mountedFloatingSlots.entries()) {
+        if (!incomingIds.has(id)) {
+          const slot = item.slotEl;
+          slot.style.opacity = '0';
+          slot.style.transform = 'translate3d(-50%, -50%, 0) scale(0.8)';
+          slot.style.pointerEvents = 'none';
+          setTimeout(() => {
+            if (slot.parentNode === floatingLayer) {
+              floatingLayer.removeChild(slot);
+            }
+          }, 650);
+          mountedFloatingSlots.delete(id);
+        }
       }
 
-      // Posisi sayap luar (outer flanks) agar steril dari judul dan api unggun
-      const flankPositions = [
-        { x: '10%', y: '42%', anim: 'float-item-1' },
-        { x: '90%', y: '42%', anim: 'float-item-2' },
-        { x: '11%', y: '64%', anim: 'float-item-3' },
-        { x: '89%', y: '64%', anim: 'float-item-1' },
-        { x: '10%', y: '26%', anim: 'float-item-2' },
-        { x: '90%', y: '26%', anim: 'float-item-3' },
-      ];
+      if (activeList.length === 0) return;
 
-      voiceMembers.slice(0, 6).forEach((m, idx) => {
+      // 2. Diff and mount/update active members
+      activeList.forEach((m, idx) => {
+        const id = String(m.id);
         const pos = flankPositions[idx] || flankPositions[0];
-        const wrapper = document.createElement('div');
-        wrapper.className = `absolute pointer-events-auto ${pos.anim} transition-all duration-300`;
-        wrapper.style.left = pos.x;
-        wrapper.style.top = pos.y;
-        wrapper.style.transform = 'translate(-50%, -50%)';
+        const targetChannel = m.channelName || 'Voice';
 
-        wrapper.innerHTML = `
-          <div class="group flex flex-col items-center cursor-pointer">
-            <div class="relative">
-              <img src="${m.avatar}" alt="${m.displayName}" class="w-11 h-11 rounded-full object-cover border-2 border-amber-400 shadow-[0_0_16px_rgba(251,191,36,0.65)] group-hover:scale-110 transition duration-200" />
-              <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-black flex items-center justify-center text-[8px] text-white" title="Sedang di Voice Channel">
-                🎙️
+        if (mountedFloatingSlots.has(id)) {
+          // Already mounted: update position & texts without resetting DOM or CSS animation
+          const item = mountedFloatingSlots.get(id);
+          const slot = item.slotEl;
+
+          if (slot.style.left !== pos.x) slot.style.left = pos.x;
+          if (slot.style.top !== pos.y) slot.style.top = pos.y;
+
+          if (item.animClass !== pos.anim) {
+            item.innerEl.className = `voice-avatar-inner ${pos.anim}`;
+            item.animClass = pos.anim;
+          }
+
+          const nameEl = slot.querySelector('.voice-member-name');
+          if (nameEl && nameEl.textContent !== m.displayName) {
+            nameEl.textContent = m.displayName;
+          }
+          const chEl = slot.querySelector('.voice-channel-name');
+          if (chEl && chEl.textContent !== targetChannel) {
+            chEl.textContent = targetChannel;
+          }
+        } else {
+          // New member: construct slot container and floating child
+          const slot = document.createElement('div');
+          slot.className = 'voice-avatar-slot absolute pointer-events-auto select-none';
+          slot.style.left = pos.x;
+          slot.style.top = pos.y;
+          slot.style.transform = 'translate3d(-50%, -50%, 0) scale(0.82)';
+          slot.style.opacity = '0';
+
+          const inner = document.createElement('div');
+          inner.className = `voice-avatar-inner ${pos.anim}`;
+
+          inner.innerHTML = `
+            <div class="group relative flex flex-col items-center cursor-pointer">
+              <!-- Soft Warm Glow / Ambient Aura -->
+              <div class="voice-aura absolute -inset-2 rounded-full bg-gradient-to-tr from-amber-500/25 via-orange-500/25 to-yellow-500/20 blur-md pointer-events-none group-hover:scale-125 transition-transform duration-300"></div>
+
+              <!-- Avatar Frame -->
+              <div class="relative">
+                <img src="${m.avatar}" alt="${m.displayName}"
+                     class="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-amber-400/70 shadow-[0_0_18px_rgba(245,158,11,0.45)] group-hover:border-amber-300 group-hover:shadow-[0_0_24px_rgba(251,191,36,0.7)] group-hover:scale-105 transition-all duration-300"
+                     onerror="this.onerror=null; this.src='https://cdn.discordapp.com/embed/avatars/0.png';" />
+
+                <!-- Voice Status Badge: Glowing Emerald Radar Ping -->
+                <div class="absolute -bottom-1 -right-1 w-4.5 h-4.5 bg-zinc-950/95 rounded-full border border-emerald-400/80 shadow flex items-center justify-center" title="Aktif di Voice Channel">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Neat Translucent Pill Label (Clean, Rapih, Zero Clutter) -->
+              <div class="mt-1.5 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 flex flex-col items-center max-w-[105px] text-center shadow-xl group-hover:border-amber-400/40 transition-all duration-200">
+                <span class="voice-member-name text-[10.5px] font-semibold text-amber-100 tracking-wide truncate w-full leading-tight drop-shadow-sm">${m.displayName}</span>
+                <span class="text-[8px] text-amber-300/85 font-mono tracking-tight truncate w-full flex items-center justify-center gap-1">
+                  <span class="w-1 h-1 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                  <span class="voice-channel-name truncate">${targetChannel}</span>
+                </span>
               </div>
             </div>
-            <span class="mt-1 text-xs text-amber-200 font-medium tracking-wide drop-shadow">${m.displayName}</span>
-            <span class="text-[9px] text-zinc-400 font-mono tracking-tight">${m.channelName || 'Voice'}</span>
-          </div>
-        `;
+          `;
 
-        wrapper.addEventListener('click', (e) => {
-          spawnClickSpark(e.clientX, e.clientY);
-          igniteFlameFromActivity(0.04, false);
-          tickerText.innerHTML = `Menyapa <strong class="text-amber-300">${m.displayName}</strong> di voice`;
-        });
+          slot.addEventListener('click', (e) => {
+            spawnClickSpark(e.clientX, e.clientY);
+            igniteFlameFromActivity(0.04, false);
+            tickerText.innerHTML = `Menyapa <strong class="text-amber-300">${m.displayName}</strong> di voice`;
+          });
 
-        floatingLayer.appendChild(wrapper);
+          slot.appendChild(inner);
+          floatingLayer.appendChild(slot);
+
+          // Trigger smooth fade & scale in
+          void slot.offsetWidth;
+          slot.style.opacity = '1';
+          slot.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
+
+          mountedFloatingSlots.set(id, { slotEl: slot, innerEl: inner, animClass: pos.anim, data: m });
+        }
       });
     }
 

@@ -149,15 +149,17 @@ export function getUserActivityChecklist(record: any): { name: string; completed
 }
 
 /**
- * Pick 2 Random Active Candidates who can reach up to 50k points this month
- * Evaluates active members who have actually participated in server activities (Voice, Trivia, Poll, Story, Pantun)
- * (Excludes previous month's winners who are in cooldown)
+ * Pick Top 2 Golden Candidates based strictly on highest RTK score accumulated this season
+ * Fair competitive system: Members compete all month, and Rank #1 & #2 on the leaderboard earn the Golden Candidate spots.
+ * (Excludes previous month's winners who are in cooldown, as well as server owner/@amubhya)
  */
 export async function pickMonthlyGoldenCandidates(client: Client, guildId: string, force = false): Promise<string[]> {
   try {
     globalDiscordClient = client;
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     if (!config) return [];
+
+    const dateInfo = getWibDateInfo();
 
     let currentCandidates: string[] = [];
     try {
@@ -166,7 +168,8 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
       currentCandidates = [];
     }
 
-    if (!force && currentCandidates.length === 2) {
+    // During active redeem period (Tgl 3-5), keep the locked candidates unless force refresh is requested
+    if (!force && dateInfo.isRedeemPeriod && currentCandidates.length === 2) {
       return currentCandidates;
     }
 
@@ -177,9 +180,16 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
       cooldownUsers = [];
     }
 
-    // Identify user IDs to exclude: cooldown users, guild owner, and @amubhya
+    let currentRedeemed: string[] = [];
+    try {
+      currentRedeemed = JSON.parse(config.currentMonthRedeemedUsers || "[]");
+    } catch (_) {
+      currentRedeemed = [];
+    }
+
+    // Identify user IDs to exclude: cooldown users (previous month winners), current month redeemed winners, guild owner, and @amubhya
     const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
-    const excludedUserIds = new Set<string>(cooldownUsers);
+    const excludedUserIds = new Set<string>([...cooldownUsers, ...currentRedeemed]);
 
     if (guild) {
       if (guild.ownerId) excludedUserIds.add(guild.ownerId);
@@ -188,62 +198,41 @@ export async function pickMonthlyGoldenCandidates(client: Client, guildId: strin
     }
 
     const excludedList = Array.from(excludedUserIds);
+    const maxQuota = config.monthlyRedeemQuota || MONTHLY_REDEEM_QUOTA;
+    const remainingSlotsNeeded = Math.max(0, maxQuota - currentRedeemed.length);
 
-    // 1. Find genuinely active members in TriviaScore who are NOT in cooldown, NOT owner/amubhya, and have score > 0
-    const activeScores = await prisma.triviaScore.findMany({
+    // Pick top members strictly by score in descending order (Rank berikutnya di Leaderboard yang eligible)
+    const topScorers = await prisma.triviaScore.findMany({
       where: {
         guildId,
         userId: { notIn: excludedList },
         score: { gt: 0 },
-        OR: [
-          { participatedVoice: true },
-          { participatedTrivia: true },
-          { participatedPoll: true },
-          { participatedStory: true },
-          { participatedPantun: true },
-        ],
       },
       orderBy: { score: "desc" },
+      take: remainingSlotsNeeded > 0 ? remainingSlotsNeeded : 2,
     });
 
-    let eligibleUserIds = activeScores.map((s) => s.userId);
+    let pickedCandidates = topScorers.map((s) => s.userId);
 
-    // Fallback: If not enough active users in DB, pick from any eligible members with score > 0
-    if (eligibleUserIds.length < 2) {
-      const anyScoreUsers = await prisma.triviaScore.findMany({
+    // Fallback: If fewer active scorers with score > 0, check other eligible members with score >= 0
+    if (pickedCandidates.length < remainingSlotsNeeded) {
+      const fallbackScores = await prisma.triviaScore.findMany({
         where: {
           guildId,
-          userId: { notIn: excludedList },
-          score: { gt: 0 },
+          userId: { notIn: [...excludedList, ...pickedCandidates] },
         },
         orderBy: { score: "desc" },
+        take: remainingSlotsNeeded - pickedCandidates.length,
       });
-      const combined = new Set([...eligibleUserIds, ...anyScoreUsers.map((s) => s.userId)]);
-      eligibleUserIds = Array.from(combined);
+      pickedCandidates.push(...fallbackScores.map((s) => s.userId));
     }
-
-    // Fallback 2: Server members (non-bot, non-excluded) if completely empty
-    if (guild && eligibleUserIds.length < 2) {
-      await guild.members.fetch().catch(() => {});
-      const fallbackMembers = guild.members.cache.filter((m) => !m.user.bot && !excludedUserIds.has(m.id));
-      const combined = new Set([...eligibleUserIds, ...fallbackMembers.map((m) => m.id)]);
-      eligibleUserIds = Array.from(combined);
-    }
-
-    // Shuffle array (Fisher-Yates) among eligible active participants
-    for (let i = eligibleUserIds.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [eligibleUserIds[i], eligibleUserIds[j]] = [eligibleUserIds[j], eligibleUserIds[i]];
-    }
-
-    const pickedCandidates = eligibleUserIds.slice(0, 2);
 
     await prisma.guildConfig.update({
       where: { guildId },
       data: { goldenCandidateIds: JSON.stringify(pickedCandidates) },
     });
 
-    logger.info(`MonthlySeason: Terpilih 2 Golden Candidates aktif untuk guild ${guildId} (mengecualikan Owner/@amubhya): ${pickedCandidates.join(", ")}`);
+    logger.info(`MonthlySeason: Terpilih Golden Candidates kompetisi poin untuk guild ${guildId} (Sisa slot: ${remainingSlotsNeeded}): ${pickedCandidates.join(", ")}`);
     return pickedCandidates;
   } catch (error) {
     logger.error(`MonthlySeason: Gagal memilih golden candidates untuk guild ${guildId}:`, error);
@@ -475,21 +464,21 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
       }
     }
 
-    // 2. Check if user is one of the 2 Golden Candidates
+    // 2. Check if user is one of the Golden Candidates
     if (goldenCandidates.length > 0 && !goldenCandidates.includes(userId)) {
       return {
         canRedeem: false,
-        reason: "Penukaran hadiah /shop periode ini (tgl 3–5) dikhususkan untuk 2 akun member terpilih (Golden Candidates). Terus aktif di komunitas agar terpilih di season depan!",
+        reason: "Penukaran hadiah /shop periode ini dikhususkan untuk Golden Candidates (Peringkat teratas di Leaderboard). Kumpulkan koinmu agar masuk peringkat teratas!",
         currentQuota: currentRedeemed.length,
         maxQuota,
       };
     }
 
-    // 3. Check cooldown from previous month
+    // 3. Check cooldown from previous month (1-month resting period)
     if (cooldownUsers.includes(userId)) {
       return {
         canRedeem: false,
-        reason: "Kamu telah menukarkan hadiah di bulan lalu. Nikmati masa istirahat season ini agar member lain kebagian ya!",
+        reason: "Kamu sedang dalam masa cooldown (istirahat 1 bulan) karena telah memenangkan redeem di season sebelumnya. Koinmu tetap aman & bertambah, dan kamu dapat redeem kembali pada pembukaan season bulan depan!",
         currentQuota: currentRedeemed.length,
         maxQuota,
       };
@@ -499,13 +488,13 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
     if (currentRedeemed.includes(userId)) {
       return {
         canRedeem: false,
-        reason: "Kamu sudah menukarkan 1 hadiah di bulan ini (Maksimal 1 transaksi per member per bulan). Berikan kesempatan bagi temanmu!",
+        reason: "Kamu sudah menukarkan 1 hadiah di season ini (Maksimal 1 transaksi per member per season). Slot berikutnya akan terbuka di season bulan depan!",
         currentQuota: currentRedeemed.length,
         maxQuota,
       };
     }
 
-    // 5. Check quota limit (max 3 users)
+    // 5. Check quota limit (max 2 users)
     if (currentRedeemed.length >= maxQuota) {
       return {
         canRedeem: false,
@@ -543,7 +532,7 @@ export async function canUserRedeemShop(guildId: string, userId: string) {
 /**
  * Release redemption slot when an order is cancelled or refunded
  */
-export async function releaseShopRedemption(guildId: string, userId: string) {
+export async function releaseShopRedemption(guildId: string, userId: string, client?: Client) {
   try {
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     let currentRedeemed: string[] = [];
@@ -557,15 +546,21 @@ export async function releaseShopRedemption(guildId: string, userId: string) {
       data: { currentMonthRedeemedUsers: JSON.stringify(filtered) },
     });
     logger.info(`MonthlySeason: User ${userId} dihapus dari currentMonthRedeemedUsers di guild ${guildId} (Order Refunded/Rejected).`);
+
+    // Refresh candidate slots
+    const targetClient = client || globalDiscordClient;
+    if (targetClient) {
+      await pickMonthlyGoldenCandidates(targetClient, guildId, true);
+    }
   } catch (error) {
     logger.error("releaseShopRedemption: Error releasing redemption:", error);
   }
 }
 
 /**
- * Record a successful shop redemption
+ * Record a successful shop redemption and immediately reallocate candidate slot to next top scorer
  */
-export async function recordShopRedemption(guildId: string, userId: string) {
+export async function recordShopRedemption(guildId: string, userId: string, client?: Client) {
   try {
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     let currentRedeemed: string[] = [];
@@ -580,6 +575,13 @@ export async function recordShopRedemption(guildId: string, userId: string) {
         data: { currentMonthRedeemedUsers: JSON.stringify(currentRedeemed) },
       });
       logger.info(`MonthlySeason: User ${userId} berhasil menukarkan hadiah (${currentRedeemed.length}/${config?.monthlyRedeemQuota || MONTHLY_REDEEM_QUOTA}) di guild ${guildId}`);
+
+      // Immediately reallocate candidate slot to next highest member from leaderboard
+      const targetClient = client || globalDiscordClient;
+      if (targetClient) {
+        await pickMonthlyGoldenCandidates(targetClient, guildId, true);
+        logger.info(`MonthlySeason: Slot Golden Candidate di guild ${guildId} berhasil dialihkan ke peringkat berikutnya di Leaderboard!`);
+      }
     }
   } catch (error) {
     logger.error("recordShopRedemption: Error recording redemption:", error);
@@ -641,11 +643,8 @@ export async function sendDay1Announcement(client: Client, guildId: string) {
     if (config.monthlyResetChannelId) {
       targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
     }
-    if (!targetChannel && config.welcomeChannelId) {
-      targetChannel = (guild.channels.cache.get(config.welcomeChannelId) as TextChannel) || null;
-    }
     if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /chat|general|umum|announcement|pengumuman/i.test(c.name)) as TextChannel) || null;
+      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
     }
 
     if (targetChannel) {
@@ -701,14 +700,8 @@ export async function sendDay3RedeemOpenNotification(client: Client, guildId: st
 
     const dateInfo = getWibDateInfo();
 
-    // Silently evaluate and ensure candidates are fresh
-    await evaluateAndRotateGoldenCandidates(client, guildId);
-
-    const freshConfig = await prisma.guildConfig.findUnique({ where: { guildId } });
-    let candidates: string[] = [];
-    try {
-      candidates = JSON.parse(freshConfig?.goldenCandidateIds || "[]");
-    } catch (_) {}
+    // Evaluate and lock the Top 2 scorers from the season competition as the official Golden Candidates!
+    const candidates = await pickMonthlyGoldenCandidates(client, guildId, true);
 
     const amubhya = await getAmubhyaMember(guild);
     const candidateMentions = candidates.length > 0
@@ -742,16 +735,16 @@ export async function sendDay3RedeemOpenNotification(client: Client, guildId: st
     if (config.monthlyResetChannelId) {
       targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
     }
-    if (!targetChannel && config.welcomeChannelId) {
-      targetChannel = (guild.channels.cache.get(config.welcomeChannelId) as TextChannel) || null;
-    }
     if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /chat|general|umum|announcement|pengumuman/i.test(c.name)) as TextChannel) || null;
+      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
     }
 
     if (targetChannel) {
+      const candidateTagText = candidates.length > 0
+        ? `\nPerhatian khusus untuk ${candidates.map((id) => `<@${id}>`).join(" & ")}: Plafon **50.000 RTK** kalian siap digunakan di \`/shop\`!`
+        : "";
       await targetChannel.send({
-        content: `🚨 **PERIODE REDEEM HADIAH RESMI DIBUKA!**`,
+        content: `🚨 **PERIODE REDEEM HADIAH RESMI DIBUKA!**${candidateTagText}`,
         embeds: [embed],
       });
       logger.info(`MonthlySeason: Berhasil mengirim notifikasi Day 3 ke #${targetChannel.name} di guild ${guild.name}`);
@@ -840,13 +833,16 @@ export async function sendDay5LastCallNotification(client: Client, guildId: stri
     if (config.monthlyResetChannelId) {
       targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
     }
-    if (!targetChannel && config.welcomeChannelId) {
-      targetChannel = (guild.channels.cache.get(config.welcomeChannelId) as TextChannel) || null;
+    if (!targetChannel) {
+      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
     }
 
     if (targetChannel) {
+      const mentionCandidates = unredeemedCandidates.length > 0
+        ? `\nPerhatian ${unredeemedCandidates.map((id) => `<@${id}>`).join(" & ")}: Segera tukarkan poinmu sebelum batas waktu malam ini pukul 23:59 WIB!`
+        : "";
       await targetChannel.send({
-        content: `🚨 **PERINGATAN HARI TERAKHIR PENUKARAN HADIAH!**`,
+        content: `🚨 **PERINGATAN HARI TERAKHIR PENUKARAN HADIAH!**${mentionCandidates}`,
         embeds: [embed],
       });
     }
@@ -989,8 +985,8 @@ export async function archiveAndResetSeason(client: Client, guildId: string) {
     if (config.monthlyResetChannelId) {
       targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
     }
-    if (!targetChannel && config.welcomeChannelId) {
-      targetChannel = (guild.channels.cache.get(config.welcomeChannelId) as TextChannel) || null;
+    if (!targetChannel) {
+      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
     }
 
     if (targetChannel) {

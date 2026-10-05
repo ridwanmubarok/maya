@@ -1,6 +1,16 @@
 // FRONTEND COMPONENT: ECONOMY & VOICE REWARDS CONFIGURATION
 
-function loadEconomyConfig(config) {
+function populateSeasonChannels(channels, selectedChannelId) {
+  const select = document.getElementById('season-channel');
+  if (!select) return;
+
+  select.innerHTML = `<option value="">Pilih Channel Pengumuman Season (Default: Channel Pengumuman / Chat Umum)</option>` +
+    (channels || []).map(c => `
+      <option value="${c.id}" ${c.id === selectedChannelId ? 'selected' : ''}>#${escapeHtml(c.name)}</option>
+    `).join('');
+}
+
+function loadEconomyConfig(config, channels = []) {
   const enabledCheckbox = document.getElementById('voice-reward-enabled');
   const intervalInput = document.getElementById('voice-reward-interval');
   const amountInput = document.getElementById('voice-reward-amount');
@@ -15,6 +25,19 @@ function loadEconomyConfig(config) {
 
   if (amountInput) {
     amountInput.value = config.voiceRewardAmount ?? 25;
+  }
+
+  // Season Channel & Settings
+  populateSeasonChannels(channels, config.monthlyResetChannelId);
+
+  const seasonEnabledCheckbox = document.getElementById('season-reset-enabled');
+  if (seasonEnabledCheckbox) {
+    seasonEnabledCheckbox.checked = config.monthlyResetEnabled !== false;
+  }
+
+  const seasonQuotaInput = document.getElementById('season-redeem-quota');
+  if (seasonQuotaInput) {
+    seasonQuotaInput.value = config.monthlyRedeemQuota ?? 2;
   }
 
   loadEconomyBalances();
@@ -55,6 +78,23 @@ async function loadEconomyBalances() {
       if (quotaElem) quotaElem.innerText = `${season.config.currentMonthRedeemedUsers.length}/${season.config.monthlyRedeemQuota} Pemenang`;
 
       renderSeasonCandidates(season.config.goldenCandidateDetails || season.config.goldenCandidateIds, balances);
+      renderCooldownWinners(season.config.cooldownUserIds || [], balances);
+
+      // Sync season settings fields if loaded via economy endpoint
+      if (season.config.monthlyResetChannelId) {
+        const chanSelect = document.getElementById('season-channel');
+        if (chanSelect && (!chanSelect.value || chanSelect.value !== season.config.monthlyResetChannelId)) {
+          chanSelect.value = season.config.monthlyResetChannelId;
+        }
+      }
+      if (typeof season.config.monthlyResetEnabled === 'boolean') {
+        const enabledElem = document.getElementById('season-reset-enabled');
+        if (enabledElem) enabledElem.checked = season.config.monthlyResetEnabled;
+      }
+      if (season.config.monthlyRedeemQuota) {
+        const quotaInput = document.getElementById('season-redeem-quota');
+        if (quotaInput) quotaInput.value = season.config.monthlyRedeemQuota;
+      }
     }
 
     if (!balances || balances.length === 0) {
@@ -67,12 +107,25 @@ async function loadEconomyBalances() {
     }
 
     const goldenIds = season?.config?.goldenCandidateIds || [];
+    const cooldownIds = season?.config?.cooldownUserIds || [];
+    const redeemedIds = season?.config?.currentMonthRedeemedUsers || [];
 
     tableBody.innerHTML = balances.map((b, idx) => {
       const rank = idx + 1;
       const rankBadge = rank === 1 ? '🥇 Peringkat 1' : rank === 2 ? '🥈 Peringkat 2' : rank === 3 ? '🥉 Peringkat 3' : `#${rank}`;
       const safeUsername = escapeHtml(b.username);
       const isGold = goldenIds.includes(b.userId);
+      const isCooldown = cooldownIds.includes(b.userId);
+      const isRedeemed = redeemedIds.includes(b.userId);
+
+      let statusBadge = '';
+      if (isRedeemed) {
+        statusBadge = '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">✅ TELAH REDEEM</span>';
+      } else if (isGold) {
+        statusBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold">🌟 GOLDEN 50K</span>';
+      } else if (isCooldown) {
+        statusBadge = '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] font-bold" title="Pemenang bulan lalu, istirahat 1 bulan">⏳ COOLDOWN (1 BLN)</span>';
+      }
 
       return `
         <tr class="border-b border-white/5 hover:bg-white/2 transition-all">
@@ -81,7 +134,7 @@ async function loadEconomyBalances() {
             <div class="flex flex-col">
               <div class="flex items-center gap-1.5">
                 <span class="font-bold">${safeUsername}</span>
-                ${isGold ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold">🌟 GOLDEN 50K</span>' : ''}
+                ${statusBadge}
               </div>
               <span class="text-[10px] text-gray-500 font-mono">${b.userId}</span>
             </div>
@@ -157,6 +210,43 @@ function renderSeasonCandidates(candidates, balances = []) {
         <div class="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
           <span class="text-gray-400">Saldo Saat Ini:</span>
           <span class="font-bold text-amber-400 font-mono">${scoreVal.toLocaleString('id-ID')} RTK</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderCooldownWinners(cooldownIds, balances = []) {
+  const container = document.getElementById('season-cooldown-container');
+  if (!container) return;
+
+  if (!cooldownIds || cooldownIds.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full p-3 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-500">
+        Tidak ada member dalam masa cooldown saat ini. Seluruh member bebas berkompetisi!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cooldownIds.map(userId => {
+    const userBalance = balances.find(b => b.userId === userId);
+    const username = userBalance ? userBalance.username : `User ${userId}`;
+    const scoreVal = userBalance ? userBalance.score : 0;
+    return `
+      <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">${escapeHtml(username)}</div>
+            <div class="text-[10px] text-gray-400 font-mono">${userId}</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold">Istirahat 1 Bulan</span>
+          <div class="text-[10px] text-amber-400 font-mono font-bold mt-0.5">${scoreVal.toLocaleString('id-ID')} RTK</div>
         </div>
       </div>
     `;
@@ -357,3 +447,36 @@ async function saveEconomyConfig() {
     showToast('Gagal Menyimpan', error.message, 'error');
   }
 }
+
+async function saveSeasonSettings() {
+  if (!selectedGuildId) {
+    showToast('Pilih Server', 'Silakan pilih server terlebih dahulu.', 'error');
+    return;
+  }
+
+  const channelId = document.getElementById('season-channel')?.value || null;
+  const enabled = document.getElementById('season-reset-enabled')?.checked ?? true;
+  const quota = parseInt(document.getElementById('season-redeem-quota')?.value || '2', 10);
+
+  try {
+    const res = await apiFetch(`/api/configs/${selectedGuildId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        monthlyResetChannelId: channelId,
+        monthlyResetEnabled: enabled,
+        monthlyRedeemQuota: quota
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Gagal menyimpan pengaturan season.');
+    }
+
+    showToast('Pengaturan Disimpan', 'Channel pengumuman & pengaturan Season RTK berhasil diperbarui! 📢', 'success');
+  } catch (error) {
+    showToast('Gagal Menyimpan', error.message, 'error');
+  }
+}
+
