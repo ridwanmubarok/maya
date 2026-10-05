@@ -77,7 +77,6 @@ async function loadEconomyBalances() {
       if (resetElem) resetElem.innerText = `Reset 5 ${season.dateInfo.monthName} 23:59 WIB`;
       if (quotaElem) quotaElem.innerText = `${season.config.currentMonthRedeemedUsers.length}/${season.config.monthlyRedeemQuota} Pemenang`;
 
-      renderSeasonCandidates(season.config.goldenCandidateDetails || season.config.goldenCandidateIds, balances);
       renderCooldownWinners(season.config.cooldownUserIds || [], balances);
 
       // Sync season settings fields if loaded via economy endpoint
@@ -109,22 +108,27 @@ async function loadEconomyBalances() {
     const goldenIds = season?.config?.goldenCandidateIds || [];
     const cooldownIds = season?.config?.cooldownUserIds || [];
     const redeemedIds = season?.config?.currentMonthRedeemedUsers || [];
+    const top1Id = goldenIds[0];
+    const top2Id = goldenIds[1];
 
     tableBody.innerHTML = balances.map((b, idx) => {
       const rank = idx + 1;
       const rankBadge = rank === 1 ? '🥇 Peringkat 1' : rank === 2 ? '🥈 Peringkat 2' : rank === 3 ? '🥉 Peringkat 3' : `#${rank}`;
       const safeUsername = escapeHtml(b.username);
-      const isGold = goldenIds.includes(b.userId);
+      const isTop1 = b.userId === top1Id;
+      const isTop2 = b.userId === top2Id;
       const isCooldown = cooldownIds.includes(b.userId);
       const isRedeemed = redeemedIds.includes(b.userId);
 
       let statusBadge = '';
       if (isRedeemed) {
         statusBadge = '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">✅ TELAH REDEEM</span>';
-      } else if (isGold) {
-        statusBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold">🌟 GOLDEN 50K</span>';
       } else if (isCooldown) {
         statusBadge = '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] font-bold" title="Pemenang bulan lalu, istirahat 1 bulan">⏳ COOLDOWN (1 BLN)</span>';
+      } else if (isTop1) {
+        statusBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold shadow-sm shadow-amber-500/10">🌟 TOP #1 (Plafon 50k)</span>';
+      } else if (isTop2) {
+        statusBadge = '<span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[9px] font-bold shadow-sm shadow-purple-500/10">🥈 TOP #2 (Plafon 50k)</span>';
       }
 
       return `
@@ -157,63 +161,6 @@ async function loadEconomyBalances() {
   } catch (error) {
     showToast('Economy Error', error.message || 'Gagal memuat data dompet.', 'error');
   }
-}
-
-function renderSeasonCandidates(candidates, balances = []) {
-  const container = document.getElementById('season-candidates-container');
-  if (!container) return;
-
-  if (!candidates || candidates.length === 0) {
-    container.innerHTML = `
-      <div class="col-span-1 md:col-span-2 p-4 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-400">
-        Belum ada Golden Candidates terpilih untuk season ini. Maya akan mengevaluasi keaktifan member secara hening di background (Plafon 50k, rotasi otomatis jika inaktif ≥ 3 hari).
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = candidates.map((item, index) => {
-    const isObject = typeof item === 'object' && item !== null;
-    const userId = isObject ? item.userId : item;
-    const userBalance = balances.find(b => b.userId === userId);
-    const scoreVal = isObject ? item.score : (userBalance ? userBalance.score : 0);
-    const usernameText = isObject ? item.username : (userBalance ? userBalance.username : `User ${userId}`);
-    const isInactive = isObject ? item.isInactive : false;
-    const hoursInactive = isObject ? item.hoursInactive : null;
-
-    let activityBadge = '';
-    if (isObject) {
-      if (isInactive) {
-        const daysText = hoursInactive !== null ? `${Math.floor(hoursInactive / 24)} hari` : '> 3 hari';
-        activityBadge = `<span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-semibold"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Inaktif ${daysText}</span>`;
-      } else {
-        activityBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold"><i class="fa-solid fa-bolt mr-1"></i>Aktif</span>`;
-      }
-    }
-
-    return `
-      <div class="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 space-y-2 relative overflow-hidden">
-        <div class="absolute -right-2 -bottom-2 opacity-10 text-4xl text-amber-400 pointer-events-none">
-          <i class="fa-solid fa-crown"></i>
-        </div>
-        <div class="flex items-center justify-between text-xs text-amber-400 font-bold">
-          <span>Golden Candidate #${index + 1}</span>
-          <div class="flex items-center gap-1.5">
-            ${activityBadge}
-            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-[10px]">Plafon 50k</span>
-          </div>
-        </div>
-        <div>
-          <div class="text-sm font-bold text-white truncate">${escapeHtml(usernameText)}</div>
-          <div class="text-[10px] text-gray-400 font-mono">${userId}</div>
-        </div>
-        <div class="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
-          <span class="text-gray-400">Saldo Saat Ini:</span>
-          <span class="font-bold text-amber-400 font-mono">${scoreVal.toLocaleString('id-ID')} RTK</span>
-        </div>
-      </div>
-    `;
-  }).join('');
 }
 
 function renderCooldownWinners(cooldownIds, balances = []) {
@@ -299,34 +246,6 @@ async function triggerDay5Closing() {
 
 async function triggerH5Warning() {
   return triggerDay3RedeemOpen();
-}
-
-async function evaluateSilentRotation() {
-  if (!selectedGuildId) return;
-  try {
-    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/rotate-candidates`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Gagal mengevaluasi rotasi kandidat.');
-    showToast(data.rotated ? 'Rotasi Hening Terjadi!' : 'Status Kandidat Terverifikasi', data.message, data.rotated ? 'info' : 'success');
-    loadEconomyBalances();
-  } catch (err) {
-    showToast('Gagal Evaluasi Rotasi', err.message, 'error');
-  }
-}
-
-async function rerollCandidates() {
-  if (!selectedGuildId) return;
-  if (!confirm('Acak ulang 2 Golden Candidates untuk season ini dari member yang teraktif? (Owner/@amubhya otomatis dikecualikan)')) return;
-
-  try {
-    const res = await apiFetch(`/api/economy/${selectedGuildId}/season/pick-candidates`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Gagal mengundi kandidat.');
-    showToast('Kandidat Terpilih!', data.message, 'success');
-    loadEconomyBalances();
-  } catch (err) {
-    showToast('Gagal Acak Kandidat', err.message, 'error');
-  }
 }
 
 async function confirmResetSeason() {

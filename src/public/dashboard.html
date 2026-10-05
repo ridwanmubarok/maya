@@ -1657,12 +1657,12 @@
                 <div class="flex items-center gap-2.5 text-amber-400">
                   <i class="fa-solid fa-crown text-base"></i>
                   <div>
-                    <h4 class="text-sm font-bold text-white">Season Bulanan &amp; 2 Golden Candidates (Plafon 50.000 RTK)</h4>
-                    <p class="text-[11px] text-gray-400">Dua member teraktif diumumkan tgl 1, redeem dibuka tgl 3–5, dan reset saldo tgl 5 malam. (Owner/@amubhya dikecualikan)</p>
+                    <h4 class="text-sm font-bold text-white">Siklus Musim Bulanan &amp; Pemenang Redeem RTK</h4>
+                    <p class="text-[11px] text-gray-400">Peringkat #1 &amp; #2 klasemen poin di Leaderboard berhak atas plafon 50.000 RTK saat periode redeem dibuka (Tgl 3–5). (Owner/@amubhya &amp; cooldown dikecualikan)</p>
                   </div>
                 </div>
                 <div class="flex items-center flex-wrap gap-2">
-                  <button onclick="triggerDay1Announcement()" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Pengumuman Golden Candidates (Tgl 1)">
+                  <button onclick="triggerDay1Announcement()" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Pengumuman Kickoff Season (Tgl 1)">
                     <i class="fa-solid fa-bullhorn"></i> Notif Tgl 1
                   </button>
                   <button onclick="triggerDay3RedeemOpen()" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Notifikasi Buka Redeem (Tgl 3)">
@@ -1671,21 +1671,10 @@
                   <button onclick="triggerDay5Closing()" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Kirim Peringatan Hari Terakhir (Tgl 5)">
                     <i class="fa-solid fa-clock"></i> Notif Tgl 5
                   </button>
-                  <button onclick="evaluateSilentRotation()" class="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Evaluasi & Rotasi Hening jika Kandidat Inaktif ≥ 3 Hari">
-                    <i class="fa-solid fa-arrows-spin"></i> Cek Rotasi
-                  </button>
-                  <button onclick="rerollCandidates()" class="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Acak Ulang 2 Kandidat">
-                    <i class="fa-solid fa-dice"></i> Acak Ulang
-                  </button>
-                  <button onclick="confirmResetSeason()" class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-all flex items-center gap-1.5">
+                  <button onclick="confirmResetSeason()" class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-all flex items-center gap-1.5" title="Arsipkan & Reset Saldo RTK">
                     <i class="fa-solid fa-arrows-rotate"></i> Reset Saldo
                   </button>
                 </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="season-candidates-container">
-                <!-- Golden candidates list loaded dynamically -->
-                <div class="p-3 rounded-xl bg-white/2 border border-white/5 text-center text-xs text-gray-500">Memuat kandidat...</div>
               </div>
 
               <!-- DAFTAR MEMBER COOLDOWN (1 BULAN) -->

@@ -291,49 +291,6 @@ export function startDashboard(client: MayaClient) {
         take: 5
       });
 
-      let goldenCandidateIds: string[] = [];
-      try {
-        goldenCandidateIds = JSON.parse(config?.goldenCandidateIds || "[]");
-      } catch (_) {}
-
-      // Enrich golden candidates with live activity info (for admin dashboard inspection)
-      const goldenCandidateDetails = await Promise.all(
-        goldenCandidateIds.map(async (userId) => {
-          let username = `User (${userId})`;
-          let avatar = "https://cdn.discordapp.com/embed/avatars/0.png";
-          try {
-            const user = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
-            if (user) {
-              username = user.tag || user.username || username;
-              if (typeof user.displayAvatarURL === "function") {
-                avatar = user.displayAvatarURL({ size: 64 }) || avatar;
-              }
-            }
-          } catch (_) {}
-
-          const scoreRecord = await prisma.triviaScore.findUnique({
-            where: { guildId_userId: { guildId, userId } },
-          });
-
-          const score = scoreRecord?.score || 0;
-          const lastActiveAt = scoreRecord?.updatedAt || null;
-          const hoursInactive = lastActiveAt
-            ? Math.floor((Date.now() - new Date(lastActiveAt).getTime()) / (1000 * 60 * 60))
-            : null;
-          const isInactive = hoursInactive !== null ? hoursInactive >= 72 : true;
-
-          return {
-            userId,
-            username,
-            avatar,
-            score,
-            lastActiveAt,
-            hoursInactive,
-            isInactive,
-          };
-        })
-      );
-
       let currentMonthRedeemedUsers: string[] = [];
       try {
         currentMonthRedeemedUsers = JSON.parse(config?.currentMonthRedeemedUsers || "[]");
@@ -343,6 +300,16 @@ export function startDashboard(client: MayaClient) {
       try {
         cooldownUserIds = JSON.parse(config?.cooldownUserIds || "[]");
       } catch (_) {}
+
+      // Derive live eligible candidates directly from top leaderboard balances
+      const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
+      const excludedIds = new Set<string>([...cooldownUserIds, ...currentMonthRedeemedUsers]);
+      if (guild?.ownerId) excludedIds.add(guild.ownerId);
+
+      const goldenCandidateIds = topBalances
+        .filter((b) => !excludedIds.has(b.userId) && !/(amubhya|amubhy|amubh|amub|ambu|\babu\b|mubhya)/i.test(b.username))
+        .slice(0, 2)
+        .map((b) => b.userId);
 
       res.json({
         success: true,
@@ -356,7 +323,6 @@ export function startDashboard(client: MayaClient) {
             monthlyResetChannelId: config?.monthlyResetChannelId ?? null,
             monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 2,
             goldenCandidateIds,
-            goldenCandidateDetails,
             currentMonthRedeemedUsers,
             cooldownUserIds,
             lastMonthlyAnnouncementDate: config?.lastMonthlyAnnouncementDate,
