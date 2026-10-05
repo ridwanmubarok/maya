@@ -1334,18 +1334,6 @@
     const fireflyParticles = new THREE.Points(fireflyGeo, fireflyMat);
     fireWorld.add(fireflyParticles);
 
-    spiralGeo.setAttribute('position', new THREE.BufferAttribute(spiralPos, 3));
-    const spiralMat = new THREE.PointsMaterial({
-      color: 0xffe066,
-      size: 0.045,
-      transparent: true,
-      opacity: 0.0, // Muncul saat Streak Tier 3 (7+ Hari)
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const spiralParticles = new THREE.Points(spiralGeo, spiralMat);
-    fireWorld.add(spiralParticles);
-
     let currentStreakDays = 1;
     let currentStreakTier = 1;
 
