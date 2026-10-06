@@ -1,7 +1,7 @@
 import { Client, EmbedBuilder, Guild, GuildMember, TextChannel } from "discord.js";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
-import { findHistoryChannel } from "../utils/historyLogger";
+import { findHistoryChannel, findRewardChannel } from "../utils/historyLogger";
 
 const REGULAR_MEMBER_MAX_POINTS = 20000;
 const GOLDEN_MEMBER_MAX_POINTS = 50000;
@@ -638,26 +638,19 @@ export async function sendDay1Announcement(client: Client, guildId: string) {
       })
       .setTimestamp();
 
-    // 1. Send to target announcement channel or general channel
-    let targetChannel: TextChannel | null = null;
-    if (config.monthlyResetChannelId) {
-      targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
-    }
-    if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
-    }
-
-    if (targetChannel) {
-      await targetChannel.send({
+    // 1. Send to target reward channel
+    const rewardChannel = findRewardChannel(guild, config.rewardChannelId || config.monthlyResetChannelId);
+    if (rewardChannel) {
+      await rewardChannel.send({
         content: `📢 **MUSIM BARU ROGATEKNO KOIN (RTK) RESMI DIMULAI!**`,
         embeds: [embed],
       });
-      logger.info(`MonthlySeason: Berhasil mengirim pengumuman Day 1 ke #${targetChannel.name} di guild ${guild.name}`);
+      logger.info(`MonthlySeason: Berhasil mengirim pengumuman Day 1 ke #${rewardChannel.name} di guild ${guild.name}`);
     }
 
     // 2. Send to #history channel permanently
-    const historyChannel = findHistoryChannel(guild);
-    if (historyChannel && historyChannel.id !== targetChannel?.id) {
+    const historyChannel = findHistoryChannel(guild, config.historyChannelId);
+    if (historyChannel && historyChannel.id !== rewardChannel?.id) {
       await historyChannel.send({
         embeds: [embed],
         allowedMentions: { parse: [] },
@@ -730,29 +723,22 @@ export async function sendDay3RedeemOpenNotification(client: Client, guildId: st
       })
       .setTimestamp();
 
-    // 1. Send to target announcement channel or general channel
-    let targetChannel: TextChannel | null = null;
-    if (config.monthlyResetChannelId) {
-      targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
-    }
-    if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
-    }
-
-    if (targetChannel) {
+    // 1. Send to target reward channel
+    const rewardChannel = findRewardChannel(guild, config.rewardChannelId || config.monthlyResetChannelId);
+    if (rewardChannel) {
       const candidateTagText = candidates.length > 0
         ? `\nPerhatian khusus untuk ${candidates.map((id) => `<@${id}>`).join(" & ")}: Plafon **50.000 RTK** kalian siap digunakan di \`/shop\`!`
         : "";
-      await targetChannel.send({
+      await rewardChannel.send({
         content: `🚨 **PERIODE REDEEM HADIAH RESMI DIBUKA!**${candidateTagText}`,
         embeds: [embed],
       });
-      logger.info(`MonthlySeason: Berhasil mengirim notifikasi Day 3 ke #${targetChannel.name} di guild ${guild.name}`);
+      logger.info(`MonthlySeason: Berhasil mengirim notifikasi Day 3 ke #${rewardChannel.name} di guild ${guild.name}`);
     }
 
     // 2. Send to #history channel permanently
-    const historyChannel = findHistoryChannel(guild);
-    if (historyChannel && historyChannel.id !== targetChannel?.id) {
+    const historyChannel = findHistoryChannel(guild, config.historyChannelId);
+    if (historyChannel && historyChannel.id !== rewardChannel?.id) {
       await historyChannel.send({
         embeds: [embed],
         allowedMentions: { parse: [] },
@@ -829,27 +815,24 @@ export async function sendDay5LastCallNotification(client: Client, guildId: stri
       })
       .setTimestamp();
 
-    let targetChannel: TextChannel | null = null;
-    if (config.monthlyResetChannelId) {
-      targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
-    }
-    if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
-    }
-
-    if (targetChannel) {
+    // 1. Send warning to target reward channel
+    const rewardChannel = findRewardChannel(guild, config.rewardChannelId || config.monthlyResetChannelId);
+    if (rewardChannel) {
       const mentionCandidates = unredeemedCandidates.length > 0
         ? `\nPerhatian ${unredeemedCandidates.map((id) => `<@${id}>`).join(" & ")}: Segera tukarkan poinmu sebelum batas waktu malam ini pukul 23:59 WIB!`
         : "";
-      await targetChannel.send({
+      await rewardChannel.send({
         content: `🚨 **PERINGATAN HARI TERAKHIR PENUKARAN HADIAH!**${mentionCandidates}`,
         embeds: [embed],
       });
+      logger.info(`MonthlySeason: Berhasil mengirim notifikasi Day 5 ke #${rewardChannel.name} di guild ${guild.name}`);
     }
 
-    const historyChannel = findHistoryChannel(guild);
-    if (historyChannel && historyChannel.id !== targetChannel?.id) {
+    // 2. Send to #history channel permanently
+    const historyChannel = findHistoryChannel(guild, config.historyChannelId);
+    if (historyChannel && historyChannel.id !== rewardChannel?.id) {
       await historyChannel.send({ embeds: [embed], allowedMentions: { parse: [] } });
+      logger.info(`MonthlySeason: Berhasil mencatat notifikasi Day 5 ke #${historyChannel.name} di guild ${guild.name}`);
     }
 
     // Direct DM ONLY to @amubhya (Server Owner) with report on who hasn't redeemed
@@ -980,22 +963,15 @@ export async function archiveAndResetSeason(client: Client, guildId: string) {
       })
       .setTimestamp();
 
-    // 4. Send to announcement & #history
-    let targetChannel: TextChannel | null = null;
-    if (config.monthlyResetChannelId) {
-      targetChannel = (guild.channels.cache.get(config.monthlyResetChannelId) as TextChannel) || null;
-    }
-    if (!targetChannel) {
-      targetChannel = (guild.channels.cache.find((c) => c.isTextBased() && /announcement|pengumuman|chat|general|umum/i.test(c.name)) as TextChannel) || null;
-    }
-
-    if (targetChannel) {
-      await targetChannel.send({ embeds: [embed] });
-    }
-
-    const historyChannel = findHistoryChannel(guild);
-    if (historyChannel && historyChannel.id !== targetChannel?.id) {
-      await historyChannel.send({ embeds: [embed], allowedMentions: { parse: [] } });
+    // 4. Send Leaderboard & Point Reset Info strictly to #history channel
+    const historyChannel = findHistoryChannel(guild, config.historyChannelId) || findRewardChannel(guild, config.rewardChannelId || config.monthlyResetChannelId);
+    if (historyChannel) {
+      await historyChannel.send({
+        content: `📜 **RIWAYAT LEADERBOARD & ARSIP RESET SALDO MUSIMAN**`,
+        embeds: [embed],
+        allowedMentions: { parse: [] }, // Silent record without pings
+      });
+      logger.info(`MonthlySeason: Berhasil mencatat rekap leaderboard dan reset poin ke #${historyChannel.name} di guild ${guild.name}`);
     }
 
     // 5. Reset all scores & activity flags in database to 0

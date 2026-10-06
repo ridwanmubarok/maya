@@ -57,6 +57,8 @@ model GuildConfig {
   lastPantunCloseDate    String?
   monthlyResetEnabled       Boolean  @default(true)
   monthlyResetChannelId      String?
+  rewardChannelId           String?
+  historyChannelId          String?
   monthlyRedeemQuota        Int      @default(2)
   goldenCandidateIds        String   @default("[]")
   currentMonthRedeemedUsers String   @default("[]")

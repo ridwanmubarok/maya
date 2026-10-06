@@ -320,7 +320,9 @@ export function startDashboard(client: MayaClient) {
           dateInfo,
           config: {
             monthlyResetEnabled: config?.monthlyResetEnabled ?? true,
-            monthlyResetChannelId: config?.monthlyResetChannelId ?? null,
+            monthlyResetChannelId: config?.rewardChannelId ?? config?.monthlyResetChannelId ?? null,
+            rewardChannelId: config?.rewardChannelId ?? config?.monthlyResetChannelId ?? null,
+            historyChannelId: config?.historyChannelId ?? null,
             monthlyRedeemQuota: config?.monthlyRedeemQuota ?? 2,
             goldenCandidateIds,
             currentMonthRedeemedUsers,
@@ -1023,6 +1025,8 @@ export function startDashboard(client: MayaClient) {
       pantunMvpReward,
       monthlyResetEnabled,
       monthlyResetChannelId,
+      rewardChannelId,
+      historyChannelId,
       monthlyRedeemQuota,
       levelingEnabled,
       levelUpChannelId,
@@ -1070,7 +1074,17 @@ export function startDashboard(client: MayaClient) {
       if (pantunRewardAmount !== undefined) updateData.pantunRewardAmount = Number(pantunRewardAmount);
       if (pantunMvpReward !== undefined) updateData.pantunMvpReward = Number(pantunMvpReward);
       if (monthlyResetEnabled !== undefined) updateData.monthlyResetEnabled = Boolean(monthlyResetEnabled);
-      if (monthlyResetChannelId !== undefined) updateData.monthlyResetChannelId = monthlyResetChannelId || null;
+      if (monthlyResetChannelId !== undefined) {
+        updateData.monthlyResetChannelId = monthlyResetChannelId || null;
+        if (rewardChannelId === undefined) updateData.rewardChannelId = monthlyResetChannelId || null;
+      }
+      if (rewardChannelId !== undefined) {
+        updateData.rewardChannelId = rewardChannelId || null;
+        updateData.monthlyResetChannelId = rewardChannelId || null;
+      }
+      if (historyChannelId !== undefined) {
+        updateData.historyChannelId = historyChannelId || null;
+      }
       if (monthlyRedeemQuota !== undefined) updateData.monthlyRedeemQuota = Number(monthlyRedeemQuota);
       if (levelingEnabled !== undefined) updateData.levelingEnabled = Boolean(levelingEnabled);
       if (levelUpChannelId !== undefined) updateData.levelUpChannelId = levelUpChannelId || null;

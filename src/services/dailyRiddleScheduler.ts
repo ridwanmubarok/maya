@@ -2,6 +2,7 @@ import { Client, TextChannel, EmbedBuilder } from "discord.js";
 import { tebakManager } from "./tebakManager";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
+import { findHistoryChannel } from "../utils/historyLogger";
 
 let dailySchedulerInitialized = false;
 
@@ -83,7 +84,7 @@ async function processScheduledBroadcasts(client: Client) {
         }).catch(() => {});
 
         logger.info(`DailyRiddleScheduler: Triggering daily leaderboard for ${guild.name} at ${wibHour}:00 WIB`);
-        await broadcastDailyLeaderboardsForGuild(guild, config?.dailyRiddleChannelId || undefined);
+        await broadcastDailyLeaderboardsForGuild(guild, config?.historyChannelId || undefined);
       }
     } catch (e) {
       logger.error(`DailyRiddleScheduler: Error processing schedule for ${guild.name}:`, e);
@@ -133,17 +134,13 @@ export async function broadcastDailyRiddlesForGuild(guild: any, configuredChanne
  */
 export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredChannelId?: string): Promise<boolean> {
   try {
-    let targetChannel: TextChannel | null = null;
-
-    if (configuredChannelId) {
-      targetChannel = (guild.channels.cache.get(configuredChannelId) || (await guild.channels.fetch(configuredChannelId).catch(() => null))) as TextChannel;
-    }
+    let targetChannel: TextChannel | null = findHistoryChannel(guild, configuredChannelId);
 
     if (!targetChannel) {
       try {
         const fetchedChannels = await guild.channels.fetch();
         targetChannel = (fetchedChannels.find(
-          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("tebak") || c.name.includes("general") || c.name.includes("chat") || c.name.includes("main"))
+          (c: any) => c && c.isTextBased() && !c.isThread() && (c.name.includes("history") || c.name.includes("changelog") || c.name.includes("tebak") || c.name.includes("general") || c.name.includes("chat") || c.name.includes("main"))
         ) || guild.systemChannel) as TextChannel;
       } catch (_) {
         targetChannel = guild.systemChannel as TextChannel;
@@ -188,9 +185,13 @@ export async function broadcastDailyLeaderboardsForGuild(guild: any, configuredC
       .setFooter({ text: "Maya Daily Trivia Engine • Leaderboard Malam" })
       .setTimestamp();
 
+    const isHistory = Boolean(targetChannel && /history|changelog|log/i.test(targetChannel.name));
     await targetChannel.send({
-      content: "📢 @everyone **Rekap Klasemen Tebak-Tebakan Harian Maya Hari Ini!** 🎉",
+      content: isHistory
+        ? `📜 **Rekap Klasemen Tebak-Tebakan Harian Maya (${dateFormatted})**`
+        : "📢 **Rekap Klasemen Tebak-Tebakan Harian Maya Hari Ini!** 🎉",
       embeds: [embed],
+      allowedMentions: isHistory ? { parse: [] } : undefined,
     });
 
     logger.info(`DailyRiddleScheduler: Daily leaderboard posted to channel #${targetChannel.name} in ${guild.name}`);

@@ -10,30 +10,73 @@ export interface HistoryAnnouncementOptions {
 }
 
 /**
- * Mencari channel history di dalam guild
+ * Mencari channel history di dalam guild (mendukung configuredHistoryChannelId dari dashboard)
  */
-export function findHistoryChannel(guild: any): TextChannel | null {
+export function findHistoryChannel(guild: any, configuredHistoryChannelId?: string | null): TextChannel | null {
+  if (!guild || !guild.channels) return null;
   const channels = guild.channels.cache;
 
-  // 1. Cari exact match channel bernama "history"
+  // 1. Jika ada configuredHistoryChannelId dari dashboard, prioritaskan
+  if (configuredHistoryChannelId) {
+    const configured = channels.get(configuredHistoryChannelId) || null;
+    if (configured && configured.isTextBased()) return configured as TextChannel;
+  }
+
+  // 2. Cari exact match channel bernama "history"
   let target = channels.find(
     (c: any) => c.isTextBased() && c.name.toLowerCase() === "history"
   );
 
-  // 2. Jika tidak ada exact match, cari channel yang mengandung kata "history"
+  // 3. Jika tidak ada exact match, cari channel yang mengandung kata "history"
   if (!target) {
     target = channels.find(
       (c: any) => c.isTextBased() && c.name.toLowerCase().includes("history")
     );
   }
 
-  // 3. Fallback: cari channel bernama "changelog" atau "update-history"
+  // 4. Fallback: cari channel bernama "changelog" atau "update-bot"
   if (!target) {
     target = channels.find(
       (c: any) => c.isTextBased() && (
         c.name.toLowerCase().includes("changelog") || 
-        c.name.toLowerCase().includes("update-bot")
+        c.name.toLowerCase().includes("update-bot") ||
+        c.name.toLowerCase().includes("log-bot")
       )
+    );
+  }
+
+  return (target as TextChannel) || null;
+}
+
+/**
+ * Mencari channel reward di dalam guild (mendukung configuredRewardChannelId dari dashboard)
+ */
+export function findRewardChannel(guild: any, configuredRewardChannelId?: string | null): TextChannel | null {
+  if (!guild || !guild.channels) return null;
+  const channels = guild.channels.cache;
+
+  // 1. Jika ada configuredRewardChannelId dari dashboard, prioritaskan
+  if (configuredRewardChannelId) {
+    const configured = channels.get(configuredRewardChannelId) || null;
+    if (configured && configured.isTextBased()) return configured as TextChannel;
+  }
+
+  // 2. Cari channel yang mengandung kata "reward", "hadiah", "redeem", "klaim"
+  let target = channels.find(
+    (c: any) => c.isTextBased() && /reward|hadiah|redeem|klaim/i.test(c.name)
+  );
+
+  // 3. Fallback: channel announcement / pengumuman
+  if (!target) {
+    target = channels.find(
+      (c: any) => c.isTextBased() && /announcement|pengumuman/i.test(c.name)
+    );
+  }
+
+  // 4. Fallback: channel umum / chat
+  if (!target) {
+    target = channels.find(
+      (c: any) => c.isTextBased() && /general|chat|umum/i.test(c.name)
     );
   }
 

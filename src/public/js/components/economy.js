@@ -1,13 +1,21 @@
 // FRONTEND COMPONENT: ECONOMY & VOICE REWARDS CONFIGURATION
 
-function populateSeasonChannels(channels, selectedChannelId) {
-  const select = document.getElementById('season-channel');
-  if (!select) return;
+function populateSeasonChannels(channels, rewardChannelId, historyChannelId) {
+  const rewardSelect = document.getElementById('season-reward-channel') || document.getElementById('season-channel');
+  if (rewardSelect) {
+    rewardSelect.innerHTML = `<option value="">Pilih Channel Reward (Default: #reward / #hadiah / #pengumuman)</option>` +
+      (channels || []).map(c => `
+        <option value="${c.id}" ${c.id === rewardChannelId ? 'selected' : ''}>#${escapeHtml(c.name)}</option>
+      `).join('');
+  }
 
-  select.innerHTML = `<option value="">Pilih Channel Pengumuman Season (Default: Channel Pengumuman / Chat Umum)</option>` +
-    (channels || []).map(c => `
-      <option value="${c.id}" ${c.id === selectedChannelId ? 'selected' : ''}>#${escapeHtml(c.name)}</option>
-    `).join('');
+  const historySelect = document.getElementById('season-history-channel');
+  if (historySelect) {
+    historySelect.innerHTML = `<option value="">Pilih Channel History (Default: #history / #changelog)</option>` +
+      (channels || []).map(c => `
+        <option value="${c.id}" ${c.id === historyChannelId ? 'selected' : ''}>#${escapeHtml(c.name)}</option>
+      `).join('');
+  }
 }
 
 function loadEconomyConfig(config, channels = []) {
@@ -27,8 +35,10 @@ function loadEconomyConfig(config, channels = []) {
     amountInput.value = config.voiceRewardAmount ?? 25;
   }
 
-  // Season Channel & Settings
-  populateSeasonChannels(channels, config.monthlyResetChannelId);
+  // Season Channels (Reward vs History) & Settings
+  const rewardId = config.rewardChannelId || config.monthlyResetChannelId;
+  const historyId = config.historyChannelId;
+  populateSeasonChannels(channels, rewardId, historyId);
 
   const seasonEnabledCheckbox = document.getElementById('season-reset-enabled');
   if (seasonEnabledCheckbox) {
@@ -80,10 +90,17 @@ async function loadEconomyBalances() {
       renderCooldownWinners(season.config.cooldownUserIds || [], balances);
 
       // Sync season settings fields if loaded via economy endpoint
-      if (season.config.monthlyResetChannelId) {
-        const chanSelect = document.getElementById('season-channel');
-        if (chanSelect && (!chanSelect.value || chanSelect.value !== season.config.monthlyResetChannelId)) {
-          chanSelect.value = season.config.monthlyResetChannelId;
+      const rewardId = season.config.rewardChannelId || season.config.monthlyResetChannelId;
+      if (rewardId) {
+        const rewardSelect = document.getElementById('season-reward-channel') || document.getElementById('season-channel');
+        if (rewardSelect && (!rewardSelect.value || rewardSelect.value !== rewardId)) {
+          rewardSelect.value = rewardId;
+        }
+      }
+      if (season.config.historyChannelId) {
+        const historySelect = document.getElementById('season-history-channel');
+        if (historySelect && (!historySelect.value || historySelect.value !== season.config.historyChannelId)) {
+          historySelect.value = season.config.historyChannelId;
         }
       }
       if (typeof season.config.monthlyResetEnabled === 'boolean') {
@@ -373,7 +390,8 @@ async function saveSeasonSettings() {
     return;
   }
 
-  const channelId = document.getElementById('season-channel')?.value || null;
+  const rewardChannelId = document.getElementById('season-reward-channel')?.value || document.getElementById('season-channel')?.value || null;
+  const historyChannelId = document.getElementById('season-history-channel')?.value || null;
   const enabled = document.getElementById('season-reset-enabled')?.checked ?? true;
   const quota = parseInt(document.getElementById('season-redeem-quota')?.value || '2', 10);
 
@@ -382,7 +400,9 @@ async function saveSeasonSettings() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        monthlyResetChannelId: channelId,
+        rewardChannelId,
+        historyChannelId,
+        monthlyResetChannelId: rewardChannelId,
         monthlyResetEnabled: enabled,
         monthlyRedeemQuota: quota
       })
@@ -393,7 +413,7 @@ async function saveSeasonSettings() {
       throw new Error(data.error || 'Gagal menyimpan pengaturan season.');
     }
 
-    showToast('Pengaturan Disimpan', 'Channel pengumuman & pengaturan Season RTK berhasil diperbarui! 📢', 'success');
+    showToast('Pengaturan Disimpan', 'Channel Reward & History Season RTK berhasil diperbarui! 📢', 'success');
   } catch (error) {
     showToast('Gagal Menyimpan', error.message, 'error');
   }

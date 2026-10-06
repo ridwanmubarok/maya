@@ -1694,30 +1694,43 @@
 
               <!-- PENGATURAN CHANNEL & SIKLUS SEASON RTK -->
               <div class="pt-4 border-t border-white/5 space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white">
                     <i class="fa-solid fa-bullhorn text-amber-400"></i>
-                    <span>Channel Notifikasi Season &amp; Redeem RTK</span>
+                    <span>Pengaturan Channel: Reward vs. History / Reset</span>
                   </div>
-                  <span class="text-[10px] text-gray-400">Digunakan untuk Kickoff Tgl 1, Buka Redeem Tgl 3, Warning Tgl 5, &amp; Reset</span>
+                  <span class="text-[10px] text-gray-400">Reward ke Channel Hadiah • Rekap &amp; Reset ke Channel History</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <!-- Dropdown Channel -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                  <!-- Dropdown Channel Reward -->
                   <div class="flex flex-col gap-1.5 md:col-span-2">
-                    <label for="season-channel" class="text-xs font-semibold text-gray-300">Channel Pengumuman Season &amp; Redeem</label>
-                    <select id="season-channel" class="w-full px-4 py-2.5 rounded-xl glass-input text-white outline-none text-xs border border-white/10 bg-[#1e2029] cursor-pointer">
-                      <option value="">Pilih Channel Pengumuman Season (Default: Channel Pengumuman / Chat Umum)</option>
+                    <label for="season-reward-channel" class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                      <i class="fa-solid fa-gift"></i> Channel Pengumuman Reward / Hadiah
+                    </label>
+                    <select id="season-reward-channel" class="w-full px-4 py-2.5 rounded-xl glass-input text-white outline-none text-xs border border-white/10 bg-[#1e2029] cursor-pointer">
+                      <option value="">Pilih Channel Reward (Default: #reward / #hadiah / #pengumuman)</option>
                     </select>
-                    <p class="text-[10px] text-gray-500">Notifikasi pembukaan redeem dan peringatan akan dikirim ke channel ini dengan mention ke Golden Candidate.</p>
+                    <p class="text-[10px] text-gray-500">Kickoff season, pembukaan redeem /shop, dan mention kandidat pemenang dikirim ke channel ini.</p>
+                  </div>
+
+                  <!-- Dropdown Channel History -->
+                  <div class="flex flex-col gap-1.5 md:col-span-2">
+                    <label for="season-history-channel" class="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
+                      <i class="fa-solid fa-clock-rotate-left"></i> Channel History &amp; Reset Poin
+                    </label>
+                    <select id="season-history-channel" class="w-full px-4 py-2.5 rounded-xl glass-input text-white outline-none text-xs border border-white/10 bg-[#1e2029] cursor-pointer">
+                      <option value="">Pilih Channel History (Default: #history / #changelog)</option>
+                    </select>
+                    <p class="text-[10px] text-gray-500">Klasemen leaderboard, rekapan akhir bulan, dan log eksekusi reset poin ke 0 dicatat silent di sini.</p>
                   </div>
 
                   <!-- Kuota Redeem & Toggle -->
-                  <div class="flex flex-col gap-1.5">
-                    <label for="season-redeem-quota" class="text-xs font-semibold text-gray-300">Kuota Redeem Bulanan</label>
+                  <div class="flex flex-col gap-1.5 lg:col-span-1">
+                    <label for="season-redeem-quota" class="text-xs font-semibold text-gray-300">Kuota Redeem</label>
                     <div class="flex items-center gap-2">
-                      <input type="number" id="season-redeem-quota" min="1" max="10" value="2" class="w-24 px-3 py-2.5 rounded-xl glass-input text-white outline-none text-xs font-bold text-amber-400 font-mono">
-                      <span class="text-xs text-gray-400">Orang / Bulan</span>
+                      <input type="number" id="season-redeem-quota" min="1" max="10" value="2" class="w-20 px-3 py-2.5 rounded-xl glass-input text-white outline-none text-xs font-bold text-amber-400 font-mono">
+                      <span class="text-xs text-gray-400">Pemenang</span>
                     </div>
                   </div>
                 </div>
