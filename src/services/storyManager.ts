@@ -43,12 +43,22 @@ export function getWibHour(): number {
   return parseInt(hour || "0", 10);
 }
 
+const processedStoryMessageIds = new Set<string>();
+
 /**
  * Handle incoming messages in the story chain channel (1 kalimat per pesan)
  */
 export async function handleStoryWordMessage(message: Message) {
   try {
     if (!message.guild || message.author.bot) return;
+
+    // Deduplicate duplicate message events within process
+    if (processedStoryMessageIds.has(message.id)) return;
+    processedStoryMessageIds.add(message.id);
+    if (processedStoryMessageIds.size > 500) {
+      const first = processedStoryMessageIds.values().next().value;
+      if (first) processedStoryMessageIds.delete(first);
+    }
 
     const guildId = message.guild.id;
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
@@ -109,6 +119,12 @@ export async function handleStoryWordMessage(message: Message) {
     });
 
     if (lastWord && lastWord.userId === message.author.id) {
+      // If the exact same sentence was already saved (e.g. processed by another instance or concurrent event), keep message and react
+      if (lastWord.word.trim() === singleSentence.trim()) {
+        await message.react("👍").catch(() => {});
+        return;
+      }
+
       const warnMsg = await message.reply("⏳ Harap tunggu member lain menulis kalimat berikutnya baru giliranmu lagi! Pesan kamu telah dihapus.").catch(() => null);
       await message.delete().catch(() => {});
       if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
