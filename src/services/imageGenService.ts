@@ -88,8 +88,67 @@ export async function generateFreeImage(
 
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-    // 1. Try Google Gemini Imagen 3 API if key is available
+    // 1. Try Google Gemini Flash Image API (generateContent with responseModalities: ["IMAGE"])
     if (geminiKey) {
+      const geminiImageModels = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
+
+      for (const model of geminiImageModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: enhancedPrompt
+                    }
+                  ]
+                }
+              ],
+              generationConfig: {
+                responseModalities: ["IMAGE"]
+              }
+            }),
+            signal: AbortSignal.timeout(35000)
+          });
+
+          if (response.ok) {
+            const data: any = await response.json();
+            const parts = data.candidates?.[0]?.content?.parts || [];
+            const imgPart = parts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
+            const base64Data = imgPart?.inlineData?.data || imgPart?.inline_data?.data;
+
+            if (base64Data) {
+              const imageBuffer = Buffer.from(base64Data, "base64");
+              const { relativeUrl } = saveGeneratedImageLocally(imageBuffer);
+
+              const baseUrl = (process.env.PUBLIC_URL || "").replace(/\/+$/, "");
+              const imageUrl = baseUrl ? `${baseUrl}${relativeUrl}` : relativeUrl;
+
+              return {
+                userPrompt,
+                enhancedPrompt,
+                imageUrl,
+                imageBuffer,
+                style,
+                seed
+              };
+            }
+          } else {
+            const errBody = await response.text().catch(() => "");
+            logger.warn(`ImageGenService: Gemini Flash Image model ${model} error (${response.status}): ${errBody}`);
+          }
+        } catch (err: any) {
+          logger.warn(`ImageGenService: Gagal memanggil Gemini Flash Image model ${model}: ${err.message || err}`);
+        }
+      }
+
+      // Legacy Imagen 3 endpoint as fallback
       const imagenModels = ["imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"];
 
       for (const model of imagenModels) {
@@ -135,13 +194,8 @@ export async function generateFreeImage(
                 seed
               };
             }
-          } else {
-            const errBody = await response.text().catch(() => "");
-            logger.warn(`ImageGenService: Gemini Imagen model ${model} error (${response.status}): ${errBody}`);
           }
-        } catch (err: any) {
-          logger.warn(`ImageGenService: Gagal memanggil model ${model}: ${err.message || err}`);
-        }
+        } catch (_) {}
       }
     }
 

@@ -31,6 +31,19 @@ function getWibDateString(): string {
 }
 
 /**
+ * Get current hour in WIB timezone (0-23)
+ */
+export function getWibHour(): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(new Date());
+  const hour = parts.find((p) => p.type === "hour")?.value;
+  return parseInt(hour || "0", 10);
+}
+
+/**
  * Handle incoming messages in the story chain channel (1 kalimat per pesan)
  */
 export async function handleStoryWordMessage(message: Message) {
@@ -46,6 +59,31 @@ export async function handleStoryWordMessage(message: Message) {
     const text = message.content.trim();
     if (!text) return;
 
+    const todayStr = getWibDateString();
+    const currentHour = getWibHour();
+    const startHour = config.storyStartHour ?? 17;
+    const publishHour = config.storyPublishHour ?? 20;
+
+    // 0. Check operating hours (between storyStartHour and storyPublishHour WIB)
+    if (currentHour < startHour || currentHour >= publishHour) {
+      const warnMsg = await message.reply(
+        `⏳ Sesi **Maya Story Chain** sedang ditutup! Sesi buka setiap hari pukul **${startHour}:00 WIB** s/d **${publishHour}:00 WIB**. Pesan kamu telah dihapus.`
+      ).catch(() => null);
+      await message.delete().catch(() => {});
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
+      return;
+    }
+
+    // Check if today's story has already been compiled / published
+    if (config.lastStoryPublishDate === todayStr) {
+      const warnMsg = await message.reply(
+        `📖 Sesi **Maya Story Chain** hari ini telah selesai dan ceritanya sudah dibukukan! Sesi berikutnya akan dibuka besok pukul **${startHour}:00 WIB**. Pesan kamu telah dihapus.`
+      ).catch(() => null);
+      await message.delete().catch(() => {});
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
+      return;
+    }
+
     // 1. Enforce 1-sentence limit per message (max 25 words, max 250 chars, no multi-line spam)
     const words = text.split(/\s+/).filter(Boolean);
     if (text.includes("\n") || words.length > 25 || text.length > 250) {
@@ -56,11 +94,17 @@ export async function handleStoryWordMessage(message: Message) {
     }
 
     const singleSentence = text;
-    const todayStr = getWibDateString();
 
-    // 2. Anti-consecutive-posting (User cannot write 2 sentences in a row consecutively)
+    // Scope words to current session start (17:00 WIB today) to prevent pre-session messages from interfering
+    const sessionStartTime = new Date(`${todayStr}T${String(startHour).padStart(2, "0")}:00:00+07:00`);
+
+    // 2. Anti-consecutive-posting (User cannot write 2 sentences in a row consecutively in this session)
     const lastWord = await prisma.dailyStoryWord.findFirst({
-      where: { guildId, dateStr: todayStr },
+      where: {
+        guildId,
+        dateStr: todayStr,
+        createdAt: { gte: sessionStartTime }
+      },
       orderBy: { id: "desc" }
     });
 
@@ -71,9 +115,14 @@ export async function handleStoryWordMessage(message: Message) {
       return;
     }
 
-    // 3. Enforce 2-attempt daily limit per member
+    // 3. Enforce 2-attempt daily limit per member in this session
     const userWordCount = await prisma.dailyStoryWord.count({
-      where: { guildId, dateStr: todayStr, userId: message.author.id }
+      where: {
+        guildId,
+        dateStr: todayStr,
+        userId: message.author.id,
+        createdAt: { gte: sessionStartTime }
+      }
     });
 
     if (userWordCount >= 2) {
@@ -210,14 +259,21 @@ export async function compileDailyStoryForGuild(guild: Guild, configuredChannelI
       return true;
     }
 
-    const words = await prisma.dailyStoryWord.findMany({
-      where: { guildId: guild.id, dateStr: todayStr },
-      orderBy: { id: "asc" }
-    });
-
     const config = await prisma.guildConfig.findUnique({ where: { guildId: guild.id } });
     const channelId = configuredChannelId || config?.storyChannelId;
     if (!channelId) return false;
+
+    const startHour = config?.storyStartHour ?? 17;
+    const sessionStartTime = new Date(`${todayStr}T${String(startHour).padStart(2, "0")}:00:00+07:00`);
+
+    const words = await prisma.dailyStoryWord.findMany({
+      where: {
+        guildId: guild.id,
+        dateStr: todayStr,
+        createdAt: { gte: sessionStartTime }
+      },
+      orderBy: { id: "asc" }
+    });
 
     let targetChannel: TextChannel | null = null;
     try {
@@ -410,8 +466,16 @@ SYARAT FORMAT:
 export async function getTodayStoryStatus(guildId: string) {
   try {
     const todayStr = getWibDateString();
+    const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+    const startHour = config?.storyStartHour ?? 17;
+    const sessionStartTime = new Date(`${todayStr}T${String(startHour).padStart(2, "0")}:00:00+07:00`);
+
     const words = await prisma.dailyStoryWord.findMany({
-      where: { guildId, dateStr: todayStr },
+      where: {
+        guildId,
+        dateStr: todayStr,
+        createdAt: { gte: sessionStartTime }
+      },
       orderBy: { id: "asc" }
     });
 

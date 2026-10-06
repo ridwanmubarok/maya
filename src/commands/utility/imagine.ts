@@ -15,7 +15,7 @@ export const imaginePromptCache = new Map<string, { prompt: string; style: strin
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("imagine")
-    .setDescription("Hasilkan gambar AI HD dari deskripsi teks (Google Gemini / Imagen 3 Engine)")
+    .setDescription("Hasilkan gambar AI HD dari deskripsi teks (Google Gemini Flash Image Engine)")
     .addStringOption((opt) =>
       opt
         .setName("prompt")
@@ -73,7 +73,7 @@ const command: Command = {
         `**Gemini Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
       )
       .setImage(displayImageUrl)
-      .setFooter({ text: `Engine: Google Gemini (Imagen 3) • Seed: ${result.seed}` })
+      .setFooter({ text: `Engine: Google Gemini (Flash Image) • Seed: ${result.seed}` })
       .setTimestamp();
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
