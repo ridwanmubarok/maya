@@ -21,6 +21,8 @@ import { broadcastLandingActivity } from "../services/dashboard";
 import { bonfireManager } from "../services/bonfireManager";
 import { getWibDateInfo } from "../services/monthlySeasonManager";
 
+const processedAiMentionIds = new Set<string>();
+
 // Helper deterministic query parsers (Bypasses AI reasoning for precision and speed ONLY on explicit search/catalog requests)
 function parseScholarshipQuery(prompt: string): { isScholarship: boolean; scope: "luar-negeri" | "nasional" | "semua"; level: string; keyword?: string } {
   // If the user is asking a conversational question, consultation, opinion, advice, or asking about quotas/reasons/tips
@@ -371,6 +373,13 @@ const event: BotEvent = {
       // Trigger Maya only if explicitly tagged in text OR if replying to Maya
       const shouldRespond = isExplicitlyMentionedInText || isReplyToMaya;
       if (shouldRespond && !message.mentions.everyone) {
+        if (processedAiMentionIds.has(message.id)) return;
+        processedAiMentionIds.add(message.id);
+        if (processedAiMentionIds.size > 500) {
+          const first = processedAiMentionIds.values().next().value;
+          if (first) processedAiMentionIds.delete(first);
+        }
+
         // Send typing status
         if ("sendTyping" in message.channel) {
           await message.channel.sendTyping().catch(() => {});

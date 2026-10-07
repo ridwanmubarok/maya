@@ -114,6 +114,12 @@ const startBot = async () => {
     // Start Web Dashboard & The Checkpoint Landing Server
     startDashboard(client);
 
+    const isBotDisabled = process.env.DISABLE_DISCORD_BOT === "true" || process.env.WEB_ONLY === "true";
+    if (isBotDisabled) {
+      logger.info("Bot berjalan dalam mode WEB ONLY (DISABLE_DISCORD_BOT=true). Koneksi Discord Gateway dilewati.");
+      return;
+    }
+
     const token = process.env.DISCORD_TOKEN;
     if (!token) {
       logger.warn("DISCORD_TOKEN tidak ditemukan di file .env! Bot berjalan dalam mode Web Server.");
