@@ -18,6 +18,7 @@ import { askGemini, askAI } from "./aiClient";
 import { logger } from "../utils/logger";
 import { calculateAllowedEarnedPoints } from "./monthlySeasonManager";
 import { addTriviaXp } from "./levelingManager";
+import { CURATED_TEBAK_BANK } from "./tebakBank";
 
 export interface TebakQuestion {
   id: string;
@@ -81,24 +82,36 @@ export class TebakManager {
   }
 
   /**
-   * 100% Pure Gemini AI Reasoning: Generate a completely unique, fresh receh dad joke on every session.
-   * Employs up to 5 retries to guarantee a valid, non-duplicate, hilarious riddle without static banks.
+   * Hybrid Riddle Selector:
+   * - Daily Quiz (isDaily = true): Prioritizes curated dad jokes bank (guaranteed 100% authentic, hilarious & non-repetitive).
+   * - Instant /tebak (isDaily = false): Uses upgraded Gemini AI with strict phonetic pun few-shots, with fallback to curated bank.
    */
-  private async getUniqueQuestion(): Promise<TebakQuestion> {
-    const maxAttempts = 5;
+  public async getUniqueQuestion(isDaily: boolean = false): Promise<TebakQuestion> {
+    // 1. If daily riddle, prioritize curated dad jokes bank
+    if (isDaily) {
+      const unusedCurated = CURATED_TEBAK_BANK.filter(
+        (q) => !this.askedQuestionHistory.has(q.id) && !this.askedQuestionHistory.has(q.question.trim().toLowerCase())
+      );
+
+      // If all curated questions have been asked, cycle back through the bank
+      const availableBank = unusedCurated.length > 0 ? unusedCurated : CURATED_TEBAK_BANK;
+      const picked = availableBank[Math.floor(Math.random() * availableBank.length)];
+
+      this.recordQuestionHistory(picked.id, picked.question);
+      logger.info(`TebakManager: Memilih tebakan dari CURATED BANK untuk Daily Quiz: "${picked.question}" -> "${picked.answer}"`);
+      return picked;
+    }
+
+    // 2. For instant /tebak command: Try AI generation first up to 3 times
+    const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const question = await this.generateAiTebakQuestion(attempt);
         if (question && question.question && question.answer) {
           const key = question.question.trim().toLowerCase();
           if (!this.askedQuestionHistory.has(key)) {
-            this.askedQuestionHistory.add(key);
-            // Cap history at 250 items to keep memory bounded while preventing repeats
-            if (this.askedQuestionHistory.size > 250) {
-              const firstKey = this.askedQuestionHistory.values().next().value;
-              if (firstKey) this.askedQuestionHistory.delete(firstKey);
-            }
-            logger.info(`TebakManager: Berhasil men-generate tebakan receh murni AI Gemini (attempt ${attempt}): "${question.question}" -> "${question.answer}"`);
+            this.recordQuestionHistory(question.id, question.question);
+            logger.info(`TebakManager: Berhasil men-generate tebakan receh AI Gemini (attempt ${attempt}): "${question.question}" -> "${question.answer}"`);
             return question;
           } else {
             logger.info(`TebakManager: Soal duplikat terdeteksi pada attempt ${attempt}, mencoba generasi topik baru...`);
@@ -109,17 +122,25 @@ export class TebakManager {
       }
     }
 
-    // Emergency dynamic fallback only if network/API fails across all 5 attempts
-    logger.error("TebakManager: Seluruh 5 attempt AI reasoning gagal/timeout, menggunakan emergency fallback.");
-    const emergencyId = `emergency-${Date.now()}`;
-    return {
-      id: emergencyId,
-      category: "Jokes Bapak-Bapak",
-      question: "Kenapa ayam kalau berkokok matanya selalu merem?",
-      answer: "Karena udah hafal teksnya",
-      acceptableAnswers: ["hafal teks", "hafal teksnya", "udah hafal teksnya", "karena hafal teks", "karena sudah hafal teks", "udah hafal liriknya"],
-      clue: "Coba bayangkan kalau kamu nyanyi lagu yang udah sering banget dinyanyikan.",
-    };
+    // 3. Fallback to curated bank if AI fails or duplicates
+    logger.info("TebakManager: AI generation gagal/duplikat, menggunakan fallback dari Curated Bank.");
+    const unusedCurated = CURATED_TEBAK_BANK.filter(
+      (q) => !this.askedQuestionHistory.has(q.id) && !this.askedQuestionHistory.has(q.question.trim().toLowerCase())
+    );
+    const availableBank = unusedCurated.length > 0 ? unusedCurated : CURATED_TEBAK_BANK;
+    const picked = availableBank[Math.floor(Math.random() * availableBank.length)];
+
+    this.recordQuestionHistory(picked.id, picked.question);
+    return picked;
+  }
+
+  private recordQuestionHistory(id: string, questionText: string) {
+    this.askedQuestionHistory.add(id);
+    this.askedQuestionHistory.add(questionText.trim().toLowerCase());
+    if (this.askedQuestionHistory.size > 300) {
+      const firstKey = this.askedQuestionHistory.values().next().value;
+      if (firstKey) this.askedQuestionHistory.delete(firstKey);
+    }
   }
 
   /**
@@ -137,7 +158,7 @@ export class TebakManager {
     }
 
     const sessionId = `tbk-${Date.now()}`;
-    const question = await this.getUniqueQuestion();
+    const question = await this.getUniqueQuestion(false);
 
     const embed = new EmbedBuilder()
       .setTitle(`🤣 TEBAK-TEBAKAN RECEH MAYA (${question.category})`)
@@ -190,7 +211,7 @@ export class TebakManager {
     }
 
     const sessionId = `daily-${Date.now()}`;
-    const question = await this.getUniqueQuestion();
+    const question = await this.getUniqueQuestion(true);
 
     const embed = new EmbedBuilder()
       .setTitle(`📢 TEBAK-TEBAKAN RECEH HARIAN MAYA (${question.category})`)
@@ -597,47 +618,72 @@ Format JSON wajib:
    */
   private async generateAiTebakQuestion(attempt: number = 1): Promise<TebakQuestion | null> {
     const seedTopics = [
-      { category: "Jokes Bapak-Bapak", examples: "ayam berkokok merem hafal teks, bebek kunci stang, gajah pesek, lemari masuk saku, kipas kepastian" },
-      { category: "Plesetan Hewan Lucu", examples: "katak beradik, unta-makan keselamatan, semute, ikan teri sekilo, buludoser, kukang serba bisa" },
-      { category: "Humor Makanan & Minuman", examples: "kue serabi tua, martabak spesial, sabun colek genit, sayur brokoli silat, jus hujan, telorasin" },
-      { category: "Teka-Teki Logika Nyeleneh", examples: "pohon kelapa ditebang karena dicabut berat, matahari tenggelam karena gak bisa renang, celana dipotong jadi tinggi" },
-      { category: "Plesetan Romantis & Gaul", examples: "minyak-sikan kamu bahagia, kue-miliki kamu selamanya, kopi-lih dia daripada aku, gelas pelaminan" },
-      { category: "Humor Sehari-Hari & Populer", examples: "lampu tetangga dipecahin keluar orangnya, vin diesel isi solar, superman ukuran S, dalang wayang bawa keris bukan kompor" }
+      {
+        category: "Plesetan Tokoh & Figur",
+        examples: "Bambang tabung gas (pemain bola 3kg), Ariana Grande-grande (penyanyi doyan gorengan), Pasrah Ramadhani, Thibaut Ngorok-tois, Jackie Cedera, Pangeran Di-Beng-Beng-oro, Sungkem-son",
+        guide: "Plesetan nama atlet, artis, atau pahlawan populer di Indonesia dengan akhiran/nama belakang kocak."
+      },
+      {
+        category: "Plesetan Nama Kota & Tempat",
+        examples: "Purwodaddy (kota bapak-bapak), Salatiga (kota penuh kekeliruan), Halo-mahera (pulau ramah), Es-teh-karta (kota dingin manis), Bohlam-dia (negara lampu pijar), Sumbawa",
+        guide: "Plesetan nama kota/daerah/pulau/negara nyata yang diplesetkan secara fonetis mirip kata sehari-hari."
+      },
+      {
+        category: "Logika Konyol & Minuman/Makanan",
+        examples: "Kenapa air mata bening? Kalau ijo namanya air matcha; Jus-tru kamu pelakunya; Kue permisi; Buah naga-lupa lirik; Kopi-ndah keyakinan",
+        guide: "Komparasi warna/logika konyol yang menggelitik atau plesetan nama jajanan/minuman populer."
+      },
+      {
+        category: "Plesetan Hewan Lucu",
+        examples: "Katak beradik (hewan bersaudara), Unta-makan keselamatan (hewan taat lalu lintas), Ikan rem, Bebek kunci stang, Gajah pesek, Kambing pembina upacara",
+        guide: "Plesetan nama hewan yang membentuk kata atau peribahasa/slogan Indonesia."
+      },
+      {
+        category: "Logika Terbalik Tongkrongan",
+        examples: "Ayam berkokok merem karena udah hafal teksnya; Pohon kelapa ditebang karena kalau dicabut keberatan; Matahari tenggelam karena gak bisa renang; Pintu ditarik bukan didorong; Celana dipotong jadi makin tinggi",
+        guide: "Teka-teki logika terbalik yang punchline-nya beralasan sederhana dan tak terbantahkan."
+      },
+      {
+        category: "Plesetan Asmara & Benda Sehari-Hari",
+        examples: "Kipastian (kipas yang ditunggu cewek), Minyak-sikan kamu bahagia, Kue-miliki kamu selamanya, Gelas pelaminan, Sepatu-tnya kamu gak ikut campur, Sabun colek",
+        guide: "Plesetan benda rumah tangga yang disambungkan ke perasaan hati/status hubungan."
+      }
     ];
 
     // Cycle through varied topics based on attempt and random
     const randomSeed = seedTopics[(Math.floor(Math.random() * seedTopics.length) + attempt) % seedTopics.length];
     const historyList = Array.from(this.askedQuestionHistory).slice(-15).join("; ");
 
-    const systemPrompt = `Kamu adalah komedian dan master pembuat tebak-tebakan receh / jokes bapak-bapak (dad jokes) khas tongkrongan Indonesia yang sangat kreatif.
-Tugasmu menciptakan 1 tebak-tebakan receh, menggelitik, lucu, dan humoris yang menghibur ("receh banget bapak-bapak!").
-PRINSIP UTAMA:
-- MURNI PENALARAN HUMOR & RECEH (BUKAN SOAL ENSIKLOPEDIA/SAINS KAKU)
-- PUNCHLINE JELAS & MASUK AKAL DALAM KONTEKS PLESETAN/HUMOR
-- PLESETAN KATA CERDAS & FAMILIAR BAGI ORANG INDONESIA
-- CLUE MEMBANTU MENGARAHKAN PIKIRAN KE JAWABAN TANPA MEMBOCORKAN LANGSUNG`;
+    const systemPrompt = `Kamu adalah komedian legendaris dan master jokes bapak-bapak (dad jokes) khas tongkrongan Indonesia yang sangat kreatif.
+Tugasmu menciptakan 1 tebak-tebakan receh yang SANGAT LUCU, MENGGELITIK, dan NYAMBUNG SECARA ALAMI.
+
+ATURAN MUTLAK & PANTANGAN:
+1. DILARANG KERAS membuat punchline yang hanya menempelkan 2 kata secara harfiah tanpa rima atau plesetan fonetis! (CONTOH BURUK YANG DILARANG: "sayur bela diri = brokoli silat", "buah pinter = apel jenius"). Itu BUKAN tebakan bapak-bapak!
+2. PUNCHLINE JOKES BAPAK-BAPAK WAJIB BERBASIS SALAH SATU:
+   - Plesetan nama tokoh/atlet/artis (contoh: Bambang Pamungkas -> Bambang tabung gas).
+   - Plesetan nama kota/geografi nyata (contoh: Purwodadi -> Purwodaddy).
+   - Komparasi warna/logika absurd (contoh: Air mata bening, kalau ijo namanya air matcha).
+   - Plesetan kata/istilah baku (contoh: Kakak beradik -> Katak beradik; Kepastian -> Kipastian).
+   - Logika terbalik tongkrongan (contoh: Ayam berkokok merem -> Karena udah hafal teksnya).
+3. CLUE (PETUNJUK) WAJIB BERBASIS WORDPLAY & KISI-KISI CERDAS:
+   - Clue harus memberikan kisi-kisi cerdas ke arah plesetannya (misal: "Nama depan striker legendaris timnas...", "Plesetan nama kota di Jateng, akhiran kata ayah dalam bahasa Inggris..."), BUKAN mendeskripsikan punchline secara mentah.
+4. Jawab HANYA format JSON valid tanpa markdown atau teks pengantar.`;
 
     const prompt = `
-## PANDUAN TEBAK-TEBAKAN RECEH & JOKES BAPAK-BAPAK (PERCOBAAN KE-${attempt})
+Buatlah 1 tebak-tebakan receh bapak-bapak bertema "${randomSeed.category}".
+Panduan: ${randomSeed.guide}
+Contoh rima/pola yang diinginkan: ${randomSeed.examples}
 
-Buatlah 1 tebak-tebakan receh bertema "${randomSeed.category}" (Inspirasi seputar: ${randomSeed.examples}) dengan gaya humor khas bapak-bapak Indonesia yang bikin senyum atau ketawa receh!
-
-### KRITERIA SOAL:
-1. **Pertanyaan**: Menarik, menggelitik, tidak kaku/tidak serius, dan khas tebak-tebakan tongkrongan bapak-bapak (Contoh: "Kenapa ayam kalau berkokok matanya merem?", "Hewan apa yang bersaudara?", "Kipas apa yang ditunggu-tunggu cewek?").
-2. **Jawaban / Punchline**: Jawaban yang lucu, receh, plesetan kata (pun), atau logika terbalik yang nyambung (Contoh: "Karena udah hafal teksnya", "Katak beradik", "Kipastian").
-3. **Acceptable Answers**: Berikan beberapa variasi kata kunci alternatif yang mungkin diketik oleh pemain (kata kunci inti, sinonim santai, variasi kata) agar pemain tidak kesulitan saat menebak.
-4. **Clue**: Berikan petunjuk yang cerdas dan mengarahkan ke punchline atau plesetan kata tersebut.
-
-### ANTI-DUPLIKASI (JANGAN SAMA DENGAN RIWAYAT INI):
+HINDARI DUPLIKASI DENGAN RIWAYAT BERIKUT:
 [${historyList || "Belum ada"}]
 
-Jawab HANYA dalam format JSON persis seperti berikut tanpa teks atau markdown tambahan apapun:
+FORMAT JSON WAJIB:
 {
   "category": "${randomSeed.category}",
-  "question": "Pertanyaan tebakan receh yang menggelitik...",
-  "answer": "Jawaban punchline humor",
-  "acceptableAnswers": ["punchline utama", "variasi kata 1", "variasi kata 2"],
-  "clue": "Petunjuk receh yang membantu..."
+  "question": "Pertanyaan tebakan receh yang menggelitik khas bapak-bapak...",
+  "answer": "Jawaban punchline humor yang cerdas dan berima",
+  "acceptableAnswers": ["punchline utama", "variasi kata kunci 1", "variasi kata kunci 2"],
+  "clue": "Petunjuk wordplay cerdas mengarahkan ke plesetan/rima..."
 }
 `.trim();
 
