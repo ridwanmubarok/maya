@@ -15,6 +15,7 @@ import { fetchIndonesianNews, createNewsEmbed } from "../services/newsScraper";
 import { searchJobs, createJobEmbed } from "../services/jobScraper";
 import { searchOutfitTrends, createOutfitEmbed } from "../services/outfitService";
 import { fetchCurrencyRates, createCurrencyEmbed } from "../services/financialService";
+import { parseSteamQuery, fetchSteamDeals, createSteamDealsEmbed } from "../services/steamService";
 import { buildMemberCardPayload } from "../commands/utility/card";
 import { addChatXp } from "../services/levelingManager";
 import { broadcastLandingActivity } from "../services/dashboard";
@@ -595,6 +596,45 @@ const event: BotEvent = {
           return;
         }
 
+        // 10. Natural Mention Intent: Steam Deals, Game Murah & SteamDB Tracker
+        const steamQuery = parseSteamQuery(userPrompt);
+        if (steamQuery.isSteam) {
+          const deals = await fetchSteamDeals({
+            query: steamQuery.titleQuery,
+            genre: steamQuery.genre,
+            maxPrice: steamQuery.maxPrice,
+            limit: 4,
+          });
+
+          if (deals.length > 0) {
+            const { embed, components } = createSteamDealsEmbed(
+              deals,
+              {
+                query: steamQuery.titleQuery,
+                genre: steamQuery.genre,
+                maxPrice: steamQuery.maxPrice,
+              },
+              message.client.user?.displayAvatarURL()
+            );
+
+            await message.reply({
+              embeds: [embed],
+              components,
+              allowedMentions: { repliedUser: true },
+            }).catch(() => {});
+            return;
+          } else {
+            const notFoundEmbed = createEmbed.error(
+              "Game Tidak Ditemukan",
+              `Maya tidak menemukan promo atau game Steam yang cocok dengan kriteria tersebut.\n\n💡 *Tips: Coba gunakan nama game yang lebih umum atau perlonggar filter budget kamu ya!*`
+            );
+            await message.reply({
+              embeds: [notFoundEmbed],
+              allowedMentions: { repliedUser: true },
+            }).catch(() => {});
+            return;
+          }
+        }
 
         // Fetch recent conversation history with this user for natural context
         const dbHistory = await prisma.aiChatMessage.findMany({
