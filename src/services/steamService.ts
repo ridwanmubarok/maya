@@ -276,20 +276,20 @@ export function createSteamDealsEmbed(
   },
   botAvatarUrl?: string
 ): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
-  let title = "🎮 Rekomendasi Promo & Diskon Game Steam";
+  let title = "Rekomendasi Promo & Diskon Game Steam";
   let descriptionHeader = "Kurasi diskon game Steam & riwayat harga via **SteamDB**:";
 
   if (params.query) {
-    title = `🔍 Pencarian Game Steam: "${params.query}"`;
+    title = `Pencarian Game Steam: "${params.query}"`;
     descriptionHeader = `Hasil pencarian katalog Steam & riwayat harga SteamDB untuk **"${params.query}"**:`;
   } else if (params.maxPrice !== undefined && params.genre) {
-    title = `💸 Game Diskon ${params.genre.toUpperCase()} Murah (Budget ${formatIDR(params.maxPrice)})`;
+    title = `Diskon Game ${params.genre.toUpperCase()} (Budget ${formatIDR(params.maxPrice)})`;
     descriptionHeader = `Daftar game pilihan genre **${params.genre}** dengan harga di bawah **${formatIDR(params.maxPrice)}**:`;
   } else if (params.maxPrice !== undefined) {
-    title = `💸 Rekomendasi Game Murah Steam (Budget ${formatIDR(params.maxPrice)})`;
+    title = `Rekomendasi Game Murah Steam (Budget ${formatIDR(params.maxPrice)})`;
     descriptionHeader = `Daftar game diskon terbaik dengan harga di bawah **${formatIDR(params.maxPrice)}**:`;
   } else if (params.genre) {
-    title = `🔥 Rekomendasi Game Diskon Steam: ${params.genre.toUpperCase()}`;
+    title = `Rekomendasi Game Diskon Steam: ${params.genre.toUpperCase()}`;
     descriptionHeader = `Diskon terpopuler untuk genre **${params.genre}** di Steam hari ini:`;
   }
 
@@ -297,7 +297,7 @@ export function createSteamDealsEmbed(
     .setColor(0x2A475E) // Steam Deep Blue Tone
     .setTitle(title)
     .setDescription(
-      `${descriptionHeader}\n💡 *Tips: Klik link **SteamDB** untuk mengecek riwayat All-Time Low (ATL) dan tren pemain aktif.*\n───────────────────────────────`
+      `${descriptionHeader}\n*Tips: Klik tautan **SteamDB** untuk mengecek riwayat All-Time Low (ATL) dan tren pemain aktif.*\n───────────────────────────────`
     )
     .setFooter({
       text: "Maya Steam & SteamDB Deals Engine • Live Sync",
@@ -313,21 +313,20 @@ export function createSteamDealsEmbed(
     const num = idx + 1;
     let priceText = "";
     if (game.isDiscounted && game.discountPercent !== "0%") {
-      priceText = `~~${game.originalPrice}~~ ➔ **${game.finalPrice}** (\`${game.discountPercent}\`)`;
+      priceText = `~~${game.originalPrice}~~ -> **${game.finalPrice}** (\`${game.discountPercent}\`)`;
     } else {
       priceText = `**${game.finalPrice}**`;
     }
 
-    let fieldContent = `💰 **Harga**: ${priceText}\n`;
+    let fieldContent = `**Harga**: ${priceText}\n`;
     if (game.rating) {
-      // Shorten review text if too long
       const shortReview = game.rating.length > 95 ? game.rating.substring(0, 92) + "..." : game.rating;
-      fieldContent += `⭐ **Ulasan**: ${shortReview}\n`;
+      fieldContent += `**Ulasan**: ${shortReview}\n`;
     }
     if (game.releaseDate) {
-      fieldContent += `📅 **Rilis**: ${game.releaseDate}\n`;
+      fieldContent += `**Rilis**: ${game.releaseDate}\n`;
     }
-    fieldContent += `🔗 **Tautan Cepat**: [Steam Store](${game.steamUrl}) • [📊 Cek di SteamDB](${game.steamDbUrl})`;
+    fieldContent += `**Tautan**: [Steam Store](${game.steamUrl}) • [SteamDB](${game.steamDbUrl})`;
 
     embed.addFields({
       name: `${num}. ${game.title} ${game.isDiscounted ? `[${game.discountPercent}]` : ""}`,
@@ -338,16 +337,16 @@ export function createSteamDealsEmbed(
 
   const components: ActionRowBuilder<ButtonBuilder>[] = [];
 
-  // Row 1: Direct link buttons for the top games
+  // Row 1: Direct link buttons for top games
   const gameButtons: ButtonBuilder[] = [];
   if (games.length >= 1) {
     gameButtons.push(
       new ButtonBuilder()
-        .setLabel(`🎮 Steam: ${games[0].title.substring(0, 15)}`)
+        .setLabel(`Steam: ${games[0].title.substring(0, 18)}`)
         .setStyle(ButtonStyle.Link)
         .setURL(games[0].steamUrl),
       new ButtonBuilder()
-        .setLabel(`📊 SteamDB #${1}`)
+        .setLabel(`SteamDB #${1}`)
         .setStyle(ButtonStyle.Link)
         .setURL(games[0].steamDbUrl)
     );
@@ -355,11 +354,11 @@ export function createSteamDealsEmbed(
   if (games.length >= 2) {
     gameButtons.push(
       new ButtonBuilder()
-        .setLabel(`🎮 Steam: ${games[1].title.substring(0, 15)}`)
+        .setLabel(`Steam: ${games[1].title.substring(0, 18)}`)
         .setStyle(ButtonStyle.Link)
         .setURL(games[1].steamUrl),
       new ButtonBuilder()
-        .setLabel(`📊 SteamDB #${2}`)
+        .setLabel(`SteamDB #${2}`)
         .setStyle(ButtonStyle.Link)
         .setURL(games[1].steamDbUrl)
     );
@@ -369,14 +368,14 @@ export function createSteamDealsEmbed(
     components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(gameButtons));
   }
 
-  // Row 2: General Exploration Buttons (SteamDB Sales & Steam Store Specials)
+  // Row 2: General Exploration Buttons
   const navButtons: ButtonBuilder[] = [
     new ButtonBuilder()
-      .setLabel("🌐 Jelajahi Semua Diskon di SteamDB Sales")
+      .setLabel("Katalog Diskon SteamDB")
       .setStyle(ButtonStyle.Link)
       .setURL("https://steamdb.info/sales/"),
     new ButtonBuilder()
-      .setLabel("🛒 Buka Halaman Promo Steam Store")
+      .setLabel("Promo Steam Store")
       .setStyle(ButtonStyle.Link)
       .setURL("https://store.steampowered.com/specials/")
   ];

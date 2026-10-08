@@ -22,15 +22,15 @@ const command: Command = {
         .setDescription("Filter genre game")
         .setRequired(false)
         .addChoices(
-          { name: "👥 Co-op / Mabar", value: "co-op" },
-          { name: "👻 Horror / Horor", value: "horror" },
-          { name: "⚔️ RPG / JRPG", value: "rpg" },
-          { name: "💥 Action", value: "action" },
-          { name: "🌲 Survival", value: "survival" },
-          { name: "☕ Santai / Casual", value: "casual" },
-          { name: "🎯 FPS / Shooter", value: "fps" },
-          { name: "🧠 Strategi", value: "strategy" },
-          { name: "🌸 Anime", value: "anime" }
+          { name: "Co-op / Mabar", value: "co-op" },
+          { name: "Horror", value: "horror" },
+          { name: "RPG / JRPG", value: "rpg" },
+          { name: "Action", value: "action" },
+          { name: "Survival", value: "survival" },
+          { name: "Santai / Casual", value: "casual" },
+          { name: "FPS / Shooter", value: "fps" },
+          { name: "Strategi", value: "strategy" },
+          { name: "Anime", value: "anime" }
         )
     )
     .addIntegerOption((opt) =>
@@ -39,10 +39,10 @@ const command: Command = {
         .setDescription("Filter batas harga maksimal (IDR)")
         .setRequired(false)
         .addChoices(
-          { name: "🆓 Gratis (Free to Play)", value: 0 },
-          { name: "🪙 Dibawah Rp 50.000", value: 50000 },
-          { name: "💵 Dibawah Rp 100.000", value: 100000 },
-          { name: "💰 Dibawah Rp 200.000", value: 200000 }
+          { name: "Gratis (Free to Play)", value: 0 },
+          { name: "Dibawah Rp 50.000", value: 50000 },
+          { name: "Dibawah Rp 100.000", value: 100000 },
+          { name: "Dibawah Rp 200.000", value: 200000 }
         )
     )
     .addIntegerOption((opt) =>
@@ -74,10 +74,10 @@ const command: Command = {
         const notFoundEmbed = createEmbed.error(
           "Game Tidak Ditemukan",
           `Tidak ditemukan game Steam yang sesuai dengan kriteria:\n` +
-          `${query ? `• **Judul**: "${query}"\n` : ""}` +
-          `${genre ? `• **Genre**: ${genre}\n` : ""}` +
-          `${maxPrice !== undefined ? `• **Budget Maksimal**: Rp ${maxPrice.toLocaleString("id-ID")}\n` : ""}\n` +
-          `💡 *Coba ganti kata kunci judul atau perlonggar filter budget.*`
+          `${query ? `• Judul: "${query}"\n` : ""}` +
+          `${genre ? `• Genre: ${genre}\n` : ""}` +
+          `${maxPrice !== undefined ? `• Budget Maksimal: Rp ${maxPrice.toLocaleString("id-ID")}\n` : ""}\n` +
+          `Tips: Coba ganti kata kunci judul atau perlonggar filter budget.`
         );
 
         await interaction.editReply({ embeds: [notFoundEmbed] });

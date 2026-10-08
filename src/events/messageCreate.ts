@@ -626,7 +626,7 @@ const event: BotEvent = {
           } else {
             const notFoundEmbed = createEmbed.error(
               "Game Tidak Ditemukan",
-              `Maya tidak menemukan promo atau game Steam yang cocok dengan kriteria tersebut.\n\n💡 *Tips: Coba gunakan nama game yang lebih umum atau perlonggar filter budget kamu ya!*`
+              `Maya tidak menemukan promo atau game Steam yang cocok dengan kriteria tersebut.\n\nTips: Coba gunakan nama game yang lebih umum atau perlonggar filter budget kamu.`
             );
             await message.reply({
               embeds: [notFoundEmbed],
