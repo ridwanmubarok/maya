@@ -25,6 +25,7 @@ import { tebakManager } from "./tebakManager";
 import { voiceChatManager } from "./voiceChatManager";
 import { sendHistoryAnnouncement, broadcastMayaAdjustmentHistory } from "../utils/historyLogger";
 import { AVAILABLE_AI_MODELS, DEFAULT_AI_MODEL } from "./aiClient";
+import { generateFreeImage } from "./imageGenService";
 import {
   getGuildJoinRequests,
   actionGuildJoinRequest,
@@ -1382,6 +1383,38 @@ export function startDashboard(client: MayaClient) {
     } catch (error) {
       logger.error("Error fetching AI models list:", error);
       res.status(500).json({ error: "Gagal memuat daftar model AI." });
+    }
+  });
+
+  // Test AI Image Generation from Dashboard (Requires Auth)
+  app.post("/api/ai/test-image-gen", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const { prompt, style = "Anime", model } = req.body;
+      if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+        return res.status(400).json({ success: false, error: "Prompt gambar tidak boleh kosong." });
+      }
+
+      const startTime = Date.now();
+      const result = await generateFreeImage(prompt.trim(), style, undefined, model);
+      const durationMs = Date.now() - startTime;
+
+      if (!result) {
+        return res.status(500).json({ success: false, error: "Gagal merender gambar dari AI Image Generator." });
+      }
+
+      return res.json({
+        success: true,
+        imageUrl: result.imageUrl,
+        enhancedPrompt: result.enhancedPrompt,
+        style: result.style,
+        seed: result.seed,
+        modelUsed: result.modelUsed || (model || "flux"),
+        durationMs,
+        sizeBytes: result.imageBuffer ? result.imageBuffer.length : 0
+      });
+    } catch (error: any) {
+      logger.error("Dashboard: Error testing image generation:", error);
+      res.status(500).json({ success: false, error: error.message || "Gagal memproses pengujian gambar." });
     }
   });
 

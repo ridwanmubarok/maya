@@ -43,6 +43,11 @@ dist/
 # Environment variables
 .env
 
+# Generated AI Images
+src/public/generated-images/*
+!src/public/generated-images/.gitkeep
+dist/public/generated-images/
+
 # OS Metadata
 .DS_Store
 Thumbs.db

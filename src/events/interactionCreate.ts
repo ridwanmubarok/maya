@@ -607,26 +607,26 @@ const event: BotEvent = {
         let displayImageUrl = result.imageUrl;
 
         if (result.imageBuffer) {
-          const fileName = `maya-gemini-${Date.now()}.jpg`;
+          const fileName = `maya-flux-${Date.now()}.jpg`;
           files.push(new AttachmentBuilder(result.imageBuffer, { name: fileName }));
           displayImageUrl = `attachment://${fileName}`;
         }
 
         const embed = new EmbedBuilder()
           .setTitle(`Maya Image Generator • ${cached.style}`)
-          .setColor("#4285F4")
+          .setColor("#8B5CF6")
           .setDescription(
             `**Prompt**:\n> ${cached.prompt}\n\n` +
-            `**Gemini Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
+            `**Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
           )
           .setImage(displayImageUrl)
-          .setFooter({ text: `Engine: Google Gemini (Imagen 3) • Seed: ${result.seed}` })
+          .setFooter({ text: `Engine: FLUX.1 Engine • Seed: ${result.seed}` })
           .setTimestamp();
 
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(`imagine_regen:${cacheKey}`)
-            .setLabel("🔄 Buat Ulang")
+            .setLabel("Buat Ulang")
             .setStyle(ButtonStyle.Primary)
         );
 
@@ -634,7 +634,7 @@ const event: BotEvent = {
           row.addComponents(
             new ButtonBuilder()
               .setURL(result.imageUrl)
-              .setLabel("🔍 Buka Gambar HD (Full Res)")
+              .setLabel("Buka Gambar Full HD")
               .setStyle(ButtonStyle.Link)
           );
         }

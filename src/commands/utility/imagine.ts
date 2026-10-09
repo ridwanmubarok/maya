@@ -15,11 +15,11 @@ export const imaginePromptCache = new Map<string, { prompt: string; style: strin
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("imagine")
-    .setDescription("Hasilkan gambar AI HD dari deskripsi teks (Google Gemini Flash Image Engine)")
+    .setDescription("Hasilkan gambar AI HD dari deskripsi teks (FLUX.1 Engine)")
     .addStringOption((opt) =>
       opt
         .setName("prompt")
-        .setDescription("Deskripsi gambar yang ingin dibuat (misal: kucing kacamata di atap kota Tokyo)")
+        .setDescription("Deskripsi gambar yang ingin dibuat (misal: kucing astronot di angkasa)")
         .setRequired(true)
         .setMaxLength(500)
     )
@@ -47,7 +47,7 @@ const command: Command = {
 
     if (!result) {
       await interaction.editReply({
-        content: "Gagal merender gambar AI Gemini. Silakan periksa koneksi dan coba lagi.",
+        content: "Gagal merender gambar AI. Silakan periksa koneksi dan coba beberapa saat lagi.",
       });
       return;
     }
@@ -60,26 +60,26 @@ const command: Command = {
     let displayImageUrl = result.imageUrl;
 
     if (result.imageBuffer) {
-      const fileName = `maya-gemini-${Date.now()}.jpg`;
+      const fileName = `maya-flux-${Date.now()}.jpg`;
       files.push(new AttachmentBuilder(result.imageBuffer, { name: fileName }));
       displayImageUrl = `attachment://${fileName}`;
     }
 
     const embed = new EmbedBuilder()
       .setTitle(`Maya Image Generator • ${style}`)
-      .setColor("#4285F4")
+      .setColor("#8B5CF6")
       .setDescription(
         `**Prompt**:\n> ${userPrompt}\n\n` +
-        `**Gemini Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
+        `**Enhanced Prompt**:\n\`\`\`\n${result.enhancedPrompt}\n\`\`\``
       )
       .setImage(displayImageUrl)
-      .setFooter({ text: `Engine: Google Gemini (Flash Image) • Seed: ${result.seed}` })
+      .setFooter({ text: `Engine: FLUX.1 Engine • Seed: ${result.seed}` })
       .setTimestamp();
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`imagine_regen:${cacheKey}`)
-        .setLabel("🔄 Buat Ulang")
+        .setLabel("Buat Ulang")
         .setStyle(ButtonStyle.Primary)
     );
 
@@ -87,7 +87,7 @@ const command: Command = {
       row.addComponents(
         new ButtonBuilder()
           .setURL(result.imageUrl)
-          .setLabel("🔍 Buka Gambar HD (Full Res)")
+          .setLabel("Buka Gambar Full HD")
           .setStyle(ButtonStyle.Link)
       );
     }

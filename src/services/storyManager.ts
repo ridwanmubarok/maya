@@ -366,7 +366,7 @@ SYARAT FORMAT:
       }
     }
 
-    // Generate AI Illustration Image with Gemini
+    // Generate AI Illustration Image with FLUX.1 Engine
     let imageUrl: string | undefined = undefined;
     let imageAttachment: AttachmentBuilder | undefined = undefined;
     try {

@@ -141,3 +141,82 @@ async function clearAiMemory() {
     }
   }
 }
+
+// AI Image Generator Test Function
+async function testImageGeneration() {
+  const promptInput = document.getElementById('ai-test-img-prompt');
+  const styleSelect = document.getElementById('ai-test-img-style');
+  const modelSelect = document.getElementById('ai-test-img-model');
+  const testBtn = document.getElementById('btn-test-img-gen');
+  const resultContainer = document.getElementById('ai-test-img-result');
+  const previewImg = document.getElementById('ai-test-img-preview');
+  const statusBadge = document.getElementById('ai-test-img-status');
+  const metaText = document.getElementById('ai-test-img-meta');
+  const enhancedText = document.getElementById('ai-test-img-enhanced');
+  const fullLink = document.getElementById('ai-test-img-link');
+
+  const prompt = promptInput ? promptInput.value.trim() : '';
+  if (!prompt) {
+    showToast('Peringatan', 'Harap isi deskripsi atau prompt gambar terlebih dahulu.', 'warning');
+    if (promptInput) promptInput.focus();
+    return;
+  }
+
+  const style = styleSelect ? styleSelect.value : 'Anime';
+  const model = modelSelect ? modelSelect.value : 'flux';
+
+  const origBtnHtml = testBtn ? testBtn.innerHTML : '';
+  if (testBtn) {
+    testBtn.disabled = true;
+    testBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Merender Gambar...';
+  }
+
+  try {
+    const res = await apiFetch('/api/ai/test-image-gen', {
+      method: 'POST',
+      body: { prompt, style, model }
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Gagal merender gambar AI');
+    }
+
+    if (resultContainer) resultContainer.classList.remove('hidden');
+    if (previewImg) previewImg.src = data.imageUrl;
+    if (statusBadge) {
+      statusBadge.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+      statusBadge.textContent = `Berhasil (${(data.modelUsed || model).toUpperCase()})`;
+    }
+    if (metaText) {
+      const sizeKb = Math.round((data.sizeBytes || 0) / 1024);
+      metaText.textContent = `Durasi: ${data.durationMs}ms • Ukuran: ${sizeKb} KB • Seed: ${data.seed}`;
+    }
+    if (enhancedText) {
+      enhancedText.textContent = data.enhancedPrompt || data.prompt;
+    }
+    if (fullLink) {
+      fullLink.href = data.imageUrl;
+    }
+
+    showToast('Render Selesai', `Gambar berhasil dibuat menggunakan engine ${data.modelUsed}!`, 'success');
+  } catch (err) {
+    if (err.message !== '401 Unauthorized') {
+      showToast('Gagal Render', err.message || 'Terjadi kesalahan saat pengujian.', 'error');
+      if (resultContainer) resultContainer.classList.remove('hidden');
+      if (statusBadge) {
+        statusBadge.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+        statusBadge.textContent = 'Gagal';
+      }
+      if (metaText) {
+        metaText.textContent = err.message;
+      }
+    }
+  } finally {
+    if (testBtn) {
+      testBtn.disabled = false;
+      testBtn.innerHTML = origBtnHtml;
+    }
+  }
+}
+
