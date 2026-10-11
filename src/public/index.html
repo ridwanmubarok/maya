@@ -12,7 +12,9 @@
   <!-- Google Fonts: Cinzel & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="/landing/night-desktop.jpg" media="(min-aspect-ratio: 17/20)">
+  <link rel="preload" as="image" href="/landing/night-mobile.jpg" media="(max-aspect-ratio: 17/20)">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +25,7 @@
         extend: {
           fontFamily: {
             cinzel: ['Cinzel', 'serif'],
+            chewy: ['Chewy', 'Plus Jakarta Sans', 'cursive'],
             sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
           }
         }
@@ -53,14 +56,14 @@
       font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Cinematic Overlays */
+    /* Cinematic Overlays (tuned for the painted night scene) */
     .vignette-overlay {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 10;
-      background: radial-gradient(circle at 50% 55%, transparent 35%, rgba(4,3,3,0.5) 70%, rgba(4,3,3,0.95) 100%),
-                  linear-gradient(to bottom, rgba(4,3,3,0.6) 0%, transparent 25%, transparent 75%, rgba(4,3,3,0.9) 100%);
+      background: radial-gradient(ellipse at 50% 55%, transparent 55%, rgba(6,8,18,0.35) 85%, rgba(4,5,12,0.7) 100%),
+                  linear-gradient(to bottom, rgba(5,7,18,0.55) 0%, transparent 18%, transparent 78%, rgba(5,4,8,0.75) 100%);
     }
 
     .noise-overlay {
@@ -72,17 +75,18 @@
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
     }
 
-    /* Ambient Warm Core Glow */
+    /* Ambient Warm Core Glow (positioned over the painted fire pit by JS) */
     .warmth-ambient-glow {
       position: fixed;
-      top: 55%;
+      top: 70%;
       left: 50%;
-      transform: translate(-50%, -45%);
+      transform: translate(-50%, -50%);
       width: 440px;
-      height: 440px;
+      height: 300px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 107, 26, 0.12) 0%, rgba(245, 158, 11, 0.04) 45%, transparent 70%);
-      filter: blur(50px);
+      background: radial-gradient(ellipse, rgba(255, 140, 40, 0.55) 0%, rgba(255, 100, 20, 0.18) 40%, transparent 70%);
+      mix-blend-mode: screen;
+      filter: blur(18px);
       pointer-events: none;
       z-index: 2;
       transition: opacity 0.8s ease;
@@ -236,18 +240,372 @@
       75% { opacity: 0.85; }
       100% { transform: translate(320px, 230px) scaleX(1.3); opacity: 0; }
     }
+
+    /* ================================================================= */
+    /* COZY NIGHT CAMP SCENE                                             */
+    /* ================================================================= */
+    #scene-stage {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: #070a16;
+      touch-action: none;
+    }
+    #scene-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 85% 50%;
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+    #scene-bg.is-loaded { opacity: 1; }
+
+    /* Overlay box that exactly matches the rendered (cover-fitted) image rect.
+       Children are positioned in % of the source image. --s = px per source px. */
+    .scene-box {
+      position: absolute;
+      pointer-events: none;
+      --s: 1;
+    }
+    .scene-box > * { position: absolute; }
+
+    /* Lantern flicker glow */
+    .lantern-glow {
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(255, 210, 120, 0.85) 0%, rgba(255, 150, 40, 0.35) 35%, rgba(255, 120, 20, 0) 70%);
+      mix-blend-mode: screen;
+      animation: lanternFlicker var(--dur, 3s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+      will-change: opacity, transform;
+    }
+    @keyframes lanternFlicker {
+      0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+      18% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.06); }
+      22% { opacity: 0.5; }
+      40% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); }
+      63% { opacity: 0.62; transform: translate(-50%, -50%) scale(0.97); }
+      80% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.08); }
+    }
+
+    /* Moon halo */
+    .moon-halo {
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(220, 235, 255, 0.55) 0%, rgba(160, 190, 255, 0.18) 40%, transparent 70%);
+      mix-blend-mode: screen;
+      animation: moonBreath 7s ease-in-out infinite;
+    }
+    @keyframes moonBreath {
+      0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+    }
+
+    /* Robot screen soft pulse */
+    .robot-glow {
+      border-radius: 30%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(255, 240, 210, 0.45) 0%, rgba(255, 200, 120, 0.12) 45%, transparent 70%);
+      mix-blend-mode: screen;
+      animation: robotPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes robotPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.85; }
+    }
+
+    /* Lake water shimmer streaks */
+    .water-shimmer {
+      height: calc(var(--s) * 2.5px);
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(90deg, transparent, rgba(255, 220, 150, 0.9), rgba(200, 220, 255, 0.7), transparent);
+      mix-blend-mode: screen;
+      filter: blur(0.6px);
+      animation: waterShimmer var(--dur, 4s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+    @keyframes waterShimmer {
+      0%, 100% { opacity: 0; transform: translate(-50%, -50%) scaleX(0.3); }
+      30% { opacity: 0.8; transform: translate(calc(-50% + 4px), -50%) scaleX(1); }
+      60% { opacity: 0.35; transform: translate(calc(-50% - 3px), -50%) scaleX(0.7); }
+    }
+
+    /* Ambient canvas (stars + fireflies) */
+    #ambient-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Interactive layer (character hotspots + signposts) sits above the WebGL fire */
+    #scene-interactive {
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+    }
+    .char-hotspot {
+      pointer-events: auto;
+      cursor: pointer;
+      border-radius: 40%;
+      transition: background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .char-hotspot:hover {
+      background: radial-gradient(ellipse, rgba(255, 220, 140, 0.16) 0%, transparent 70%);
+    }
+    .char-hotspot.is-hopping { animation: charHop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
+    @keyframes charHop {
+      0%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+
+    /* Speech bubble */
+    .speech-bubble {
+      position: absolute;
+      transform: translate(-50%, -100%) scale(0.4);
+      transform-origin: 50% 100%;
+      opacity: 0;
+      max-width: 220px;
+      width: max-content;
+      padding: 8px 12px;
+      border-radius: 16px;
+      background: #fffaf0;
+      color: #3a2414;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.35;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(120, 70, 30, 0.35);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+      z-index: 5;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: -7px;
+      width: 14px;
+      height: 14px;
+      background: #fffaf0;
+      transform: translateX(-50%) rotate(45deg);
+      border-radius: 0 0 4px 0;
+      box-shadow: 2px 2px 0 rgba(120, 70, 30, 0.35);
+    }
+    .speech-bubble.is-visible {
+      opacity: 1;
+      transform: translate(-50%, -100%) scale(1);
+    }
+    .speech-bubble .bubble-name {
+      display: block;
+      font-family: 'Chewy', cursive;
+      font-weight: 400;
+      font-size: 13px;
+      color: #c2410c;
+      letter-spacing: 0.02em;
+      margin-bottom: 1px;
+    }
+    .hint-bubble {
+      font-size: 11px;
+      padding: 5px 10px;
+      animation: hintBob 1.6s ease-in-out infinite;
+    }
+    @keyframes hintBob {
+      0%, 100% { margin-top: 0; }
+      50% { margin-top: -4px; }
+    }
+
+    /* Floating emotes (music notes, zzz, steam) */
+    .emote {
+      position: absolute;
+      pointer-events: none;
+      font-family: 'Chewy', cursive;
+      color: #ffe7b0;
+      text-shadow: 0 0 8px rgba(255, 170, 60, 0.9), 0 1px 2px rgba(0, 0, 0, 0.6);
+      animation: emoteRise var(--dur, 2.8s) ease-out forwards;
+      will-change: transform, opacity;
+      z-index: 4;
+    }
+    .emote.zzz { color: #dbe7ff; text-shadow: 0 0 8px rgba(150, 180, 255, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6); }
+    .emote.steam {
+      width: 6px;
+      height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(255, 255, 255, 0.55), transparent 70%);
+      filter: blur(1.5px);
+      text-shadow: none;
+    }
+    @keyframes emoteRise {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.6) rotate(0deg); }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 12px)), calc(var(--rise, -60px))) scale(1.1) rotate(var(--rot, 12deg)); }
+    }
+
+    /* Wooden signposts on tree */
+    .signpost-group {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .signpost {
+      pointer-events: auto;
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35em;
+      padding: 0 0.5em;
+      font-family: 'Chewy', cursive;
+      letter-spacing: 0.04em;
+      color: #fff4dc;
+      text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.95),
+        0 2px 4px rgba(35, 14, 5, 0.95),
+        0 0 10px rgba(255, 190, 80, 0.35);
+      text-decoration: none;
+      white-space: nowrap;
+      background: transparent;
+      border-radius: 8px;
+      transform-origin: center center;
+      transform: translate(-50%, -50%) rotate(var(--tilt, 0deg));
+      transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1),
+                  text-shadow 0.25s ease,
+                  color 0.2s ease,
+                  background 0.25s ease,
+                  filter 0.25s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .signpost:hover {
+      animation: signWobble 0.65s ease-in-out;
+      background: radial-gradient(ellipse at center, rgba(255, 215, 130, 0.25) 0%, rgba(255, 180, 70, 0.08) 55%, transparent 75%);
+      color: #ffffff;
+      text-shadow:
+        0 0 16px rgba(255, 230, 140, 0.95),
+        0 0 8px rgba(255, 180, 60, 0.85),
+        0 2px 3px rgba(35, 12, 3, 0.95);
+      filter: drop-shadow(0 0 12px rgba(255, 200, 80, 0.7));
+    }
+    .signpost:active {
+      transform: translate(-50%, -50%) scale(0.95) rotate(var(--tilt, 0deg));
+    }
+    .signpost svg {
+      width: 1.05em;
+      height: 1.05em;
+      flex-shrink: 0;
+      color: #ffe5aa;
+      filter: drop-shadow(0 2px 3px rgba(35, 14, 5, 0.9));
+      transition: color 0.2s ease, filter 0.2s ease, transform 0.2s ease;
+    }
+    .signpost:hover svg {
+      color: #ffffff;
+      filter: drop-shadow(0 0 8px rgba(255, 220, 120, 0.95));
+      transform: scale(1.1);
+    }
+    @keyframes signWobble {
+      0% { transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)); }
+      25% { transform: translate(-50%, -50%) rotate(calc(var(--tilt, 0deg) - 2.5deg)) scale(1.03); }
+      50% { transform: translate(-50%, -50%) rotate(calc(var(--tilt, 0deg) + 2deg)) scale(1.04); }
+      75% { transform: translate(-50%, -50%) rotate(calc(var(--tilt, 0deg) - 1deg)) scale(1.03); }
+      100% { transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) scale(1.03); }
+    }
+
+    /* Playful title */
+    .title-chewy {
+      font-family: 'Chewy', cursive;
+      color: #fff6e6;
+      letter-spacing: 0.03em;
+      line-height: 0.95;
+      text-shadow: 0 3px 0 rgba(90, 50, 25, 0.9), 0 6px 18px rgba(0, 0, 0, 0.75), 0 0 28px rgba(255, 190, 110, 0.35);
+    }
+    .title-sparkle {
+      display: inline-block;
+      color: #fff7d6;
+      filter: drop-shadow(0 0 6px rgba(255, 230, 160, 0.9));
+      animation: sparkleTwinkle 2.4s ease-in-out infinite;
+    }
+    @keyframes sparkleTwinkle {
+      0%, 100% { opacity: 0.35; transform: scale(0.7) rotate(0deg); }
+      50% { opacity: 1; transform: scale(1.1) rotate(25deg); }
+    }
+    .title-logo { animation: logoFloat 5s ease-in-out infinite; }
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Bara progress bar */
+    .bara-track {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+    .bara-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #f97316, #fbbf24, #fde68a);
+      box-shadow: 0 0 10px rgba(251, 146, 60, 0.8);
+      transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .lantern-glow, .water-shimmer, .moon-halo, .robot-glow, .title-sparkle, .title-logo, .hint-bubble { animation: none !important; }
+    }
   </style>
 </head>
 <body class="relative w-full h-full overflow-hidden select-none">
 
-  <!-- 3D WebGL Canvas Container -->
-  <div id="canvas-container" class="fixed inset-0 z-0 touch-none"></div>
+  <!-- ================================================================= -->
+  <!-- COZY NIGHT CAMP SCENE (painted illustration + live layers)        -->
+  <!-- ================================================================= -->
+  <div id="scene-stage">
+    <img id="scene-bg" alt="The Checkpoint — perkemahan malam yang hangat" draggable="false" />
+    <!-- Glows, moon halo & water shimmer, positioned in source-image coordinates -->
+    <div id="scene-fx" class="scene-box"></div>
+    <!-- Twinkling stars + fireflies -->
+    <canvas id="ambient-canvas"></canvas>
+    <!-- Warmth Core Glow over the painted fire pit -->
+    <div id="ambient-glow" class="warmth-ambient-glow"></div>
+    <!-- Shooting Stars Sky Layer -->
+    <div id="shooting-stars-layer" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index:3"></div>
+    <!-- 3D WebGL Fire (flame, embers, smoke only) -->
+    <div id="canvas-container" class="absolute inset-0 pointer-events-none" style="z-index:4"></div>
+  </div>
 
-  <!-- Warmth Core Glow Behind Flame -->
-  <div id="ambient-glow" class="warmth-ambient-glow"></div>
-
-  <!-- Shooting Stars Sky Layer -->
-  <div id="shooting-stars-layer" class="fixed inset-0 z-5 pointer-events-none overflow-hidden"></div>
+  <!-- Characters (click for speech bubbles), emotes & signposts -->
+  <div id="scene-interactive">
+    <div id="scene-hit" class="scene-box"></div>
+    <div id="signpost-group" class="signpost-group">
+      <a class="signpost" href="https://discord.gg/TVKcyQqB3" target="_blank" rel="noopener" data-sign="games">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/></svg>
+        <span>GAMES</span>
+      </a>
+      <a class="signpost" href="https://discord.gg/TVKcyQqB3" target="_blank" rel="noopener" data-sign="chill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>
+        <span>CHILL</span>
+      </a>
+      <a class="signpost" href="https://discord.gg/TVKcyQqB3" target="_blank" rel="noopener" data-sign="friends">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>FRIENDS</span>
+      </a>
+      <a class="signpost" href="https://discord.gg/TVKcyQqB3" target="_blank" rel="noopener" data-sign="talks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+        <span>GOOD TALKS</span>
+      </a>
+    </div>
+  </div>
 
   <!-- Visual Polish Overlays -->
   <div class="vignette-overlay"></div>
@@ -256,7 +614,7 @@
   <!-- ================================================================= -->
   <!-- FLOATING REAL GUARDIAN AVATARS (Around the Bonfire)                -->
   <!-- ================================================================= -->
-  <div id="floating-guardians-layer" class="fixed inset-0 z-15 pointer-events-none">
+  <div id="floating-guardians-layer" class="fixed inset-0 pointer-events-none" style="z-index:14">
     <!-- Populated dynamically with real Checkpoint members -->
   </div>
 
@@ -272,8 +630,8 @@
       <header class="flex items-center justify-between w-full max-w-6xl mx-auto pointer-events-auto">
         
         <!-- Left side: Live Server Stats & Fire Streak -->
-        <div class="flex items-center space-x-2 text-xs text-zinc-300 font-mono tracking-wide">
-          <span class="font-medium"><span id="live-count">1,429</span> members</span>
+        <div class="flex items-center space-x-2 text-xs text-zinc-200 font-mono tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+          <span class="font-medium inline-flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-amber-200"></i><span id="live-count">1,429</span> members</span>
           <span class="text-zinc-600">•</span>
           <span class="font-medium"><span id="voice-count">0</span> in voice</span>
           <span class="text-zinc-600 hidden sm:inline">•</span>
@@ -313,36 +671,64 @@
       </header>
 
       <!-- TOP CENTER TITLE -->
-      <main class="w-full max-w-xl mx-auto text-center pointer-events-auto">
-        <h2 class="font-cinzel text-2xl sm:text-4xl lg:text-5xl font-extrabold text-amber-50 tracking-wider leading-tight drop-shadow-[0_4px_30px_rgba(0,0,0,0.95)]">
-          The Checkpoint
-        </h2>
+      <main class="w-full max-w-xl mx-auto text-center pointer-events-none select-none">
+        <!-- Mountain logo -->
+        <svg class="title-logo mx-auto w-10 h-7 sm:w-14 sm:h-9 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]" viewBox="0 0 64 40" fill="none" stroke="#fff6e6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M3 37 L22 9 L31 22 L39 13 L61 37 Z"/>
+          <path d="M17 16.5 L22 9 L27 16.5 L24.5 15 L22 17.5 L19.5 15 Z" fill="#fff6e6"/>
+          <path d="M35 18 L39 13 L44 18.5" />
+        </svg>
+        <div class="flex items-center justify-center gap-2 sm:gap-4 mt-1">
+          <span class="flex flex-col items-center gap-1 sm:gap-2">
+            <span class="title-sparkle text-sm sm:text-lg" style="animation-delay:-0.6s">✦</span>
+            <svg class="w-4 h-5 sm:w-6 sm:h-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" viewBox="0 0 20 26" fill="#fff6e6"><path d="M10 0 L15 8 H12.5 L17 15 H13.5 L19 22 H11.5 V26 H8.5 V22 H1 L6.5 15 H3 L7.5 8 H5 Z"/></svg>
+          </span>
+          <h2 class="title-chewy text-[2.6rem] sm:text-6xl lg:text-7xl">
+            <span class="block text-[0.55em] tracking-[0.12em]">THE</span>
+            <span class="block">CHECKPOINT</span>
+          </h2>
+          <span class="flex flex-col items-center gap-1 sm:gap-2">
+            <span class="title-sparkle text-xs sm:text-base" style="animation-delay:-1.4s">✦</span>
+            <svg class="w-4 h-5 sm:w-6 sm:h-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" viewBox="0 0 20 26" fill="#fff6e6"><path d="M10 0 L15 8 H12.5 L17 15 H13.5 L19 22 H11.5 V26 H8.5 V22 H1 L6.5 15 H3 L7.5 8 H5 Z"/></svg>
+          </span>
+        </div>
 
-        <p id="flame-quote" class="mt-1 text-xs sm:text-sm text-amber-200/90 font-serif italic max-w-md mx-auto leading-relaxed transition-all duration-300 drop-shadow">
-          Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan.
-        </p>
+        <div class="mt-2 flex justify-center">
+          <p id="flame-quote" class="inline-block px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-amber-500/20 text-xs sm:text-sm text-amber-100/95 italic max-w-lg leading-relaxed transition-all duration-300 shadow-xl drop-shadow">
+            Singgah sebentar. Hangatkan suasana, lanjutkan perjalanan.
+          </p>
+        </div>
+        <svg class="mx-auto mt-1 w-28 h-2 opacity-80" viewBox="0 0 112 8" fill="none" stroke="#fff6e6" stroke-width="1.6" stroke-linecap="round"><path d="M2 5 Q 28 1 56 4 T 110 3"/></svg>
       </main>
     </div>
 
     <!-- BOTTOM ACTION AREA & REAL MEMBERS -->
-    <footer class="w-full max-w-xl mx-auto flex flex-col items-center space-y-2.5 pointer-events-auto pb-1 sm:pb-2">
+    <footer class="w-full max-w-xl mx-auto flex flex-col items-center space-y-1.5 pointer-events-auto pb-1 sm:pb-2">
       
-      <!-- REAL COMMUNITY MEMBERS ROW (Clean, No fake badges) -->
+      <!-- REAL COMMUNITY MEMBERS ROW (Clean pill dock) -->
       <div class="w-full flex items-center justify-center">
-        <div id="guardians-dock" class="glass-nav px-3 py-1.5 rounded-2xl flex items-center space-x-2.5 overflow-x-auto no-scrollbar shadow-2xl border border-white/10">
+        <div id="guardians-dock" class="glass-nav px-3 py-1 rounded-full flex items-center space-x-2 overflow-x-auto no-scrollbar shadow-2xl border border-white/10">
           <!-- Populated with real community members -->
         </div>
       </div>
 
       <!-- Real Live Activity Stream -->
-      <div class="w-full overflow-hidden h-5 flex items-center justify-center text-[11px] text-zinc-300/90 font-mono drop-shadow">
+      <div class="w-full overflow-hidden h-4 flex items-center justify-center text-[11px] text-zinc-200/95 font-mono drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
         <span id="ticker-text">Memuat aktivitas server...</span>
       </div>
 
-      <!-- Real Sparks Counter & Tip -->
-      <div class="flex items-center justify-between w-full px-3 text-[10px] text-zinc-500 font-mono">
-        <span>Geser layar untuk hembuskan angin</span>
-        <div>Bara Aktif: <span id="total-sparks-count" class="text-amber-300 font-semibold">10</span> / 1.000</div>
+      <!-- Tip -->
+      <div class="flex items-center justify-center w-full px-3 text-[10px] text-zinc-400 font-mono drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
+        <span>Geser layar untuk hembuskan angin · klik karakternya ✨</span>
+      </div>
+
+      <!-- Bara Aktif progress (inline on mobile, pinned bottom-right on desktop) -->
+      <div id="bara-meter" class="w-full max-w-[240px] sm:w-[230px] sm:fixed sm:right-7 sm:bottom-7 px-3 py-2 rounded-xl glass-nav border border-white/10 font-mono text-[11px] text-zinc-300">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="flex items-center gap-1.5"><span class="text-[12px]">🔥</span> Bara Aktif:</span>
+          <span><span id="total-sparks-count" class="text-amber-300 font-semibold">10</span> / 1.000</span>
+        </div>
+        <div class="bara-track"><div id="bara-fill" class="bara-fill" style="width:1%"></div></div>
       </div>
     </footer>
   </div>
@@ -852,17 +1238,20 @@
     // Three.js Scene Setup (Atmospheric Dark Fantasy Sanctuary)
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x040303, 0.04);
+    // No fog — the illustration supplies the atmosphere
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 0.82, 5.2);
-    camera.lookAt(0, 0.35, 0);
+    const CAM_Z = 5.0;
+    const CAM_FOV = 45;
+    const camera = new THREE.PerspectiveCamera(CAM_FOV, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, CAM_Z);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0); // fully transparent
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
     const fireWorld = new THREE.Group();
@@ -918,185 +1307,12 @@
     }
     const groundGlowTexture = createGroundGlowSprite();
 
-    // --- 1. Ancient Hearth & Ground Pit ---
+    // --- 1. Ground Pit group (no geometry — illustration supplies it) ---
     const pitGroup = new THREE.Group();
     pitGroup.position.y = -0.48;
     fireWorld.add(pitGroup);
 
-    // Deep Dark Ground Floor
-    const groundGeo = new THREE.PlaneGeometry(36, 36, 16, 16);
-    const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x070605,
-      roughness: 0.95,
-      metalness: 0.08
-    });
-    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-    groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.position.y = -0.05;
-    pitGroup.add(groundMesh);
-
-    // Volcanic Ash Mound (Sculpted organic mound)
-    const ashGeo = new THREE.ConeGeometry(1.5, 0.36, 32, 5);
-    const ashPos = ashGeo.attributes.position;
-    for (let i = 0; i < ashPos.count; i++) {
-      const y = ashPos.getY(i);
-      if (y > -0.18) {
-        ashPos.setX(i, ashPos.getX(i) * (1.0 + (Math.sin(i * 1.7) * 0.12)));
-        ashPos.setZ(i, ashPos.getZ(i) * (1.0 + (Math.cos(i * 2.1) * 0.12)));
-      }
-    }
-    ashGeo.computeVertexNormals();
-    const ashMat = new THREE.MeshStandardMaterial({ color: 0x100b08, roughness: 0.96 });
-    const ashMesh = new THREE.Mesh(ashGeo, ashMat);
-    ashMesh.position.y = 0.04;
-    pitGroup.add(ashMesh);
-
-    // 14 Ancient Weathered Hearth Stones (Natural low-profile river rocks)
-    const stoneMat = new THREE.MeshStandardMaterial({
-      color: 0x201a16,
-      roughness: 0.94,
-      metalness: 0.04
-    });
-    for (let i = 0; i < 14; i++) {
-      const angle = (i / 14) * Math.PI * 2 + (Math.sin(i * 1.5) * 0.06);
-      const dist = 1.15 + (Math.cos(i * 2.3) * 0.08);
-      const stoneSize = 0.15 + ((i % 3) * 0.035);
-      const stoneGeo = new THREE.DodecahedronGeometry(stoneSize, 1);
-      const stone = new THREE.Mesh(stoneGeo, stoneMat);
-      stone.position.set(Math.cos(angle) * dist, 0.04, Math.sin(angle) * dist);
-      stone.scale.set(1.25 + (i % 2) * 0.25, 0.38 + (i % 3) * 0.12, 1.05 + (i % 2) * 0.2);
-      stone.rotation.set(i * 0.3, angle + 0.2, i * 0.15);
-      pitGroup.add(stone);
-    }
-
-    // Glowing Charcoal & Coals (Bed of dark carbon embers nestled in ash)
-    const coalMat = new THREE.MeshStandardMaterial({
-      color: 0x0c0806,
-      emissive: 0x3d0b00,
-      emissiveIntensity: 0.45,
-      roughness: 0.96
-    });
-    for (let i = 0; i < 14; i++) {
-      const cAngle = (i / 14) * Math.PI * 2 + (i % 3) * 0.22;
-      const cDist = 0.14 + (i % 3) * 0.10;
-      const cGeo = new THREE.DodecahedronGeometry(0.065 + (i % 4) * 0.02, 1);
-      const coal = new THREE.Mesh(cGeo, coalMat);
-      coal.position.set(Math.cos(cAngle) * cDist, 0.06 + (i % 2) * 0.03, Math.sin(cAngle) * cDist);
-      coal.scale.set(1.15 + (i % 2) * 0.2, 0.65, 1.0 + (i % 3) * 0.2);
-      coal.rotation.set(i * 0.6, i * 1.2, i * 0.3);
-      pitGroup.add(coal);
-    }
-
-    // 8 Charred Campfire Logs (Crossed leaning into hearth)
-    const logGeo = new THREE.CylinderGeometry(0.042, 0.065, 0.88, 8);
-    const logMat = new THREE.MeshStandardMaterial({ color: 0x16100c, roughness: 0.96 });
-    const burntMat = new THREE.MeshStandardMaterial({
-      color: 0x0c0806,
-      emissive: 0x2c0800,
-      emissiveIntensity: 0.38,
-      roughness: 0.94
-    });
-
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2 + (i % 2) * 0.15;
-      const log = new THREE.Mesh(logGeo, i % 2 === 0 ? burntMat : logMat);
-      log.position.set(Math.cos(angle) * 0.34, 0.18, Math.sin(angle) * 0.34);
-      log.rotation.z = Math.PI / 3.4;
-      log.rotation.y = angle + 0.25;
-      pitGroup.add(log);
-    }
-
-    // --- 2. The Legendary Coiled Sword (Dark Souls Bonfire Icon) ---
-    const swordGroup = new THREE.Group();
-    swordGroup.position.set(0, 0.02, 0);
-    swordGroup.rotation.z = 0.05;
-    swordGroup.rotation.x = -0.04;
-    pitGroup.add(swordGroup);
-
-    // Ancient Coiled Blade Materials
-    const bladeMat = new THREE.MeshStandardMaterial({
-      vertexColors: true,
-      metalness: 0.92,
-      roughness: 0.32,
-      emissive: 0x220500,
-      emissiveIntensity: 0.25
-    });
-
-    const guardMat = new THREE.MeshStandardMaterial({
-      color: 0x201a15,
-      metalness: 0.90,
-      roughness: 0.36
-    });
-
-    // Procedural Twisted Helical Coiled Blade
-    const bladeHeight = 0.90;
-    const bladeGeo = new THREE.CylinderGeometry(0.016, 0.038, bladeHeight, 16, 48);
-    const bPos = bladeGeo.attributes.position;
-    const bColors = new Float32Array(bPos.count * 3);
-
-    for (let i = 0; i < bPos.count; i++) {
-      let x = bPos.getX(i);
-      let y = bPos.getY(i);
-      let z = bPos.getZ(i);
-
-      // Flatten along Z to form sword blade edges
-      z *= 0.30;
-
-      // Helical twist along height Y (~1.4 rotations)
-      const twist = (y + bladeHeight / 2) * 3.6;
-      const cosT = Math.cos(twist);
-      const sinT = Math.sin(twist);
-
-      const nX = x * cosT - z * sinT;
-      const nZ = x * sinT + z * cosT;
-
-      bPos.setXYZ(i, nX, y, nZ);
-
-      // Thermodynamic Heat Incandescence: Only lower 28% touching coals glows
-      const yNorm = (y + bladeHeight / 2) / bladeHeight;
-      if (yNorm < 0.28) {
-        bColors[i * 3] = 1.0;
-        bColors[i * 3 + 1] = 0.45 + (1.0 - yNorm / 0.28) * 0.4;
-        bColors[i * 3 + 2] = 0.12;
-      } else if (yNorm < 0.48) {
-        const t = (yNorm - 0.28) / 0.20;
-        bColors[i * 3] = 0.65 - t * 0.35;
-        bColors[i * 3 + 1] = 0.30 - t * 0.15;
-        bColors[i * 3 + 2] = 0.18 + t * 0.12;
-      } else {
-        // Ancient dark tempered steel
-        bColors[i * 3] = 0.28;
-        bColors[i * 3 + 1] = 0.25;
-        bColors[i * 3 + 2] = 0.23;
-      }
-    }
-    bladeGeo.setAttribute('color', new THREE.BufferAttribute(bColors, 3));
-    bladeGeo.computeVertexNormals();
-
-    const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
-    bladeMesh.position.y = bladeHeight / 2 + 0.02;
-    swordGroup.add(bladeMesh);
-
-    // Ancient Curved Crossguard
-    const guardGeo = new THREE.BoxGeometry(0.30, 0.034, 0.06);
-    const guardMesh = new THREE.Mesh(guardGeo, guardMat);
-    guardMesh.position.y = bladeHeight + 0.02;
-    guardMesh.rotation.y = 0.22;
-    swordGroup.add(guardMesh);
-
-    // Hilt Grip
-    const gripGeo = new THREE.CylinderGeometry(0.016, 0.020, 0.20, 12);
-    const gripMesh = new THREE.Mesh(gripGeo, guardMat);
-    gripMesh.position.y = bladeHeight + 0.12;
-    swordGroup.add(gripMesh);
-
-    // Pommel
-    const pommelGeo = new THREE.DodecahedronGeometry(0.028, 0);
-    const pommelMesh = new THREE.Mesh(pommelGeo, guardMat);
-    pommelMesh.position.y = bladeHeight + 0.23;
-    swordGroup.add(pommelMesh);
-
-    // --- 2B. Bed of Glowing Embers (28 Tiny glistening seeds in crevices) ---
+    // Ember sprite material (still used by the glowing ember particles below)
     const emberMat = new THREE.MeshBasicMaterial({
       map: glowTexture,
       color: 0xff4800,
@@ -1105,17 +1321,7 @@
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    const embersBedGroup = new THREE.Group();
-    pitGroup.add(embersBedGroup);
-    for (let i = 0; i < 28; i++) {
-      const eAngle = Math.random() * Math.PI * 2;
-      const eDist = 0.12 + Math.random() * 0.55;
-      const eSize = 0.016 + Math.random() * 0.024;
-      const eGeo = new THREE.SphereGeometry(eSize, 8, 8);
-      const ember = new THREE.Mesh(eGeo, emberMat);
-      ember.position.set(Math.cos(eAngle) * eDist, 0.05 + Math.random() * 0.06, Math.sin(eAngle) * eDist);
-      embersBedGroup.add(ember);
-    }
+    // coalMat / bladeMat not used (hearth geometry removed)
 
     // --- 3. Masterpiece Volumetric FBM Flame Shader ---
     const flameVertexShader = `
@@ -1225,6 +1431,8 @@
 
         float shape = silhouette * 1.35 + noise * 0.45 * (uv.y + 0.18);
         float alpha = smoothstep(0.40, 0.88, shape) * (1.0 - pow(uv.y, 1.15));
+        // Soft fade at plane borders — prevents the hard "rectangle" look
+        alpha *= smoothstep(1.0, 0.55, centerDist) * smoothstep(0.0, 0.07, uv.y);
 
         // Ultra-Rich Multi-Stop Incandescent Color Gradient
         vec3 color = mix(uColorCore, uColorInner, smoothstep(0.0, 0.28, uv.y));
@@ -1240,7 +1448,7 @@
         float edgeGlow = smoothstep(0.35, 0.75, shape) * (1.0 - smoothstep(0.75, 1.1, shape));
         color += uColorInner * edgeGlow * 0.45;
 
-        gl_FragColor = vec4(color, alpha * (0.88 + uEnergy * 0.22));
+        gl_FragColor = vec4(color, alpha * (0.55 + uEnergy * 0.35));
       }
     `;
 
@@ -1265,11 +1473,11 @@
 
     // 8 Intersecting Shells for Volumetric 3D Flame (Rich AAA Density)
     const flameGroup = new THREE.Group();
-    flameGroup.position.set(0, -0.20, 0);
+    flameGroup.position.set(0, 0, 0);
     fireWorld.add(flameGroup);
 
     const flameGeo = new THREE.PlaneGeometry(0.85, 1.55, 32, 32);
-    flameGeo.translate(0, 0.75, 0);
+    flameGeo.translate(0, 0.775, 0); // bottom edge anchored at y=0
 
     const flameAngles = [
       0, Math.PI / 8, Math.PI / 4, (3 * Math.PI) / 8,
@@ -1283,7 +1491,7 @@
 
     // Inner bright core planes
     const coreGeo = new THREE.PlaneGeometry(0.55, 1.05, 16, 16);
-    coreGeo.translate(0, 0.52, 0);
+    coreGeo.translate(0, 0.525, 0);
     const corePlane1 = new THREE.Mesh(coreGeo, flameMat);
     corePlane1.rotation.y = Math.PI / 6;
     flameGroup.add(corePlane1);
@@ -1416,6 +1624,7 @@
       depthWrite: false
     });
     const fireflyParticles = new THREE.Points(fireflyGeo, fireflyMat);
+    fireflyParticles.visible = false; // drawn on the 2D ambient canvas instead
     fireWorld.add(fireflyParticles);
 
     let currentStreakDays = 1;
@@ -1435,24 +1644,12 @@
 
     const lightConeMesh = null;
 
-    // Warm Ground Heat Contact Radiance
-    const groundGlowGeo = new THREE.PlaneGeometry(3.2, 3.2);
-    const groundGlowMat = new THREE.MeshBasicMaterial({
-      map: groundGlowTexture,
-      color: activeTheme.innerColor,
-      transparent: true,
-      opacity: 0.55,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const groundGlowMesh = new THREE.Mesh(groundGlowGeo, groundGlowMat);
-    groundGlowMesh.rotation.x = -Math.PI / 2;
-    groundGlowMesh.position.y = -0.04;
-    pitGroup.add(groundGlowMesh);
+    // (ground glow mesh removed — illustration provides it)
+
 
     // --- 7. Cinematic Parallax & Damped Orbit Controls ---
-    let energy = 0.05;
-    let targetEnergy = 0.05;
+    let energy = 0.0;
+    let targetEnergy = 0.0;
     let totalSparks = 10;
     let windVector = new THREE.Vector2(0, 0);
     let targetWind = new THREE.Vector2(0, 0);
@@ -1489,7 +1686,6 @@
       const dx = (e.clientX - lastPointerX) * 0.005;
       const dy = (e.clientY - lastPointerY) * 0.005;
 
-      orbitVelocity -= dx * 0.45;
       targetWind.x = Math.max(-0.6, Math.min(0.6, targetWind.x + dx));
       targetWind.y = Math.max(-0.6, Math.min(0.6, targetWind.y - dy));
 
@@ -1529,9 +1725,10 @@
     function applyBonfireState(state) {
       if (!state) return;
       latestBonfireState = state;
-      targetEnergy = Math.max(0.04, state.energy);
+      targetEnergy = (state.sparks <= 0 || state.isExtinguished) ? 0 : Math.max(0.008, state.energy);
       totalSparks = state.sparks;
       if (totalSparksText) totalSparksText.textContent = totalSparks.toLocaleString('id-ID');
+      if (typeof updateBaraFill === 'function') updateBaraFill(totalSparks);
       if (voiceCount && state.voiceCount !== undefined) voiceCount.textContent = state.voiceCount;
       if (flameQuote && state.statusQuote) flameQuote.textContent = state.statusQuote;
 
@@ -1572,18 +1769,17 @@
     function burstEmbers(count = 15) {
       const posAttr = sparkGeo.attributes.position;
       for (let i = 0; i < count; i++) {
-        const idx = Math.floor(Math.random() * sparkCount);
+        const idx = Math.floor(Math.random() * Math.min(sparkCount, sparkGeo.drawRange.count));
         posAttr.setXYZ(idx, (Math.random() - 0.5) * 0.35, -0.22, (Math.random() - 0.5) * 0.35);
         sparkVel[idx * 3 + 1] = 0.045 + Math.random() * 0.035;
       }
       posAttr.needsUpdate = true;
     }
 
+    // Cosmetic only: embers puff + crackle. Fire SIZE follows the server (applyBonfireState).
     function igniteFlameFromActivity(amount = 0.08, playSound = true) {
-      targetEnergy = Math.min(1.0, targetEnergy + amount);
       if (playSound) soundEngine.playSparkSound();
-      burstEmbers(18);
-      camera.position.z = 5.54;
+      if (targetEnergy > 0.0) burstEmbers(Math.round(6 + amount * 120));
     }
 
     // Audio Button Pill Controller
@@ -1658,11 +1854,7 @@
           flameUniforms.uColorOuter.value.setHex(activeTheme.outerColor);
           sparkMat.color.setHex(activeTheme.sparkColor);
           fireLight.color.setHex(activeTheme.lightColor);
-          coalMat.emissive.setHex(activeTheme.innerColor);
-          coalMat.emissiveIntensity = 0.35;
           if (typeof emberMat !== 'undefined' && emberMat) emberMat.color.setHex(activeTheme.innerColor);
-          if (typeof bladeMat !== 'undefined' && bladeMat) bladeMat.emissive.setHex(activeTheme.innerColor);
-          if (typeof groundGlowMesh !== 'undefined' && groundGlowMesh?.material) groundGlowMesh.material.color.setHex(activeTheme.innerColor);
           if (ambientGlow) ambientGlow.style.background = `radial-gradient(circle, ${activeTheme.glow} 0%, rgba(0,0,0,0) 70%)`;
           themeModal?.classList.add('opacity-0', 'pointer-events-none');
         }
@@ -2594,12 +2786,12 @@
     // --- 2. FLOATING VOICE MEMBERS: REAL-TIME ACTIVE VOICE OCCUPANTS ONLY ---
     // Smooth outer flank positions to avoid headers, campfire center, and bottom dock
     const flankPositions = [
-      { x: '9%', y: '40%', anim: 'voice-float-1' },
-      { x: '91%', y: '40%', anim: 'voice-float-2' },
-      { x: '12%', y: '60%', anim: 'voice-float-3' },
-      { x: '88%', y: '60%', anim: 'voice-float-4' },
-      { x: '8%', y: '23%', anim: 'voice-float-5' },
-      { x: '92%', y: '23%', anim: 'voice-float-6' },
+      { x: '10%', y: '36%', anim: 'voice-float-1' },
+      { x: '78%', y: '32%', anim: 'voice-float-2' },
+      { x: '8%',  y: '62%', anim: 'voice-float-3' },
+      { x: '72%', y: '46%', anim: 'voice-float-4' },
+      { x: '18%', y: '24%', anim: 'voice-float-5' },
+      { x: '84%', y: '18%', anim: 'voice-float-6' },
     ];
 
     // Keyed cache for non-destructive DOM updates (avoids reset/flicker/blink)
@@ -2791,23 +2983,12 @@
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // Server-authoritative energy interpolation
-      energy += (targetEnergy - energy) * 0.05;
+      // Server-authoritative energy interpolation (smooth, ~2s to settle)
+      energy += (targetEnergy - energy) * 0.03;
 
-      // Damped orbit velocity & smooth camera positioning
-      orbitAngle += orbitVelocity;
-      orbitVelocity *= 0.93;
-
-      camParallaxX += (targetParallaxX - camParallaxX) * 0.05;
-      camParallaxY += (targetParallaxY - camParallaxY) * 0.05;
-
-      const breathingY = Math.sin(time * 0.6) * 0.04;
-      const camX = Math.sin(orbitAngle) * orbitRadius + camParallaxX * 0.42;
-      const camZ = Math.cos(orbitAngle) * orbitRadius;
-      const camY = 0.82 + breathingY - camParallaxY * 0.32;
-
-      camera.position.set(camX, camY, camZ);
-      camera.lookAt(0, 0.35, 0);
+      // Fixed camera at origin
+      camera.position.set(0, 0, CAM_Z);
+      camera.lookAt(0, 0, 0);
 
       // Smooth wind decay
       targetWind.lerp(new THREE.Vector2(0, 0), 0.025);
@@ -2818,28 +2999,37 @@
       flameUniforms.uEnergy.value = energy;
       flameUniforms.uWind.value.copy(windVector);
 
-      // Visual scaling based on energy (Never squashed; always full and roaring)
-      const isExtinguished = energy <= 0.01;
-      const flameScaleY = isExtinguished ? 0.001 : (1.0 + Math.min(0.4, energy * 0.4));
-      const flameScaleXZ = isExtinguished ? 0.001 : (0.95 + Math.min(0.3, energy * 0.3));
-      flameGroup.scale.set(flameScaleXZ, flameScaleY, flameScaleXZ);
+      // ---- Visual mapping from SERVER energy (sparks / 1000) ----
+      // sqrt curve gives a lively response across all activity ranges:
+      // ~10-40 bara: small cozy flame (scale ~0.45)
+      // ~200 bara: warm dancing campfire (scale ~0.75)
+      // ~500-1000 bara: grand roaring inferno (scale ~1.2-1.35)
+      const isExtinguished = targetEnergy <= 0 && energy < 0.004;
+      const e = Math.sqrt(Math.max(0, energy)); // 0..1
+      const flameScaleY = isExtinguished ? 0.001 : (0.36 + 0.95 * e);
+      const flameScaleXZ = isExtinguished ? 0.001 : (0.42 + 0.65 * e);
+      const flicker = 1.0 + Math.sin(time * 9.0) * 0.025 + Math.sin(time * 15.3) * 0.015;
+      flameGroup.scale.set(flameScaleXZ, flameScaleY * flicker, flameScaleXZ);
       flameGroup.visible = !isExtinguished;
+
+      // Active ember count scales with energy
+      sparkGeo.setDrawRange(0, Math.floor(sparkCount * (isExtinguished ? 0.05 : (0.12 + 0.88 * e))));
+
+      // Smoke: thin when roaring, thicker when smouldering / out
+      smokeMat.opacity = isExtinguished ? 0.28 : (0.08 + (1.0 - e) * 0.12);
 
       // Light Flicker & Dimming
       if (isExtinguished) {
         fireLight.intensity = 0.0;
-        coalLight.intensity = 0.25 + Math.sin(time * 2.0) * 0.05;
-        if (typeof bladeMat !== 'undefined' && bladeMat) bladeMat.emissiveIntensity = 0.05;
       } else {
-        fireLight.intensity = (2.2 + energy * 0.8) + Math.sin(time * 8.5) * 0.22 + Math.cos(time * 13.0) * 0.12;
-        coalLight.intensity = (1.1 + energy * 0.3) + Math.sin(time * 3.2) * 0.15;
-        if (typeof bladeMat !== 'undefined' && bladeMat) {
-          bladeMat.emissiveIntensity = (0.20 + energy * 0.12) + Math.sin(time * 6.5) * 0.04;
-        }
+        fireLight.position.set(0, 0.45 * flameScaleY, 0.1);
+        fireLight.intensity = (0.7 + e * 2.2) + Math.sin(time * 8.5) * 0.22 + Math.cos(time * 13.0) * 0.12;
       }
 
       if (ambientGlow) {
-        ambientGlow.style.opacity = isExtinguished ? "0.05" : (0.35 + energy * 0.45).toFixed(2);
+        const g = isExtinguished ? 0.05 : (0.20 + e * 0.65) * (0.94 + Math.sin(time * 7.3) * 0.06);
+        ambientGlow.style.opacity = g.toFixed(3);
+        ambientGlow.style.transform = `translate(-50%, -50%) scale(${(0.55 + e * 0.55).toFixed(3)})`;
       }
 
       // Volumetric smoke rising animation
@@ -2851,7 +3041,7 @@
           smkPositions[i * 3] += windVector.x * 0.005 + Math.sin(time * 1.5 + i) * 0.0012;
           smkPositions[i * 3 + 2] += windVector.y * 0.005 + Math.cos(time * 1.5 + i) * 0.0012;
           if (sy > 2.8) {
-            sy = 0.5;
+            sy = 0.15 + flameScaleY * 0.5;
             smkPositions[i * 3] = (Math.random() - 0.5) * 0.35;
             smkPositions[i * 3 + 2] = (Math.random() - 0.5) * 0.35;
           }
@@ -2860,17 +3050,12 @@
         smokeGeo.attributes.position.needsUpdate = true;
       }
 
-      // Warm ground contact heat radiance breathing
-      if (typeof groundGlowMesh !== 'undefined' && groundGlowMesh?.material) {
-        groundGlowMesh.material.opacity = isExtinguished ? 0.02 : Math.max(0.2, 0.45 + Math.sin(time * 7.5) * 0.06 + energy * 0.15);
-      }
-
       // Embers (Thermodynamic cooling simulation & vortex curl)
       if (typeof sparkGeo !== 'undefined' && sparkGeo.attributes.position && sparkGeo.attributes.color) {
         const positions = sparkGeo.attributes.position.array;
         const colors = sparkGeo.attributes.color.array;
-        const sparkRiseSpeed = isExtinguished ? 0.25 : (0.72 + energy * 0.45);
-        sparkMat.opacity = isExtinguished ? 0.2 : Math.min(0.95, 0.65 + energy * 0.3);
+        const sparkRiseSpeed = isExtinguished ? 0.25 : (0.45 + e * 0.75);
+        sparkMat.opacity = isExtinguished ? 0.2 : Math.min(0.95, 0.5 + e * 0.45);
 
         for (let i = 0; i < sparkCount; i++) {
           let y = positions[i * 3 + 1];
@@ -2882,7 +3067,7 @@
           positions[i * 3] += -positions[i * 3 + 2] * curlForce + windVector.x * 0.008 + Math.sin(time * 2.2 + i) * 0.0014;
           positions[i * 3 + 2] += positions[i * 3] * curlForce + windVector.y * 0.008 + Math.cos(time * 2.2 + i) * 0.0014;
 
-          // Thermodynamic Color Shift: White-Gold (hot core) -> Amber -> Crimson Red
+      // Thermodynamic Color Shift: White-Gold (hot core) -> Amber -> Crimson Red
           const coolProgress = Math.min(1.0, Math.max(0.0, (y + 0.2) / 2.3));
           if (coolProgress < 0.22) {
             colors[i * 3] = 1.0;
@@ -2954,9 +3139,7 @@
         emberMat.opacity = Math.max(0.4, 0.75 + Math.sin(time * 4.0) * 0.2 + energy * 0.15);
       }
 
-      // World subtle rotation
-      fireWorld.rotation.y = time * 0.035;
-
+      // No world rotation — fire stays aligned with the painted pit
       renderer.render(scene, camera);
     }
 
@@ -2964,11 +3147,392 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      initSceneLayout();
     });
+
+    // =========================================================
+    // SCENE STAGE: background image, fx overlays, characters,
+    // signposts, ambient canvas (stars/fireflies)
+    // =========================================================
+    const IMG_W = { desktop: 1376, mobile: 768 };
+    const IMG_H = { desktop: 768, mobile: 1376 };
+
+    function getImgKey() {
+      return window.innerWidth / window.innerHeight >= (17 / 20) ? 'desktop' : 'mobile';
+    }
+
+    // Cover-fit rect of the background image
+    function getCoverRect(imgKey) {
+      const iw = IMG_W[imgKey], ih = IMG_H[imgKey];
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const scale = Math.max(vw / iw, vh / ih);
+      const rw = iw * scale, rh = ih * scale;
+      // On desktop, anchor towards the right (85%) so signposts on the tree are never cropped on 16:10 screens
+      const anchorX = imgKey === 'desktop' ? 0.85 : 0.50;
+      const x = (vw - rw) * anchorX;
+      const y = (vh - rh) / 2;
+      return { x, y, w: rw, h: rh, scale, anchorX };
+    }
+
+    // Convert source-image fractional coords to screen px
+    function imgToScreen(fx, fy, rect) {
+      return { x: rect.x + fx * rect.w, y: rect.y + fy * rect.h };
+    }
+
+    const sceneBg = document.getElementById('scene-bg');
+    const sceneFx = document.getElementById('scene-fx');
+    const sceneHit = document.getElementById('scene-hit');
+    const signpostGroup = document.getElementById('signpost-group');
+    const ambientCanvas = document.getElementById('ambient-canvas');
+    const baraFill = document.getElementById('bara-fill');
+
+    let currentImgKey = '';
+
+    function initSceneLayout() {
+      const key = getImgKey();
+
+      // Switch background image if needed
+      if (key !== currentImgKey) {
+        currentImgKey = key;
+        sceneBg.classList.remove('is-loaded');
+        const src = `/landing/night-${key}.jpg`;
+        const img = new Image();
+        img.onload = () => { sceneBg.src = src; sceneBg.classList.add('is-loaded'); };
+        img.src = src;
+      }
+
+      const rect = getCoverRect(key);
+      sceneBg.style.objectPosition = `${rect.anchorX * 100}% 50%`;
+
+      // ---- Position scene-fx overlay ----
+      sceneFx.style.left   = rect.x + 'px';
+      sceneFx.style.top    = rect.y + 'px';
+      sceneFx.style.width  = rect.w + 'px';
+      sceneFx.style.height = rect.h + 'px';
+      sceneFx.style.setProperty('--s', rect.scale);
+
+      // ---- Position scene-hit overlay ----
+      sceneHit.style.left   = rect.x + 'px';
+      sceneHit.style.top    = rect.y + 'px';
+      sceneHit.style.width  = rect.w + 'px';
+      sceneHit.style.height = rect.h + 'px';
+      sceneHit.style.setProperty('--s', rect.scale);
+
+      // ---- Position 3D FireWorld on painted campfire pit ----
+      // Desktop: logs apex x=685/1376=0.498, base of wood cavity y=575/768=0.748
+      // Mobile: logs apex x=385/768=0.501, base of wood cavity y=970/1376=0.705
+      const hearthPos = imgToScreen(
+        key === 'desktop' ? 0.498 : 0.501,
+        key === 'desktop' ? 0.748 : 0.705,
+        rect
+      );
+
+      // Perspective projection to Z=0 world plane
+      const ndcX = (hearthPos.x / window.innerWidth) * 2 - 1;
+      const ndcY = -(hearthPos.y / window.innerHeight) * 2 + 1;
+      const vFovRad = THREE.MathUtils.degToRad(CAM_FOV);
+      const halfH = Math.tan(vFovRad / 2) * CAM_Z;
+      const halfW = halfH * camera.aspect;
+      fireWorld.position.set(ndcX * halfW, ndcY * halfH, 0);
+      fireWorld.scale.setScalar(rect.scale);
+
+      // ---- Position warm ambient glow over hearth ----
+      if (ambientGlow) {
+        ambientGlow.style.left = hearthPos.x + 'px';
+        ambientGlow.style.top = (hearthPos.y - 15 * rect.scale) + 'px';
+        ambientGlow.style.width = Math.round(380 * rect.scale) + 'px';
+        ambientGlow.style.height = Math.round(250 * rect.scale) + 'px';
+      }
+
+      // ---- Signposts (Center-anchored directly on painted wooden boards) ----
+      const SIGN_CONFIGS = {
+        desktop: [
+          { id: 'games',   cx: 1279.7 / 1376, cy: 221.8 / 768, w: 100, h: 28, tilt: -13.5, fs: 11.5 },
+          { id: 'chill',   cx: 1279.7 / 1376, cy: 277.3 / 768, w: 100, h: 28, tilt: -8.5,  fs: 11.5 },
+          { id: 'friends', cx: 1279.7 / 1376, cy: 332.7 / 768, w: 108, h: 28, tilt: -4.5,  fs: 11.0 },
+          { id: 'talks',   cx: 1279.7 / 1376, cy: 379.7 / 768, w: 116, h: 28, tilt: -1.5,  fs: 10.5 }
+        ],
+        mobile: [
+          { id: 'games',   cx: 734 / 768, cy: 720 / 1376, w: 52, h: 20, tilt: -13.5, fs: 7.5 },
+          { id: 'chill',   cx: 734 / 768, cy: 757 / 1376, w: 52, h: 20, tilt: -8.5,  fs: 7.5 },
+          { id: 'friends', cx: 734 / 768, cy: 794 / 1376, w: 56, h: 20, tilt: -4.5,  fs: 7.0 },
+          { id: 'talks',   cx: 734 / 768, cy: 831 / 1376, w: 60, h: 20, tilt: -1.5,  fs: 6.5 }
+        ]
+      };
+
+      const currentConfigs = SIGN_CONFIGS[key];
+      currentConfigs.forEach(cfg => {
+        const el = signpostGroup.querySelector(`[data-sign="${cfg.id}"]`);
+        if (!el) return;
+        const pt = imgToScreen(cfg.cx, cfg.cy, rect);
+        el.style.left = Math.round(pt.x) + 'px';
+        el.style.top = Math.round(pt.y) + 'px';
+        el.style.width = Math.round(cfg.w * rect.scale) + 'px';
+        el.style.height = Math.round(cfg.h * rect.scale) + 'px';
+        el.style.setProperty('--tilt', cfg.tilt + 'deg');
+        const fs = Math.max(key === 'desktop' ? 10 : 8, Math.round(rect.scale * cfg.fs));
+        el.style.fontSize = fs + 'px';
+      });
+
+      // ---- Ambient canvas size ----
+      ambientCanvas.width  = rect.w;
+      ambientCanvas.height = rect.h;
+      ambientCanvas.style.left = rect.x + 'px';
+      ambientCanvas.style.top  = rect.y + 'px';
+      ambientCanvas.style.width  = rect.w + 'px';
+      ambientCanvas.style.height = rect.h + 'px';
+
+      // ---- Fx elements ----
+      buildFxElements(key, rect);
+
+      // ---- Character hotspots ----
+      buildCharacterHotspots(key, rect);
+    }
+
+    // ------ FX (lanterns, moon halo, water shimmer, robot glow) ------
+    const FX_DESKTOP = [
+      // Lanterns in cabin area (left side)
+      { type: 'lantern', fx: 0.085, fy: 0.165, size: 65, dur: '2.7s', delay: '0s'  },
+      { type: 'lantern', fx: 0.198, fy: 0.185, size: 55, dur: '3.4s', delay: '-1.1s' },
+      { type: 'lantern', fx: 0.290, fy: 0.310, size: 70, dur: '2.9s', delay: '-0.6s' },
+      { type: 'lantern', fx: 0.143, fy: 0.425, size: 50, dur: '3.8s', delay: '-2s'   },
+      // Right string lights
+      { type: 'lantern', fx: 0.910, fy: 0.178, size: 48, dur: '2.4s', delay: '-0.3s' },
+      { type: 'lantern', fx: 0.832, fy: 0.395, size: 58, dur: '3.1s', delay: '-1.5s' },
+      // Moon halo
+      { type: 'moon',    fx: 0.736, fy: 0.072, size: 110 },
+      // Water shimmer streaks
+      { type: 'shimmer', fx: 0.620, fy: 0.350, size: 90, dur: '4.5s', delay: '0s'    },
+      { type: 'shimmer', fx: 0.680, fy: 0.370, size: 60, dur: '3.8s', delay: '-1.7s' },
+      { type: 'shimmer', fx: 0.750, fy: 0.355, size: 75, dur: '5.2s', delay: '-3s'   },
+      { type: 'shimmer', fx: 0.580, fy: 0.385, size: 50, dur: '4.0s', delay: '-0.8s' },
+      // Robot screen glow
+      { type: 'robot',   fx: 0.605, fy: 0.558, size: 44 },
+    ];
+    const FX_MOBILE = [
+      { type: 'lantern', fx: 0.055, fy: 0.060, size: 60, dur: '2.7s', delay: '0s'   },
+      { type: 'lantern', fx: 0.200, fy: 0.115, size: 50, dur: '3.4s', delay: '-1.1s' },
+      { type: 'lantern', fx: 0.065, fy: 0.310, size: 65, dur: '2.9s', delay: '-0.6s' },
+      { type: 'lantern', fx: 0.100, fy: 0.500, size: 55, dur: '3.8s', delay: '-2s'   },
+      { type: 'lantern', fx: 0.960, fy: 0.065, size: 50, dur: '2.4s', delay: '-0.3s' },
+      { type: 'lantern', fx: 0.920, fy: 0.290, size: 52, dur: '3.1s', delay: '-1.5s' },
+      { type: 'moon',    fx: 0.680, fy: 0.155, size: 130 },
+      { type: 'shimmer', fx: 0.400, fy: 0.580, size: 80, dur: '4.5s', delay: '0s'    },
+      { type: 'shimmer', fx: 0.500, fy: 0.600, size: 55, dur: '3.8s', delay: '-1.7s' },
+      { type: 'shimmer', fx: 0.340, fy: 0.590, size: 65, dur: '5.2s', delay: '-3s'   },
+      { type: 'robot',   fx: 0.658, fy: 0.638, size: 40 },
+    ];
+
+    function buildFxElements(key, rect) {
+      sceneFx.innerHTML = '';
+      const list = key === 'desktop' ? FX_DESKTOP : FX_MOBILE;
+      list.forEach(cfg => {
+        const el = document.createElement('div');
+        const sz = cfg.size * rect.scale;
+        el.style.left   = (cfg.fx * rect.w) + 'px';
+        el.style.top    = (cfg.fy * rect.h) + 'px';
+        el.style.width  = sz + 'px';
+        el.style.height = (cfg.type === 'shimmer' ? 0 : sz) + 'px';
+        if (cfg.type === 'lantern') {
+          el.className = 'lantern-glow';
+          el.style.setProperty('--dur', cfg.dur);
+          el.style.setProperty('--delay', cfg.delay);
+        } else if (cfg.type === 'moon') {
+          el.className = 'moon-halo';
+        } else if (cfg.type === 'shimmer') {
+          el.className = 'water-shimmer';
+          el.style.setProperty('--dur', cfg.dur);
+          el.style.setProperty('--delay', cfg.delay);
+          el.style.setProperty('--s', rect.scale);
+        } else if (cfg.type === 'robot') {
+          el.className = 'robot-glow';
+        }
+        sceneFx.appendChild(el);
+      });
+    }
+
+    // ------ Character hotspots & speech bubbles ------
+    // Coords: [fracX, fracY, width%, height%] anchored to source image
+    const CHARS_DESKTOP = [
+      { id: 'boy',  label: 'Cowok Gitar', fx: 0.165, fy: 0.540, fw: 0.115, fh: 0.30,
+        lines: [
+          'request lagu apa nih? 🎸',
+          'dengerin lofi sambil mandang bintang yuk~ ✨',
+          () => `saat ini ada ${voiceCount ? voiceCount.textContent : '1'} pengelana di voice 🎧`,
+          'mau denger melodi hangat perapian? 🎵'
+        ]
+      },
+      { id: 'cat1', label: 'Kucing Calico', fx: 0.250, fy: 0.735, fw: 0.085, fh: 0.14,
+        lines: ['meow~ 🐱', 'jangan ganggu ya, lagi anget banget 😸', '*menggeliat pelan*', 'purrr... nyenyak... 💤'] },
+      { id: 'cat2', label: 'Kucing Putih', fx: 0.540, fy: 0.610, fw: 0.068, fh: 0.15,
+        lines: ['mrrp~ 🐾', 'deket api emang paling nikmat! 🔥', '...nya? ada camilan? 🐟', '*duduk santai*'] },
+      { id: 'robot', label: 'Robot Maya', fx: 0.585, fy: 0.520, fw: 0.075, fh: 0.18,
+        lines: [
+          'beep boop! sistem Checkpoint normal ✓',
+          () => `kondisi bara: ${totalSparks.toLocaleString('id-ID')} / 1.000 bara aktif 🔥`,
+          'selamat datang di perkemahan Maya! 🤖',
+          'senang melihat pengelana berkumpul di sini 💛'
+        ]
+      },
+      { id: 'girl', label: 'Cewek Mug', fx: 0.655, fy: 0.535, fw: 0.100, fh: 0.26,
+        lines: [
+          'mau cokelat panas? ☕',
+          'hangat banget malem ini bareng kalian~ 🥰',
+          'nyaman ya di sini, betah deh...',
+          'duduk bareng di dekat api unggun yuk! ✨'
+        ]
+      },
+    ];
+    const CHARS_MOBILE = [
+      { id: 'boy',   label: 'Cowok Gitar', fx: 0.140, fy: 0.605, fw: 0.220, fh: 0.160,
+        lines: ['request lagu apa nih? 🎸', 'dengerin lofi bareng yuk~ 🎵'] },
+      { id: 'cat1',  label: 'Kucing Calico', fx: 0.330, fy: 0.695, fw: 0.180, fh: 0.100,
+        lines: ['meow~ 🐱', 'lagi anget banget... 💤'] },
+      { id: 'cat2',  label: 'Kucing Putih', fx: 0.725, fy: 0.615, fw: 0.140, fh: 0.110,
+        lines: ['mrrp~ deket api paling enak! 🐾'] },
+      { id: 'robot', label: 'Robot Maya',   fx: 0.775, fy: 0.535, fw: 0.140, fh: 0.130,
+        lines: ['beep boop ✓ semua sistem normal 🤖', () => `${totalSparks} bara aktif 🔥`] },
+      { id: 'girl',  label: 'Cewek Mug',   fx: 0.850, fy: 0.575, fw: 0.160, fh: 0.160,
+        lines: ['mau cokelat panas? ☕', 'nyaman ya di sini 🥰'] },
+    ];
+
+    let activeBubble = null;
+
+    function buildCharacterHotspots(key, rect) {
+      sceneHit.innerHTML = '';
+      const list = key === 'desktop' ? CHARS_DESKTOP : CHARS_MOBILE;
+      list.forEach(cfg => {
+        const wrap = document.createElement('div');
+        wrap.style.left   = (cfg.fx * rect.w) + 'px';
+        wrap.style.top    = (cfg.fy * rect.h) + 'px';
+        wrap.style.width  = (cfg.fw * rect.w) + 'px';
+        wrap.style.height = (cfg.fh * rect.h) + 'px';
+        wrap.className    = 'char-hotspot';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble';
+        bubble.style.left = '50%';
+        bubble.style.top  = '0';
+        const initLine = typeof cfg.lines[0] === 'function' ? cfg.lines[0]() : cfg.lines[0];
+        bubble.innerHTML  = `<span class="bubble-name">${cfg.label}</span>${initLine}`;
+        wrap.appendChild(bubble);
+
+        let lineIdx = 0;
+        let hideTimer = null;
+
+        wrap.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (activeBubble && activeBubble !== bubble) {
+            activeBubble.classList.remove('is-visible');
+          }
+          activeBubble = bubble;
+          lineIdx = (lineIdx + 1) % cfg.lines.length;
+          const raw = cfg.lines[lineIdx];
+          const line = typeof raw === 'function' ? raw() : raw;
+          bubble.innerHTML = `<span class="bubble-name">${cfg.label}</span>${line}`;
+          bubble.classList.add('is-visible');
+          wrap.classList.add('is-hopping');
+          wrap.addEventListener('animationend', () => wrap.classList.remove('is-hopping'), { once: true });
+
+          // Spawn emote
+          spawnEmote(cfg.id, e.clientX, e.clientY);
+          igniteFlameFromActivity(0.03, false);
+
+          clearTimeout(hideTimer);
+          hideTimer = setTimeout(() => {
+            bubble.classList.remove('is-visible');
+            if (activeBubble === bubble) activeBubble = null;
+          }, 3500);
+        });
+
+        sceneHit.appendChild(wrap);
+      });
+
+      // Close on outside click
+      document.addEventListener('click', () => {
+        if (activeBubble) {
+          activeBubble.classList.remove('is-visible');
+          activeBubble = null;
+        }
+      }, { capture: false });
+    }
+
+    function spawnEmote(charId, cx, cy) {
+      const emotes = {
+        boy:   ['♪', '♫', '🎵', '🎶'],
+        cat1:  ['💤', 'z', 'Z', '😸'],
+        cat2:  ['🐾', '💗', '✨'],
+        robot: ['⚡', '✓', '🔧', '💡'],
+        girl:  ['☕', '💛', '✨', '🌙'],
+      };
+      const pool = emotes[charId] || ['✨'];
+      const count = charId === 'boy' ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.className = 'emote' + (charId === 'cat1' ? ' zzz' : '');
+          el.textContent = pool[Math.floor(Math.random() * pool.length)];
+          const dx = (Math.random() - 0.5) * 60;
+          const rise = -(50 + Math.random() * 55);
+          const rot = (Math.random() - 0.5) * 30;
+          const dur = 2.2 + Math.random() * 0.8;
+          el.style.cssText = `
+            left:${cx + (Math.random() - 0.5) * 35}px;
+            top:${cy - 10}px;
+            font-size:${14 + Math.random() * 8}px;
+            --dx:${dx}px; --rise:${rise}px; --rot:${rot}deg; --dur:${dur}s;
+            z-index:50;`;
+          document.body.appendChild(el);
+          setTimeout(() => el.remove(), dur * 1000 + 200);
+        }, i * 130);
+      }
+    }
+
+    // ---- Bara fill update ----
+    function updateBaraFill(sparks) {
+      if (!baraFill) return;
+      const pct = Math.min(100, (sparks / 1000) * 100);
+      baraFill.style.width = Math.max(1, pct) + '%';
+    }
+
+    // Patch totalSparksText update to also update the fill bar
+    const _origApply = applyBonfireState;
+    // (already declared above; we patch synServer instead via wrapper)
+
+    // ---- Ambient canvas: twinkling stars ----
+    function initAmbientCanvas(key) {
+      const ctx = ambientCanvas.getContext('2d');
+      const W = ambientCanvas.width;
+      const H = ambientCanvas.height;
+      // Star region: top 45% for desktop, top 60% for mobile
+      const starH = H * (key === 'desktop' ? 0.44 : 0.60);
+      const stars = Array.from({ length: 110 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * starH,
+        r: 0.4 + Math.random() * 1.1,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.5 + Math.random() * 1.4,
+      }));
+      function drawStars(ts) {
+        ctx.clearRect(0, 0, W, H);
+        const t = ts / 1000;
+        stars.forEach(s => {
+          const alpha = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,248,220,${alpha.toFixed(2)})`;
+          ctx.fill();
+        });
+        requestAnimationFrame(drawStars);
+      }
+      requestAnimationFrame(drawStars);
+    }
 
     window.onload = () => {
       lucide.createIcons();
       animate();
+      initSceneLayout();
+      initAmbientCanvas(currentImgKey);
     };
   </script>
 </body>
