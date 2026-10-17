@@ -164,6 +164,39 @@ function parseCurrencyQuery(prompt: string): boolean {
   return /(?:kurs\s+(?:hari\s+ini|valas|dollar|rupiah|usd|eur|jpy|mata\s+uang)|nilai\s+tukar|harga\s+dollar|cek\s+kurs|info\s+kurs)/i.test(prompt);
 }
 
+/**
+ * Mendeteksi apakah input user murni berupa sapaan atau basa-basi santai pembuka hari/sesi
+ * (misal: "pagi maya", "halo", "hai", "oi", "lagi apa", "apa kabar", dll.)
+ */
+function isGreetingOrCasualOpening(prompt: string): boolean {
+  const cleaned = prompt
+    .toLowerCase()
+    .replace(/<@!?\d+>/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Jika kosong atau hanya menyebut maya
+  if (!cleaned || cleaned === "maya" || cleaned === "halo maya" || cleaned === "hai maya") return true;
+
+  // 1. Sapaan murni (pagi, siang, sore, malam, halo, hai, oi, yo, assalamualaikum, tes, ping, dll.)
+  const pureGreetingRegex = /^(?:halo|hai|helo|hi|hey|oi|oy|yo|woi|pagi|siang|sore|malem|malam|selamat\s+(?:pagi|siang|sore|malam)|morning|good\s+morning|assalamu\s*alaikum|assalamualaikum|tes|test|ping)(?:\s+(?:maya|cantik|semua|guys|kawan|bro|sis|sayang))?$/i;
+  if (pureGreetingRegex.test(cleaned)) return true;
+
+  // 2. Basa-basi santai pembuka (misal: "halo maya apa kabar", "lagi apa maya", "sehat maya", "gimana kabarnya")
+  const casualOpeningRegex = /^(?:halo|hai|hey|pagi|siang|sore|malam|oi)?\s*(?:maya)?\s*(?:apa\s+kabar|gimana\s+kabarnya|lagi\s+(?:apa|ngapain)|sedang\s+(?:apa|ngapain)|sehat\s*(?:gak|kah)?|kabarnya\s+gimana)(?:\s+maya)?$/i;
+  if (casualOpeningRegex.test(cleaned)) return true;
+
+  return false;
+}
+
+/**
+ * Mendeteksi apakah user secara eksplisit ingin melanjutkan atau membahas konteks percakapan lampau/kemarin
+ */
+function hasExplicitPastContextIntent(prompt: string): boolean {
+  return /\b(kemarin|kemaren|tadi|lanjut|lanjutin|sambung|bahas\s+yang|soal\s+yang|inget\s+gak|inget\s+ga|masih\s+inget|terakhir\s+kita|kemarin\s+kan|kemaren\s+kan)\b/i.test(prompt);
+}
+
 
 const event: BotEvent = {
 
@@ -640,13 +673,65 @@ const event: BotEvent = {
         const dbHistory = await prisma.aiChatMessage.findMany({
           where: { guildId, userId: message.author.id },
           orderBy: { createdAt: "desc" },
-          take: 12
+          take: 16
         });
 
-        const historyMessages = dbHistory.reverse().map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
+        // Tentukan status sesi (jeda > 4 jam atau berganti hari kalender WIB Asia/Jakarta)
+        const now = new Date();
+        const getWibDateStr = (d: Date) =>
+          new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(d);
+        const nowDateWib = getWibDateStr(now);
+
+        const isGreeting = isGreetingOrCasualOpening(userPrompt);
+        const hasPastIntent = hasExplicitPastContextIntent(userPrompt) || isReplyToMaya;
+
+        // Pisahkan riwayat obrolan: pesan dari sesi aktif saat ini vs sesi lampau/kemarin
+        // Sesi aktif: pesan yang terjadi di hari WIB yang sama DAN jeda waktu < 4 jam dari titik obrolan aktif
+        let activeSessionHistory: { role: string; content: string }[] = [];
+        let allHistory: { role: string; content: string }[] = [];
+
+        if (dbHistory.length > 0) {
+          allHistory = dbHistory.slice().reverse().map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+
+          const currentSessionMsgs: typeof dbHistory = [];
+          let prevTime = now.getTime();
+
+          for (const msg of dbHistory) {
+            const msgTime = new Date(msg.createdAt).getTime();
+            const msgDateWib = getWibDateStr(new Date(msg.createdAt));
+            const diffFromPrevHours = (prevTime - msgTime) / (1000 * 60 * 60);
+
+            // Jika beda hari kalender WIB atau jeda > 4 jam dari titik obrolan aktif, ini batas sesi lampau
+            if (msgDateWib !== nowDateWib || diffFromPrevHours >= 4) {
+              break;
+            }
+
+            currentSessionMsgs.push(msg);
+            prevTime = msgTime;
+          }
+
+          activeSessionHistory = currentSessionMsgs.reverse().map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+        }
+
+        // Tentukan history mana yang diteruskan ke AI:
+        // 1. Jika user eksplisit ingin lanjut/membahas obrolan lampau atau me-reply pesan lama: kirim full history (termasuk kemarin)
+        // 2. Jika user HANYA menyapa / basa-basi pembuka di sesi baru: kosongkan history (respons fresh & ramah tanpa bawa beban kemarin)
+        // 3. Jika sedang dalam sesi aktif berjalan hari ini: gunakan riwayat sesi aktif hari ini
+        let historyMessages: { role: string; content: string }[] = [];
+        if (hasPastIntent) {
+          historyMessages = allHistory;
+        } else if (isGreeting && activeSessionHistory.length === 0) {
+          // Sapaan pembuka di hari/sesi baru -> riwayat kosong agar respons 100% natural, fresh, dan seperti manusia
+          historyMessages = [];
+        } else {
+          historyMessages = activeSessionHistory;
+        }
 
         const authorName = message.member?.displayName || message.author.displayName || message.author.username;
         let contextAddition = "";
