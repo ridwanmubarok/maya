@@ -5,7 +5,7 @@ import path from "path";
 import { MayaClient } from "../types";
 import { prisma } from "./database";
 import { logger } from "../utils/logger";
-import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Guild, PermissionsBitField } from "discord.js";
 import { createMabarEmbed, createMabarButtons } from "./mabarManager";
 import { getGuildAnalytics } from "./analyticsService";
 import { 
@@ -1866,13 +1866,119 @@ export function startDashboard(client: MayaClient) {
   // LANDING PAGE ENDPOINTS (THE CHECKPOINT)
   // ==========================================
 
+  const inviteCache = new Map<string, { url: string; fetchedAt: number }>();
+  const INVITE_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+  async function resolveDynamicDiscordInvite(guild?: Guild, forceRefresh = false): Promise<string> {
+    const fallbackUrl = process.env.DISCORD_INVITE_URL || "https://discord.gg/TVKcyQqB3";
+    if (!guild) return fallbackUrl;
+
+    const cached = inviteCache.get(guild.id);
+    if (!forceRefresh && cached && (Date.now() - cached.fetchedAt) < INVITE_CACHE_TTL_MS) {
+      return cached.url;
+    }
+
+    try {
+      // 1. Use Vanity URL if the guild has one
+      if (guild.vanityURLCode) {
+        const vanityUrl = `https://discord.gg/${guild.vanityURLCode}`;
+        inviteCache.set(guild.id, { url: vanityUrl, fetchedAt: Date.now() });
+        return vanityUrl;
+      }
+
+      // 2. Check existing active invites in the guild
+      const invites = await guild.invites.fetch().catch(() => null);
+      if (invites && invites.size > 0) {
+        const activeInvites = Array.from(invites.values()).filter(
+          inv => (!inv.expiresTimestamp || inv.expiresTimestamp > Date.now()) &&
+                 (!inv.maxUses || inv.uses === null || inv.uses < inv.maxUses)
+        );
+        const permanentInvite = activeInvites.find(inv => inv.maxAge === 0 && inv.maxUses === 0) || activeInvites[0];
+        if (permanentInvite?.url) {
+          inviteCache.set(guild.id, { url: permanentInvite.url, fetchedAt: Date.now() });
+          return permanentInvite.url;
+        }
+      }
+
+      // 3. Dynamically generate a new permanent invite on a public text channel
+      const botMember = guild.members.me || await guild.members.fetchMe().catch(() => null);
+      if (botMember) {
+        const canInviteIn = (ch: any) => {
+          if (!ch || ch.type !== ChannelType.GuildText) return false;
+          const perms = ch.permissionsFor(botMember);
+          return perms?.has(PermissionsBitField.Flags.ViewChannel) &&
+                 perms?.has(PermissionsBitField.Flags.CreateInstantInvite);
+        };
+
+        const isPublicChannel = (ch: any) => {
+          const everyonePerms = ch.permissionsFor(guild.roles.everyone);
+          return everyonePerms?.has(PermissionsBitField.Flags.ViewChannel);
+        };
+
+        let targetChannel: TextChannel | null = null;
+        if (canInviteIn(guild.systemChannel)) {
+          targetChannel = guild.systemChannel as TextChannel;
+        } else if (canInviteIn(guild.rulesChannel)) {
+          targetChannel = guild.rulesChannel as TextChannel;
+        } else {
+          const textChannels = Array.from(guild.channels.cache.values())
+            .filter(ch => canInviteIn(ch) && isPublicChannel(ch)) as TextChannel[];
+          targetChannel =
+            textChannels.find(ch => /^(welcome|general|chat|obrolan|lobby|checkpoint)/i.test(ch.name)) ||
+            textChannels[0] ||
+            (Array.from(guild.channels.cache.values()).find(ch => canInviteIn(ch)) as TextChannel | undefined) ||
+            null;
+        }
+
+        if (targetChannel) {
+          const created = await targetChannel.createInvite({
+            maxAge: 0,
+            maxUses: 0,
+            unique: false,
+            reason: "Dynamic invite generated for Maya landing website"
+          });
+          if (created?.url) {
+            inviteCache.set(guild.id, { url: created.url, fetchedAt: Date.now() });
+            return created.url;
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn(`Gagal mengambil/membuat dynamic invite untuk guild ${guild.id}:`, err);
+    }
+
+    return fallbackUrl;
+  }
+
+  function getLandingGuild(): Guild | undefined {
+    return client.guilds.cache.find(g =>
+      g.name.toLowerCase().includes("checkpoint")
+    ) || client.guilds.cache.first();
+  }
+
+  // Dynamic Invite Endpoint (returns JSON or redirects when ?redirect=1)
+  app.get("/api/landing/invite", async (req: Request, res: Response) => {
+    const checkpointGuild = getLandingGuild();
+    const forceRefresh = req.query.refresh === "1";
+    const inviteUrl = await resolveDynamicDiscordInvite(checkpointGuild, forceRefresh);
+    if (req.query.redirect === "1") {
+      return res.redirect(inviteUrl);
+    }
+    res.json({ inviteUrl });
+  });
+
+  // Direct Join Redirect Endpoint from website
+  app.get("/join", async (req: Request, res: Response) => {
+    const checkpointGuild = getLandingGuild();
+    const inviteUrl = await resolveDynamicDiscordInvite(checkpointGuild);
+    res.redirect(inviteUrl);
+  });
+
   // Public Landing Page Stats Endpoint for The Checkpoint Bonfire
   app.get("/api/landing/stats", async (req: Request, res: Response) => {
     try {
       // Find The Checkpoint guild from client cache
-      let checkpointGuild = client.guilds.cache.find(g => 
-        g.name.toLowerCase().includes("checkpoint")
-      ) || client.guilds.cache.first();
+      const checkpointGuild = getLandingGuild();
 
       const guildName = checkpointGuild ? checkpointGuild.name : "THE CHECKPOINT";
       const guildIcon = checkpointGuild?.iconURL({ size: 256 }) || null;
@@ -2081,7 +2187,7 @@ export function startDashboard(client: MayaClient) {
       }
 
       const bonfire = bonfireManager.getState();
-      const inviteUrl = process.env.DISCORD_INVITE_URL || "https://discord.gg/TVKcyQqB3";
+      const inviteUrl = await resolveDynamicDiscordInvite(checkpointGuild);
 
       res.json({
         serverName: guildName,
